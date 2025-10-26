@@ -1,7 +1,11 @@
 "use client";
 import { useState } from "react";
 
-export default function ControlDock({ onToggleCoreSound }: { onToggleCoreSound: (state: boolean) => void }) {
+interface ControlDockProps {
+  onToggleCoreSound: (state: boolean) => void;
+}
+
+export default function ControlDock({ onToggleCoreSound }: ControlDockProps) {
   const [coreSound, setCoreSound] = useState(false);
 
   const toggleCoreSound = () => {
