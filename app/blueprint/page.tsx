@@ -6,6 +6,7 @@ import ModuleGrid from "../../components/ModuleGrid";
 import PulseMap from "../../components/PulseMap";
 import DiagnosticsSidebar from "../../components/DiagnosticsSidebar";
 import ControlDock from "../../components/ControlDock";
+import IntelligenceCore from "../../components/IntelligenceCore";
 
 export default function BlueprintPage() {
   return (
@@ -34,6 +35,9 @@ export default function BlueprintPage() {
 
       {/* Panou lateral de diagnostic */}
       <DiagnosticsSidebar />
+
+      {/* Consolă interactivă (AI Core) */}
+      <IntelligenceCore />
 
       {/* Panou de control (stânga-jos) */}
       <ControlDock />
