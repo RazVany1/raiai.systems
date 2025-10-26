@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 interface ControlDockProps {
-  onToggleCoreSound: (state: boolean) => void;
+  onToggleCoreSound?: (state: boolean) => void;
 }
 
 export default function ControlDock({ onToggleCoreSound }: ControlDockProps) {
@@ -11,7 +11,7 @@ export default function ControlDock({ onToggleCoreSound }: ControlDockProps) {
   const toggleCoreSound = () => {
     const newState = !coreSound;
     setCoreSound(newState);
-    onToggleCoreSound(newState);
+    if (onToggleCoreSound) onToggleCoreSound(newState);
     console.log("🔊 Toggle Core Sound:", newState);
   };
 
