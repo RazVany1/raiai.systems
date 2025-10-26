@@ -1,83 +1,73 @@
 "use client";
-import React, { useEffect, useState, FormEvent } from "react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export default function IntelligenceCore() {
-  console.log("🧠 IntelligenceCore mounted!"); // ✅ debug vizual în consolă
-
-  const [status, setStatus] = useState("Initializing cognitive modules...");
-  const [log, setLog] = useState<string[]>([]);
-  const [input, setInput] = useState("");
-  const [visible, setVisible] = useState(true);
+  const [signal, setSignal] = useState(0);
 
   useEffect(() => {
-    console.log("✅ IntelligenceCore useEffect active");
-    setVisible(true);
-
-    const states = [
-      "Calibrating neural pathways...",
-      "Optimizing data flow...",
-      "Synchronizing memory clusters...",
-      "Running introspection cycles...",
-      "Ready for interaction.",
-    ];
-
-    let i = 0;
     const interval = setInterval(() => {
-      setStatus(states[i]);
-      i = (i + 1) % states.length;
-    }, 4000);
-
+      setSignal(Math.random());
+    }, 1800);
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setLog((prev) => [...prev, `> ${input}`, "RAI: Processing request..."]);
-    setInput("");
-    setTimeout(() => {
-      setLog((prev) => [...prev, "RAI: Operation acknowledged."]);
-    }, 1500);
-  };
-
-  if (!visible) return null;
-
   return (
-    <motion.div
-      id="rai-console"
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/70 border border-cyan-400/40 rounded-2xl backdrop-blur-md p-4 text-cyan-200 z-[999999] shadow-[0_0_30px_#00FFFF80]"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1.2 }}
-    >
-      <div className="text-cyan-400 text-sm mb-2 tracking-widest font-semibold text-center">
-        {status}
-      </div>
-
-      <div className="h-32 overflow-y-auto text-xs font-mono mb-3 bg-black/30 p-2 rounded-md border border-cyan-400/20">
-        {log.length === 0 ? (
-          <div className="text-cyan-700">RAI Console active...</div>
-        ) : (
-          log.map((line, i) => <div key={i}>{line}</div>)
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a command..."
-          className="flex-1 bg-black/50 text-cyan-100 border border-cyan-400/30 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400"
-        />
-        <button
-          type="submit"
-          className="px-4 py-1 bg-cyan-400 text-black font-semibold rounded-md hover:bg-cyan-300 transition"
+    <div className="absolute bottom-24 right-24 z-40 text-cyan-400 font-mono select-none">
+      <motion.div
+        className="relative flex flex-col items-end"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 2 }}
+      >
+        <motion.h2
+          className="text-2xl tracking-widest mb-1"
+          animate={{ opacity: [0.8, 1, 0.8] }}
+          transition={{ repeat: Infinity, duration: 5 }}
         >
-          Send
-        </button>
-      </form>
-    </motion.div>
+          CORE BLUEPRINT v1.0
+        </motion.h2>
+
+        <motion.p
+          className="text-xs max-w-md text-right leading-relaxed text-cyan-300/80"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 2 }}
+        >
+          The RAI System operates as a distributed cognitive framework — combining
+          high-context reasoning with adaptive learning nodes. Each iteration balances
+          rational autonomy and human-aligned interpretation.
+        </motion.p>
+
+        <div className="mt-4 flex items-center gap-2">
+          <span className="text-xs text-cyan-200/70">SIGNAL STABILITY</span>
+          <div className="w-24 h-[6px] bg-cyan-900/40 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-cyan-400"
+              animate={{ width: `${signal * 100}%` }}
+              transition={{ duration: 1 }}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-2">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 bg-cyan-400 rounded-full"
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.2 + i * 0.5,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </div>
   );
 }
