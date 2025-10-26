@@ -8,7 +8,7 @@ export default function ControlDock({ onToggleCoreSound }: { onToggleCoreSound: 
     const newState = !coreSound;
     setCoreSound(newState);
     onToggleCoreSound(newState);
-    console.log("🔊 Toggle Core Sound:", newState); // verificare în consola browserului
+    console.log("🔊 Toggle Core Sound:", newState);
   };
 
   return (
