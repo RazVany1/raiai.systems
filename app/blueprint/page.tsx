@@ -3,12 +3,16 @@ import { motion } from "framer-motion";
 import BlueprintScene from "../../components/BlueprintScene";
 import BlueprintPanel from "../../components/BlueprintPanel";
 import ModuleGrid from "../../components/ModuleGrid";
+import PulseMap from "../../components/PulseMap";
 
 export default function BlueprintPage() {
   return (
     <main className="relative min-h-screen bg-black overflow-hidden">
       {/* Fundal cinematic */}
       <BlueprintScene />
+
+      {/* Rețea interactivă (Pulse Map) */}
+      <PulseMap />
 
       {/* Rețea de noduri pulsante */}
       <ModuleGrid />
