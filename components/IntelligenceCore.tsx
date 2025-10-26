@@ -6,12 +6,9 @@ export default function IntelligenceCore() {
   const [status, setStatus] = useState("Initializing cognitive modules...");
   const [log, setLog] = useState<string[]>([]);
   const [input, setInput] = useState("");
-  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     console.log("✅ IntelligenceCore mounted successfully.");
-    setVisible(true);
-
     const states = [
       "Calibrating neural pathways...",
       "Optimizing data flow...",
@@ -19,13 +16,11 @@ export default function IntelligenceCore() {
       "Running introspection cycles...",
       "Ready for interaction.",
     ];
-
     let i = 0;
     const interval = setInterval(() => {
       setStatus(states[i]);
       i = (i + 1) % states.length;
     }, 4000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -39,13 +34,12 @@ export default function IntelligenceCore() {
     }, 1500);
   };
 
-  if (!visible) return null;
-
   return (
     <motion.div
-      className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/60 border border-cyan-400/40 rounded-2xl backdrop-blur-md p-4 text-cyan-200 z-[9999] shadow-[0_0_20px_#00FFFF20]"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      id="rai-console"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/70 border border-cyan-400/40 rounded-2xl backdrop-blur-md p-4 text-cyan-200 z-[999999] shadow-[0_0_30px_#00FFFF80]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 1.2 }}
     >
       <div className="text-cyan-400 text-sm mb-2 tracking-widest font-semibold text-center">
