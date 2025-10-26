@@ -4,6 +4,7 @@ import BlueprintScene from "../../components/BlueprintScene";
 import BlueprintPanel from "../../components/BlueprintPanel";
 import ModuleGrid from "../../components/ModuleGrid";
 import PulseMap from "../../components/PulseMap";
+import DiagnosticsSidebar from "../../components/DiagnosticsSidebar";
 
 export default function BlueprintPage() {
   return (
@@ -14,7 +15,7 @@ export default function BlueprintPage() {
       {/* Rețea interactivă (Pulse Map) */}
       <PulseMap />
 
-      {/* Rețea de noduri pulsante */}
+      {/* Noduri pulsante */}
       <ModuleGrid />
 
       {/* Titlu principal */}
@@ -29,6 +30,9 @@ export default function BlueprintPage() {
 
       {/* Panou central de informații */}
       <BlueprintPanel />
+
+      {/* Panou lateral cu diagnostic sistem */}
+      <DiagnosticsSidebar />
 
       {/* Watermark permanent */}
       <div className="fixed bottom-6 right-6 opacity-60 text-cyan-500 text-lg tracking-widest select-none pointer-events-none">
