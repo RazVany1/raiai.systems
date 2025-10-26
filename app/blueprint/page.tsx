@@ -11,14 +11,14 @@ import IntelligenceCore from "../../components/IntelligenceCore";
 export default function BlueprintPage() {
   return (
     <main className="relative min-h-screen bg-black overflow-hidden">
-      {/* Straturi vizuale */}
+      {/* === LAYER 1: Fundalul cinematic === */}
       <div className="absolute inset-0 z-0">
         <BlueprintScene />
         <PulseMap />
         <ModuleGrid />
       </div>
 
-      {/* Straturi UI */}
+      {/* === LAYER 2: UI și diagnostic === */}
       <div className="relative z-10">
         <motion.h1
           className="absolute top-12 left-1/2 -translate-x-1/2 text-4xl font-bold text-cyan-400 tracking-widest drop-shadow-[0_0_10px_#00FFFF]"
@@ -29,17 +29,22 @@ export default function BlueprintPage() {
           RAI SYSTEM BLUEPRINT
         </motion.h1>
 
+        {/* Panou informativ central */}
         <BlueprintPanel />
+
+        {/* Diagnostic lateral */}
         <DiagnosticsSidebar />
+
+        {/* Panou de control */}
         <ControlDock />
       </div>
 
-      {/* Consolă interactivă (AI Core) */}
+      {/* === LAYER 3: Consola AI Core === */}
       <div className="absolute inset-0 z-[9999] pointer-events-none">
         <IntelligenceCore />
       </div>
 
-      {/* Watermark */}
+      {/* === LAYER 4: Watermark & branding === */}
       <div className="fixed bottom-6 right-6 opacity-60 text-cyan-500 text-lg tracking-widest select-none pointer-events-none z-[10000]">
         ∞RAI
       </div>
