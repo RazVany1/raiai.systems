@@ -10,10 +10,7 @@ export default function RAIWatermark() {
     >
       <motion.div
         className="text-cyan-400 font-bold text-3xl tracking-widest drop-shadow-[0_0_10px_#00FFFF]"
-        style={{
-          textShadow:
-            "0 0 10px rgba(0,255,255,0.7), 0 0 20px rgba(0,255,255,0.5)",
-        }}
+        style={{ textShadow: "0 0 10px rgba(0,255,255,0.7),0 0 20px rgba(0,255,255,0.5)" }}
       >
         ∞RAI
       </motion.div>
