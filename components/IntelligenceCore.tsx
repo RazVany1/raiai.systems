@@ -3,6 +3,7 @@ import React, { useEffect, useState, FormEvent } from "react";
 import { motion } from "framer-motion";
 
 export default function IntelligenceCore() {
+  console.log("🧠 IntelligenceCore mounted!");
   const [status, setStatus] = useState("Initializing cognitive modules...");
   const [log, setLog] = useState<string[]>([]);
   const [input, setInput] = useState("");
