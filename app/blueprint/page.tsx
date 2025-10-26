@@ -8,10 +8,9 @@ export default function BlueprintPage() {
 
   return (
     <main className="relative min-h-screen bg-black overflow-hidden text-cyan-400 font-mono">
-      {/* Nucleul energetic */}
       <IntelligenceCore coreSoundEnabled={coreSoundEnabled} />
 
-      {/* Panou de control — mereu deasupra */}
+      {/* DOCK fixat în față */}
       <div className="absolute bottom-6 left-6 z-[99999]">
         <ControlDock onToggleCoreSound={setCoreSoundEnabled} />
       </div>
