@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useRAIState } from "../lib/raiState";
 
 interface Node {
   id: number;
@@ -11,8 +12,8 @@ interface Node {
 
 export default function ModuleGrid() {
   const [nodes, setNodes] = useState<Node[]>([]);
+  const { animations } = useRAIState();
 
-  // generează pozițiile nodurilor
   useEffect(() => {
     const arr: Node[] = [];
     for (let i = 0; i < 40; i++) {
@@ -38,10 +39,11 @@ export default function ModuleGrid() {
             width: node.size,
             height: node.size,
           }}
-          animate={{
-            opacity: [0.2, 0.9, 0.2],
-            scale: [1, 1.3, 1],
-          }}
+          animate={
+            animations
+              ? { opacity: [0.2, 0.9, 0.2], scale: [1, 1.3, 1] }
+              : { opacity: 0.4, scale: 1 }
+          }
           transition={{
             duration: Math.random() * 3 + 2,
             repeat: Infinity,
