@@ -1,9 +1,13 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useRAIState } from "../lib/raiState";
 
 export default function PulseMap() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { pulse } = useRAIState();
   let mouse = { x: 0, y: 0 };
+
+  if (!pulse) return null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -24,8 +28,6 @@ export default function PulseMap() {
     const draw = () => {
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // fundal subtil transparent
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -35,7 +37,6 @@ export default function PulseMap() {
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
-        // distanță față de mouse
         const dx = mouse.x - p.x;
         const dy = mouse.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
