@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useRAIState } from "../lib/raiState";
 
 interface Metric {
   label: string;
@@ -15,7 +16,9 @@ export default function DiagnosticsSidebar() {
     { label: "STABILITY INDEX", value: 0 },
   ]);
 
-  // Actualizare automată a valorilor
+  const { diagnostics } = useRAIState();
+  if (!diagnostics) return null;
+
   useEffect(() => {
     const interval = setInterval(() => {
       setMetrics((prev) =>
