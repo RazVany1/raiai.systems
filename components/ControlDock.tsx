@@ -15,12 +15,16 @@ export default function ControlDock({ onToggleCoreSound }: { onToggleCoreSound: 
       <h3 className="text-sm font-bold mb-2 text-cyan-400 tracking-widest">
         RAI CONTROL DOCK
       </h3>
+
+      {/* 🔊 nou buton pentru sunetul de bază */}
       <button
         onClick={toggleCoreSound}
         className="block w-full text-left hover:text-cyan-100 transition"
       >
         🔊 {coreSound ? "Disable Core Sound" : "Enable Core Sound"}
       </button>
+
+      {/* restul butoanelor vechi */}
       <button className="block w-full text-left hover:text-cyan-100 transition">
         ⏸ Pause Animations
       </button>
