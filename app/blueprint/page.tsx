@@ -14,13 +14,13 @@ export default function BlueprintPage() {
       {/* Fundal cinematic */}
       <BlueprintScene />
 
-      {/* Rețea interactivă (Pulse Map) */}
+      {/* Rețea interactivă */}
       <PulseMap />
 
       {/* Noduri pulsante */}
       <ModuleGrid />
 
-      {/* Titlu principal */}
+      {/* Titlu */}
       <motion.h1
         className="absolute top-12 left-1/2 -translate-x-1/2 text-4xl font-bold text-cyan-400 tracking-widest drop-shadow-[0_0_10px_#00FFFF]"
         initial={{ opacity: 0, y: -20 }}
@@ -30,20 +30,20 @@ export default function BlueprintPage() {
         RAI SYSTEM BLUEPRINT
       </motion.h1>
 
-      {/* Panou central cu informații */}
+      {/* Panou central */}
       <BlueprintPanel />
 
-      {/* Panou lateral de diagnostic */}
+      {/* Diagnostic */}
       <DiagnosticsSidebar />
+
+      {/* Panou control */}
+      <ControlDock />
 
       {/* Consolă interactivă (AI Core) */}
       <IntelligenceCore />
 
-      {/* Panou de control (stânga-jos) */}
-      <ControlDock />
-
-      {/* Watermark permanent */}
-      <div className="fixed bottom-6 right-6 opacity-60 text-cyan-500 text-lg tracking-widest select-none pointer-events-none">
+      {/* Watermark */}
+      <div className="fixed bottom-6 right-6 opacity-60 text-cyan-500 text-lg tracking-widest select-none pointer-events-none z-[9999]">
         ∞RAI
       </div>
     </main>
