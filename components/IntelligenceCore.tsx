@@ -1,15 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, FormEvent } from "react";
 import { motion } from "framer-motion";
 
 export default function IntelligenceCore() {
   const [status, setStatus] = useState("Initializing cognitive modules...");
   const [log, setLog] = useState<string[]>([]);
   const [input, setInput] = useState("");
-  const [visible, setVisible] = useState(true); // fallback vizibilitate
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    console.log("✅ IntelligenceCore mounted successfully."); // debug vizual
+    console.log("✅ IntelligenceCore mounted successfully.");
     setVisible(true);
 
     const states = [
@@ -29,7 +29,7 @@ export default function IntelligenceCore() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
     setLog((prev) => [...prev, `> ${input}`, "RAI: Processing request..."]);
