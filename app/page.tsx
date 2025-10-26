@@ -11,13 +11,9 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-col items-center justify-center h-screen text-center">
-      <h1 className="text-6xl font-bold text-cyan-400 mb-6 drop-shadow-[0_0_10px_#00FFFF]">
-        ∞RAI
-      </h1>
-      <p className="text-cyan-200 mb-10 tracking-widest uppercase">
-        Rational. Autonomous. Infinite.
-      </p>
-      <GlowButton text="ACCESS BLUEPRINT" />
+      <h1 className="text-6xl font-bold text-cyan-400 mb-6 drop-shadow-[0_0_10px_#00FFFF]">∞RAI</h1>
+      <p className="text-cyan-200 mb-10 tracking-widest uppercase">Rational. Autonomous. Infinite.</p>
+      <GlowButton text="ACCESS BLUEPRINT" href="/docs/RAI_Technical_Blueprint_v1.0_Vany.pdf" />
     </main>
   );
 }
