@@ -43,7 +43,7 @@ export default function IntelligenceCore() {
 
   return (
     <motion.div
-      className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/60 border border-cyan-400/40 rounded-2xl backdrop-blur-md p-4 text-cyan-200 z-50 shadow-[0_0_20px_#00FFFF20]"
+      className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/60 border border-cyan-400/40 rounded-2xl backdrop-blur-md p-4 text-cyan-200 z-[9999] shadow-[0_0_20px_#00FFFF20]"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1.2 }}
