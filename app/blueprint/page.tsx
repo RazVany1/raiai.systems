@@ -5,6 +5,7 @@ import BlueprintPanel from "../../components/BlueprintPanel";
 import ModuleGrid from "../../components/ModuleGrid";
 import PulseMap from "../../components/PulseMap";
 import DiagnosticsSidebar from "../../components/DiagnosticsSidebar";
+import ControlDock from "../../components/ControlDock";
 
 export default function BlueprintPage() {
   return (
@@ -28,11 +29,14 @@ export default function BlueprintPage() {
         RAI SYSTEM BLUEPRINT
       </motion.h1>
 
-      {/* Panou central de informații */}
+      {/* Panou central cu informații */}
       <BlueprintPanel />
 
-      {/* Panou lateral cu diagnostic sistem */}
+      {/* Panou lateral de diagnostic */}
       <DiagnosticsSidebar />
+
+      {/* Panou de control (stânga-jos) */}
+      <ControlDock />
 
       {/* Watermark permanent */}
       <div className="fixed bottom-6 right-6 opacity-60 text-cyan-500 text-lg tracking-widest select-none pointer-events-none">
