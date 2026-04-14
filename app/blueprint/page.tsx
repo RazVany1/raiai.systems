@@ -56,7 +56,7 @@ export default function BlueprintPage() {
         {/* Sidebar și panouri */}
         <DiagnosticsSidebar />
         <BlueprintPanel />
-        <IntelligenceCore />
+        <IntelligenceCore coreSoundEnabled={true} />
 
         {/* Control Dock (panoul existent) */}
         <ControlDock />

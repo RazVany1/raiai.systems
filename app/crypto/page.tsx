@@ -16,7 +16,7 @@ const profileA = {
 };
 
 export default function CryptoDashboardPage() {
-  (
+  return (
     <main className="min-h-screen px-6 py-10 md:px-10">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-2 text-4xl font-bold text-cyan-400 drop-shadow-[0_0_10px_#00FFFF]">
@@ -86,7 +86,7 @@ export default function CryptoDashboardPage() {
                     <td className="px-3 py-3 font-medium">{row.symbol}</td>
                     <td className="px-3 py-3">{row.signal}</td>
                     <td className="px-3 py-3">{row.side}</td>
-                                        <td className="px-3 py-3">{row.quality}</td>
+                    <td className="px-3 py-3">{row.quality}</td>
                     <td className="px-3 py-3">{row.invalidation}</td>
                     <td className="px-3 py-3">{row.notes}</td>
                   </tr>
