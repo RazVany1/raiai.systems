@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 const signalRows = [
   { symbol: "BTCUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
   { symbol: "ETHUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
@@ -8,6 +10,9 @@ const signalRows = [
   { symbol: "EOSUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
   { symbol: "BNBUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
   { symbol: "XRPUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
+  { symbol: "BCHUSDT", signal: "WATCH", side: "SHORT", quality: "WATCH", invalidation: "recent swing high", notes: "Near short Profile A setup" },
+  { symbol: "TRXUSDT", signal: "WATCH", side: "LONG", quality: "WATCH", invalidation: "recent swing low", notes: "Near long Profile A setup" },
+  { symbol: "ADAUSDT", signal: "NO", side: "-", quality: "-", invalidation: "-", notes: "No active Profile A setup" },
 ];
 
 const profileA = {
@@ -15,16 +20,35 @@ const profileA = {
   short: ["XRP", "SOL", "BNB", "BTC"],
 };
 
+const profileB = ["BCH", "TRX", "ADA", "AVAX", "DOT", "LTC", "ATOM", "NEAR", "ETC", "TON"];
+const profileC = ["ARB", "OP", "INJ", "SUI", "SEI", "FET", "WLD", "CRV", "SUSHI", "DYDX", "JUP", "TIA", "FIL", "IMX", "RENDER", "WIF"];
+
 export default function CryptoDashboardPage() {
+  const stats = useMemo(() => {
+    const yesSignals = signalRows.filter((row) => row.signal === "YES").length;
+    const watchSignals = signalRows.filter((row) => row.signal === "WATCH").length;
+    const longBias = signalRows.filter((row) => row.side === "LONG").length;
+    const shortBias = signalRows.filter((row) => row.side === "SHORT").length;
+    return { yesSignals, watchSignals, longBias, shortBias };
+  }, []);
+
   return (
     <main className="min-h-screen px-6 py-10 md:px-10">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mb-2 text-4xl font-bold text-cyan-400 drop-shadow-[0_0_10px_#00FFFF]">
-          RAI Crypto Dashboard
-        </h1>
-        <p className="mb-8 text-cyan-200">
-          Profile A scanner, DiverT Strategy, RAI Strategy family
-        </p>
+        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="mb-2 text-4xl font-bold text-cyan-400 drop-shadow-[0_0_10px_#00FFFF]">
+              RAI Crypto Dashboard
+            </h1>
+            <p className="text-cyan-200">
+              DiverT Strategy + RAI Strategy family
+            </p>
+          </div>
+          <div className="text-sm text-cyan-300">
+            <p>Status: live dashboard v0.2</p>
+            <p>Focus: Profile A scanner readiness</p>
+          </div>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
@@ -33,7 +57,7 @@ export default function CryptoDashboardPage() {
               <li>Trend-pullback continuation</li>
               <li>Long + Short scanner</li>
               <li>Status: signal-ready</li>
-              <li>Live now: no active setup</li>
+              <li>Best fit: cleaner trend coins</li>
             </ul>
           </section>
 
@@ -49,25 +73,28 @@ export default function CryptoDashboardPage() {
 
           <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
             <h2 className="mb-3 text-xl font-semibold text-cyan-300">Profile A Best Fit</h2>
-            <div className="text-sm text-cyan-100">
-              <p className="mb-2"><strong>Long:</strong> {profileA.long.join(", ")}</p>
+            <div className="space-y-2 text-sm text-cyan-100">
+              <p><strong>Long:</strong> {profileA.long.join(", ")}</p>
               <p><strong>Short:</strong> {profileA.short.join(", ")}</p>
             </div>
           </section>
 
           <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
-            <h2 className="mb-3 text-xl font-semibold text-cyan-300">Next</h2>
+            <h2 className="mb-3 text-xl font-semibold text-cyan-300">Signal Stats</h2>
             <ul className="space-y-2 text-sm text-cyan-100">
-              <li>Connect live scanner data</li>
-              <li>Add watch state</li>
-              <li>Add Profile B</li>
-              <li>Add post-exit tracking</li>
+              <li>YES: {stats.yesSignals}</li>
+              <li>WATCH: {stats.watchSignals}</li>
+              <li>Long bias: {stats.longBias}</li>
+              <li>Short bias: {stats.shortBias}</li>
             </ul>
           </section>
         </div>
 
         <section className="mt-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
-          <h2 className="mb-4 text-2xl font-semibold text-cyan-300">Live Signal Board</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-cyan-300">Live Signal Board</h2>
+            <span className="text-sm text-cyan-300">YES / WATCH / NO</span>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-left text-sm">
               <thead>
@@ -96,7 +123,7 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-6 md:grid-cols-2">
+        <section className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
             <h2 className="mb-3 text-xl font-semibold text-cyan-300">Backtest Snapshot</h2>
             <ul className="space-y-2 text-sm text-cyan-100">
@@ -114,6 +141,28 @@ export default function CryptoDashboardPage() {
               <li>Profile B = noisier mid-structure alts</li>
               <li>Profile C = chaotic / narrative assets</li>
             </ul>
+          </div>
+
+          <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+            <h2 className="mb-3 text-xl font-semibold text-cyan-300">Next Build</h2>
+            <ul className="space-y-2 text-sm text-cyan-100">
+              <li>Connect real scanner JSON/API</li>
+              <li>Add Profile B module</li>
+              <li>Add Profile C module</li>
+              <li>Add post-exit tracking panel</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+            <h2 className="mb-3 text-xl font-semibold text-cyan-300">Profile B Candidates</h2>
+            <p className="text-sm text-cyan-100">{profileB.join(", ")}</p>
+          </div>
+
+          <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+            <h2 className="mb-3 text-xl font-semibold text-cyan-300">Profile C Candidates</h2>
+            <p className="text-sm text-cyan-100">{profileC.join(", ")}</p>
           </div>
         </section>
       </div>
