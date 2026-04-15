@@ -24,6 +24,12 @@ type HistoryEntry = {
   };
 };
 
+function signalBadgeClasses(signal: string) {
+  if (signal === "YES") return "border-emerald-400/40 bg-emerald-500/15 text-emerald-300";
+  if (signal === "WATCH") return "border-amber-400/40 bg-amber-500/15 text-amber-300";
+  return "border-cyan-500/20 bg-cyan-500/5 text-cyan-200";
+}
+
 export default function CryptoDashboardPage() {
   const [rows, setRows] = useState<SignalRow[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -52,6 +58,13 @@ export default function CryptoDashboardPage() {
   }, [rows]);
 
   const recentHistory = history.slice(-5).reverse();
+  const topYes = rows.filter((row) => row.signal === "YES");
+  const topWatch = rows.filter((row) => row.signal === "WATCH");
+  const topSignalText = topYes.length > 0
+    ? `YES active: ${topYes.map((row) => row.symbol).join(", ")}`
+    : topWatch.length > 0
+      ? `WATCH active: ${topWatch.map((row) => row.symbol).join(", ")}`
+      : "No active DiverT signal right now";
 
   return (
     <main className="min-h-screen px-6 py-10 md:px-10">
@@ -64,11 +77,16 @@ export default function CryptoDashboardPage() {
             <p className="text-cyan-200">DiverT Strategy live board</p>
           </div>
           <div className="text-sm text-cyan-300">
-            <p>Status: live dashboard v0.4</p>
+            <p>Status: live dashboard v0.5</p>
             <p>Page refresh: 30s</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
+
+        <section className="mb-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+          <h2 className="mb-2 text-xl font-semibold text-cyan-300">Top Signal</h2>
+          <p className="text-sm text-cyan-100">{topSignalText}</p>
+        </section>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
@@ -133,7 +151,11 @@ export default function CryptoDashboardPage() {
                 {rows.map((row) => (
                   <tr key={row.symbol} className="border-b border-cyan-500/10 text-cyan-100">
                     <td className="px-3 py-3 font-medium">{row.symbol}</td>
-                    <td className="px-3 py-3">{row.signal}</td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${signalBadgeClasses(row.signal)}`}>
+                        {row.signal}
+                      </span>
+                    </td>
                     <td className="px-3 py-3">{row.side}</td>
                     <td className="px-3 py-3">{row.quality}</td>
                     <td className="px-3 py-3">{row.invalidation ?? "-"}</td>
@@ -168,6 +190,7 @@ export default function CryptoDashboardPage() {
               <li>Page auto-refreshes every 30s</li>
               <li>Feed refreshes when snapshot generator runs</li>
               <li>Generator: <code>python scripts\generate_divert_snapshot.py</code></li>
+              <li>Scheduler helper: <code>powershell -File scripts\generate_divert_snapshot.ps1</code></li>
               <li>Archive stored in <code>public/data/divert-history.json</code></li>
             </ul>
           </div>
