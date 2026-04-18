@@ -74,6 +74,7 @@ def build_execution_plan(signal: str, side: str, invalidation: float | None) -> 
             "entry": f"direct {side.lower()} execution on valid setup",
             "invalidation": invalidation,
             "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+            "closeRule": "close on first reaction target or invalidation break",
         }
     if signal == "WATCH":
         return {
@@ -81,6 +82,7 @@ def build_execution_plan(signal: str, side: str, invalidation: float | None) -> 
             "entry": "wait for cleaner confirmation",
             "invalidation": invalidation,
             "exitTrigger": "no entry yet",
+            "closeRule": "none",
         }
     if signal == "NEAR_SETUP":
         return {
@@ -88,12 +90,14 @@ def build_execution_plan(signal: str, side: str, invalidation: float | None) -> 
             "entry": "wait for RSI threshold confirmation",
             "invalidation": invalidation,
             "exitTrigger": "no entry yet",
+            "closeRule": "none",
         }
     return {
         "status": "none",
         "entry": "no action",
         "invalidation": invalidation,
         "exitTrigger": "none",
+        "closeRule": "none",
     }
 
 
@@ -141,18 +145,29 @@ def build_trade_log(rows: list[dict], updated_at: str) -> list[dict]:
             if current and current.get("status") == "closed":
                 result.append(current)
                 continue
+
+            existing_entry = current.get("entryPrice") if current and current.get("entryPrice") is not None else price_now
+            exit_trigger = None
+            if existing_entry is not None:
+                if side == "SELL":
+                    exit_trigger = round(float(existing_entry) * 0.97, 6)
+                else:
+                    exit_trigger = round(float(existing_entry) * 1.03, 6)
+
             result.append({
                 "symbol": symbol,
                 "side": side,
                 "timeframe": timeframe,
                 "status": "open",
-                "entryPrice": current.get("entryPrice") if current and current.get("entryPrice") is not None else price_now,
+                "entryPrice": existing_entry,
                 "invalidationPrice": invalidation,
                 "exitPrice": None,
                 "resultPct": None,
                 "quality": quality,
                 "openedAt": current.get("openedAt") if current and current.get("openedAt") else updated_at,
                 "closedAt": None,
+                "targetPrice": exit_trigger,
+                "exitRule": "close on target or invalidation",
                 "notes": [f"auto_managed", f"alert:entry_ready"],
             })
         elif signal in {"WATCH", "NEAR_SETUP"}:
@@ -164,14 +179,37 @@ def build_trade_log(rows: list[dict], updated_at: str) -> list[dict]:
                 raw_result = ((price_now - entry) / entry) * 100
                 if current.get("side") == "SELL":
                     raw_result = -raw_result
-                result.append({
-                    **current,
-                    "status": "closed",
-                    "exitPrice": round(price_now, 6),
-                    "resultPct": round(raw_result, 2),
-                    "closedAt": updated_at,
-                    "notes": list(current.get("notes", [])) + ["alert:close_sent"],
-                })
+
+                should_close = False
+                target_price = current.get("targetPrice")
+                invalidation_price = current.get("invalidationPrice")
+                side_now = current.get("side")
+
+                if side_now == "SELL":
+                    if target_price is not None and price_now <= float(target_price):
+                        should_close = True
+                    if invalidation_price is not None and price_now >= float(invalidation_price):
+                        should_close = True
+                else:
+                    if target_price is not None and price_now >= float(target_price):
+                        should_close = True
+                    if invalidation_price is not None and price_now <= float(invalidation_price):
+                        should_close = True
+
+                if should_close:
+                    result.append({
+                        **current,
+                        "status": "closed",
+                        "exitPrice": round(price_now, 6),
+                        "resultPct": round(raw_result, 2),
+                        "closedAt": updated_at,
+                        "notes": list(current.get("notes", [])) + ["alert:close_sent"],
+                    })
+                else:
+                    result.append({
+                        **current,
+                        "resultPct": round(raw_result, 2),
+                    })
             else:
                 result.append(current)
 
@@ -195,6 +233,8 @@ def build_alerts(rows: list[dict], trade_log: list[dict], updated_at: str) -> li
                 "type": "setup",
                 "priority": "high" if row.get("quality") == "GOOD" else "medium",
                 "message": f"{row.get('signal')} {str(row.get('side', '')).lower()} setup active",
+                "deliveryStatus": "dashboard_ready",
+                "chatDeliveryText": f"CRYPTO ALERT: {row.get('symbol')} {str(row.get('side', '')).lower()} setup active",
                 "createdAt": updated_at,
             })
     for trade in trade_log:
@@ -204,6 +244,8 @@ def build_alerts(rows: list[dict], trade_log: list[dict], updated_at: str) -> li
                 "type": "entry",
                 "priority": "high",
                 "message": f"{trade.get('side')} position active from trade log",
+                "deliveryStatus": "dashboard_ready",
+                "chatDeliveryText": f"CRYPTO ALERT: {trade.get('symbol')} entry active ({trade.get('side')})",
                 "createdAt": updated_at,
             })
         elif trade.get("status") == "closed" and trade.get("closedAt") == updated_at:
@@ -212,6 +254,8 @@ def build_alerts(rows: list[dict], trade_log: list[dict], updated_at: str) -> li
                 "type": "close",
                 "priority": "medium",
                 "message": f"Trade closed at {trade.get('resultPct')}%",
+                "deliveryStatus": "dashboard_ready",
+                "chatDeliveryText": f"CRYPTO ALERT: {trade.get('symbol')} closed at {trade.get('resultPct')}%",
                 "createdAt": updated_at,
             })
     return alerts[:12]
