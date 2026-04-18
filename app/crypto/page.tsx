@@ -77,6 +77,7 @@ export default function CryptoDashboardPage() {
   const signalCandidates = rows.filter((row) => row.signal === "YES" || row.signal === "WATCH");
   const noSignalRows = rows.filter((row) => row.signal === "NO");
   const recentHistory = history.slice(-8).reverse();
+  const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_35%),linear-gradient(180deg,_#0b1220_0%,_#111827_100%)] px-6 py-10 md:px-10">
@@ -89,11 +90,28 @@ export default function CryptoDashboardPage() {
             <p className="text-base text-slate-300">DiverT Strategy live board</p>
           </div>
           <div className="text-sm leading-6 text-slate-300">
-            <p>Status: dashboard v0.7</p>
+            <p>Status: dashboard v0.8</p>
             <p>Page refresh: 30s</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <div className={`${shellClass} p-4`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Last refresh</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
+          </div>
+          <div className={`${shellClass} p-4`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active candidates</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{signalCandidates.length}</p>
+            <p className="mt-1 text-sm text-slate-400">YES + WATCH currently visible</p>
+          </div>
+          <div className={`${shellClass} p-4`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Strongest context</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{strongestPositive.length ? strongestPositive.join(", ") : "None"}</p>
+            <p className="mt-1 text-sm text-slate-400">Positive pattern context snapshot</p>
+          </div>
+        </section>
 
         <section className={`${shellClass} mb-8`}>
           <h2 className="mb-2 text-xl font-semibold text-slate-100">Top Signal</h2>
@@ -134,10 +152,10 @@ export default function CryptoDashboardPage() {
           <section className={shellClass}>
             <h2 className="mb-3 text-lg font-semibold text-slate-100">Next</h2>
             <ul className="space-y-2 text-sm leading-6 text-slate-300">
-              <li>Schedule feed generation</li>
+              <li>Activate local scheduler</li>
               <li>Add post-exit tracking</li>
               <li>Add richer archive view</li>
-              <li>Expand watch universe</li>
+              <li>Expand watch universe further if needed</li>
             </ul>
           </section>
         </div>
@@ -154,19 +172,34 @@ export default function CryptoDashboardPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 {signalCandidates.map((row) => (
                   <div key={row.symbol} className="rounded-xl border border-white/10 bg-slate-950/35 p-4 text-sm text-slate-200">
-                    <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
                       <span className="text-lg font-semibold text-slate-50">{row.symbol}</span>
                       <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${signalBadgeClasses(row.signal)}`}>
                         {row.signal}
                       </span>
                     </div>
-                    <ul className="space-y-1 leading-6 text-slate-300">
-                      <li><strong className="text-slate-100">Side:</strong> {row.side}</li>
-                      <li><strong className="text-slate-100">Quality:</strong> {row.quality}</li>
-                      <li><strong className="text-slate-100">Risk:</strong> {row.risk || "-"}</li>
-                      <li><strong className="text-slate-100">Context:</strong> {contextText(row.patternContext)}</li>
-                      <li><strong className="text-slate-100">Invalidation:</strong> {row.invalidation ?? "-"}</li>
-                    </ul>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg bg-white/5 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Side</p>
+                        <p className="mt-1 font-medium text-slate-100">{row.side}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Quality</p>
+                        <p className="mt-1 font-medium text-slate-100">{row.quality}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Risk</p>
+                        <p className="mt-1 font-medium text-slate-100">{row.risk || "-"}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Context</p>
+                        <p className="mt-1 font-medium text-slate-100">{contextText(row.patternContext)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-lg bg-white/5 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Invalidation</p>
+                      <p className="mt-1 font-medium text-slate-100">{row.invalidation ?? "-"}</p>
+                    </div>
                     <p className="mt-3 text-xs leading-5 text-slate-400">{row.notes.join(" | ")}</p>
                   </div>
                 ))}
@@ -248,6 +281,7 @@ export default function CryptoDashboardPage() {
               <li>Feed refreshes when snapshot generator runs</li>
               <li>Generator: <code className="rounded bg-black/20 px-1.5 py-0.5 text-slate-200">python scripts\generate_divert_snapshot.py</code></li>
               <li>Scheduler helper: <code className="rounded bg-black/20 px-1.5 py-0.5 text-slate-200">powershell -File scripts\generate_divert_snapshot.ps1</code></li>
+              <li>Scheduler installer: <code className="rounded bg-black/20 px-1.5 py-0.5 text-slate-200">powershell -File scripts\schedule_divert_snapshot.ps1</code></li>
               <li>Archive stored in <code className="rounded bg-black/20 px-1.5 py-0.5 text-slate-200">public/data/divert-history.json</code></li>
             </ul>
           </div>
@@ -258,7 +292,7 @@ export default function CryptoDashboardPage() {
               <li>DiverT only</li>
               <li>RAI Strategy deferred</li>
               <li>Best visible focus = active candidates first</li>
-              <li>Archive now shows snapshot-level signal context</li>
+              <li>Scheduler activation still needs local permissions on this machine</li>
             </ul>
           </div>
         </section>

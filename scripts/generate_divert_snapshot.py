@@ -10,6 +10,26 @@ if str(RUNTIME_PATH) not in sys.path:
 
 from rai_crypto_signal_output_layer_v0_1 import RAICryptoSignalOutputLayerV1  # type: ignore
 
+SYMBOLS = [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "TAOUSDT",
+    "FETUSDT",
+    "WLDUSDT",
+    "HBARUSDT",
+    "XLMUSDT",
+    "ALGOUSDT",
+    "FILUSDT",
+    "AAVEUSDT",
+    "APTUSDT",
+    "CRVUSDT",
+    "WIFUSDT",
+    "ARBUSDT",
+    "AVAXUSDT",
+    "ADAUSDT",
+]
+
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-live.json")
 ARCHIVE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-history.json")
 MAX_HISTORY = 50
@@ -46,7 +66,7 @@ def load_history() -> list:
 
 
 def main() -> None:
-    layer = RAICryptoSignalOutputLayerV1()
+    layer = RAICryptoSignalOutputLayerV1(symbols=SYMBOLS)
     rows = [normalize_row(row) for row in layer.run()]
     updated_at = datetime.now(timezone.utc).isoformat()
 
