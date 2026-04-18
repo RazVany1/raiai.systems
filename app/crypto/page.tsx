@@ -75,6 +75,14 @@ type PositionTrackerRow = {
   closedAt?: string | null;
 };
 
+type AlertRow = {
+  symbol: string;
+  type: string;
+  priority: string;
+  message: string;
+  createdAt: string;
+};
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -110,6 +118,7 @@ export default function CryptoDashboardPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [postExit, setPostExit] = useState<PostExitRow[]>([]);
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -120,6 +129,7 @@ export default function CryptoDashboardPage() {
       setHistory(data.history || []);
       setPostExit(data.postExit || []);
       setTradeLog(data.tradeLog || []);
+      setAlerts(data.alerts || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -148,7 +158,19 @@ export default function CryptoDashboardPage() {
         ? `NEAR SETUP: ${topNear.map((row) => row.symbol).join(", ")}`
         : "No active DiverT signal right now";
 
-  const signalCandidates = rows.filter((row) => row.signal === "YES" || row.signal === "WATCH" || row.signal === "NEAR_SETUP");
+  const scoredCandidates = rows
+    .filter((row) => row.signal === "YES" || row.signal === "WATCH" || row.signal === "NEAR_SETUP")
+    .map((row) => {
+      const score =
+        (row.signal === "YES" ? 100 : row.signal === "WATCH" ? 70 : 50) +
+        (row.quality === "GOOD" ? 15 : row.quality === "MEDIUM" ? 8 : 0) +
+        (row.patternContext === "positive" ? 8 : row.patternContext === "negative" ? -8 : 0) +
+        (row.risk === "medium" ? 5 : row.risk === "medium_high" ? -3 : 0);
+      return { ...row, priorityScore: score };
+    })
+    .sort((a, b) => b.priorityScore - a.priorityScore);
+
+  const signalCandidates = scoredCandidates;
   const noSignalRows = rows.filter((row) => row.signal === "NO");
   const recentHistory = history.slice(-8).reverse();
   const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
@@ -290,6 +312,29 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">Alerts</h2>
+            <span className="text-sm text-slate-300">setup / entry / close</span>
+          </div>
+          <div className="space-y-3">
+            {alerts.length === 0 ? (
+              <p className="text-sm text-slate-300">No alerts right now.</p>
+            ) : (
+              alerts.map((alert) => (
+                <div key={`${alert.symbol}-${alert.type}-${alert.createdAt}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-slate-100">{alert.symbol}</p>
+                    <span className="rounded-full border border-cyan-300/40 bg-cyan-400/10 px-2 py-1 text-xs font-semibold text-cyan-100">{alert.type}</span>
+                  </div>
+                  <p className="mt-2 text-slate-200">{alert.message}</p>
+                  <p className="mt-1 text-xs text-slate-400">{alert.priority} | {new Date(alert.createdAt).toLocaleString()}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-slate-50">Simple Position Tracker</h2>
             <span className="text-sm text-slate-300">open + closed</span>
           </div>
@@ -423,6 +468,10 @@ export default function CryptoDashboardPage() {
                       <div className="rounded-lg bg-white/5 px-3 py-2">
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Context</p>
                         <p className="mt-1 font-medium text-slate-100">{contextText(row.patternContext)}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 px-3 py-2 sm:col-span-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Priority Score</p>
+                        <p className="mt-1 font-medium text-slate-100">{row.priorityScore}</p>
                       </div>
                     </div>
                     <div className="mt-3 rounded-lg bg-white/5 px-3 py-2">
