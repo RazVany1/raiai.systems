@@ -64,8 +64,11 @@ type TradeLogRow = {
 
 type PositionTrackerRow = {
   symbol: string;
+  side?: string;
+  timeframe?: string;
   entryPrice: number | null;
   currentPrice: number | null;
+  exitPrice?: number | null;
   pnlPct: number | null;
   status: string;
 };
@@ -84,6 +87,21 @@ function contextText(patternContext?: string) {
 }
 
 const shellClass = "rounded-2xl border border-slate-100/12 bg-slate-800/70 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.16)] backdrop-blur-sm";
+
+function statusBadgeClasses(status: string) {
+  if (status === "closed_green") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (status === "closed_red") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
+  if (status === "open_green") return "border-lime-200/70 bg-lime-300/20 text-lime-50";
+  if (status === "open_red") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
+}
+
+function pnlTextClass(pnlPct: number | null) {
+  if (pnlPct == null) return "text-slate-100";
+  if (pnlPct > 0) return "text-emerald-300";
+  if (pnlPct < 0) return "text-rose-300";
+  return "text-slate-100";
+}
 
 export default function CryptoDashboardPage() {
   const [rows, setRows] = useState<SignalRow[]>([]);
@@ -134,6 +152,40 @@ export default function CryptoDashboardPage() {
   const noSignalRows = rows.filter((row) => row.signal === "NO");
   const recentHistory = history.slice(-8).reverse();
   const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
+
+  const trackedPositions = useMemo(() => {
+    const priceMap = new Map(rows.map((row) => [row.symbol, row]));
+
+    return tradeLog
+      .filter((row) => row.entryPrice !== null || row.status === "closed")
+      .map((row) => {
+        const liveRow = priceMap.get(row.symbol);
+        const currentPrice = row.status === "closed"
+          ? row.exitPrice ?? row.entryPrice
+          : liveRow?.invalidation ?? row.entryPrice;
+
+        const pnlPct = row.resultPct ?? (
+          row.entryPrice != null && currentPrice != null
+            ? Number((((currentPrice - row.entryPrice) / row.entryPrice) * 100).toFixed(2))
+            : null
+        );
+
+        const normalizedStatus = row.status === "closed"
+          ? ((pnlPct ?? 0) >= 0 ? "closed_green" : "closed_red")
+          : ((pnlPct ?? 0) >= 0 ? "open_green" : "open_red");
+
+        return {
+          symbol: row.symbol,
+          side: row.side,
+          timeframe: row.timeframe,
+          entryPrice: row.entryPrice,
+          currentPrice,
+          exitPrice: row.exitPrice,
+          pnlPct,
+          status: normalizedStatus,
+        };
+      });
+  }, [tradeLog, rows]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
@@ -220,18 +272,44 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-slate-50">Simple Position Tracker</h2>
-            <span className="text-sm text-slate-300">entry / now / pnl</span>
+            <span className="text-sm text-slate-300">one under another</span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {positionTracker.map((row) => (
-              <div key={row.symbol} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
-                <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
-                <p className="mt-2"><strong className="text-slate-100">Entry:</strong> {row.entryPrice ?? "-"}</p>
-                <p><strong className="text-slate-100">Now:</strong> {row.currentPrice ?? "-"}</p>
-                <p><strong className="text-slate-100">P/L:</strong> {row.pnlPct ?? "-"}%</p>
-                <p><strong className="text-slate-100">Status:</strong> {row.status}</p>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {trackedPositions.length === 0 ? (
+              <p className="text-sm text-slate-300">No opened or closed signaled positions yet.</p>
+            ) : (
+              trackedPositions.map((row) => (
+                <div key={`${row.symbol}-${row.status}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
+                      <p className="text-xs text-slate-400">{row.side ?? "-"} | {row.timeframe ?? "-"}</p>
+                    </div>
+                    <span className={`inline-flex w-fit rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClasses(row.status)}`}>
+                      {row.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-4">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Entry</p>
+                      <p className="mt-1 font-medium text-slate-100">{row.entryPrice ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Now</p>
+                      <p className="mt-1 font-medium text-slate-100">{row.currentPrice ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Close</p>
+                      <p className="mt-1 font-medium text-slate-100">{row.exitPrice ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">P/L</p>
+                      <p className={`mt-1 font-semibold ${pnlTextClass(row.pnlPct)}`}>{row.pnlPct ?? "-"}%</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
