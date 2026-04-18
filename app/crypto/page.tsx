@@ -13,6 +13,12 @@ type SignalRow = {
   entryStructure?: string;
   risk?: string;
   timeframe?: string;
+  execution?: {
+    status: string;
+    entry: string;
+    invalidation: number | null;
+    exitTrigger: string;
+  };
 };
 
 type HistoryEntry = {
@@ -41,6 +47,21 @@ type PostExitRow = {
   notes: string[];
 };
 
+type TradeLogRow = {
+  symbol: string;
+  side: string;
+  timeframe: string;
+  status: string;
+  entryPrice: number | null;
+  invalidationPrice: number | null;
+  exitPrice: number | null;
+  resultPct: number | null;
+  quality: string;
+  openedAt: string | null;
+  closedAt: string | null;
+  notes: string[];
+};
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -60,6 +81,7 @@ export default function CryptoDashboardPage() {
   const [rows, setRows] = useState<SignalRow[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [postExit, setPostExit] = useState<PostExitRow[]>([]);
+  const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -69,6 +91,7 @@ export default function CryptoDashboardPage() {
       setRows(data.rows || []);
       setHistory(data.history || []);
       setPostExit(data.postExit || []);
+      setTradeLog(data.tradeLog || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -224,6 +247,11 @@ export default function CryptoDashboardPage() {
                       <p className="text-[11px] uppercase tracking-wide text-slate-400">Invalidation</p>
                       <p className="mt-1 font-medium text-slate-100">{row.invalidation ?? "-"}</p>
                     </div>
+                    <div className="mt-3 rounded-lg bg-white/5 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Execution</p>
+                      <p className="mt-1 font-medium text-slate-100">{row.execution?.entry ?? "-"}</p>
+                      <p className="mt-1 text-xs text-slate-400">Exit: {row.execution?.exitTrigger ?? "-"}</p>
+                    </div>
                     <p className="mt-3 text-xs leading-5 text-slate-400">{row.notes.join(" | ")}</p>
                   </div>
                 ))}
@@ -258,7 +286,32 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+        <section className="mt-8 grid gap-6 xl:grid-cols-3">
+          <div className={shellClass}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-slate-50">Trade Log</h2>
+              <span className="text-sm text-slate-300">real execution memory</span>
+            </div>
+            <div className="space-y-3">
+              {tradeLog.length === 0 ? (
+                <p className="text-sm text-slate-300">No trade log records yet.</p>
+              ) : (
+                tradeLog.map((row) => (
+                  <div key={`${row.symbol}-${row.status}-${row.openedAt ?? row.invalidationPrice}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-lg font-semibold text-slate-100">{row.symbol}</span>
+                      <span className="rounded-full border border-violet-300/40 bg-violet-400/10 px-2 py-1 text-xs font-semibold text-violet-100">{row.status}</span>
+                    </div>
+                    <p><strong className="text-slate-100">Side:</strong> {row.side} | <strong className="text-slate-100">Quality:</strong> {row.quality}</p>
+                    <p><strong className="text-slate-100">Entry:</strong> {row.entryPrice ?? "-"} | <strong className="text-slate-100">Exit:</strong> {row.exitPrice ?? "-"}</p>
+                    <p><strong className="text-slate-100">Result:</strong> {row.resultPct ?? "-"}% | <strong className="text-slate-100">Invalidation:</strong> {row.invalidationPrice ?? "-"}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-400">{row.notes.join(" | ")}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           <div className={shellClass}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-slate-50">Post-Exit Tracking</h2>
@@ -286,9 +339,9 @@ export default function CryptoDashboardPage() {
           <div className={shellClass}>
             <h2 className="mb-3 text-xl font-semibold text-slate-100">Why this matters</h2>
             <ul className="space-y-2 text-sm leading-6 text-slate-300">
-              <li>Shows what happened after taking the initial bounce</li>
-              <li>Helps separate quick-bounce coins from extension coins</li>
-              <li>Builds learning data for future hold/scale logic</li>
+              <li>Trade log captures actual execution history</li>
+              <li>Post-exit tracking shows what happened after taking profit</li>
+              <li>Together they turn DiverT into a system that executes and learns</li>
             </ul>
           </div>
         </section>
@@ -308,6 +361,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-3 py-3 font-medium">Quality</th>
                   <th className="px-3 py-3 font-medium">Context</th>
                   <th className="px-3 py-3 font-medium">Invalidation</th>
+                  <th className="px-3 py-3 font-medium">Execution</th>
                   <th className="px-3 py-3 font-medium">Notes</th>
                 </tr>
               </thead>
@@ -324,6 +378,7 @@ export default function CryptoDashboardPage() {
                     <td className="px-3 py-3">{row.quality}</td>
                     <td className="px-3 py-3">{contextText(row.patternContext)}</td>
                     <td className="px-3 py-3">{row.invalidation ?? "-"}</td>
+                    <td className="px-3 py-3 text-slate-300">{row.execution?.entry ?? "-"}</td>
                     <td className="px-3 py-3 text-slate-400">{row.notes.join(" | ")}</td>
                   </tr>
                 ))}

@@ -12,9 +12,11 @@ export async function GET() {
   const live = readJson("divert-live.json");
   const history = readJson("divert-history.json");
   const postExit = readJson("divert-post-exit.json");
+  const tradeLog = readJson("divert-trade-log.json");
   return NextResponse.json({
     ...live,
     history,
     postExit,
+    tradeLog,
   });
 }

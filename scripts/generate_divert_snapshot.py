@@ -43,6 +43,7 @@ def normalize_row(row: dict) -> dict:
     invalidation = row.get("invalidation")
     if invalidation is not None:
         invalidation = round(float(invalidation), 6)
+    execution = build_execution_plan(signal, side, invalidation)
     return {
         "symbol": row.get("symbol"),
         "signal": signal,
@@ -54,6 +55,37 @@ def normalize_row(row: dict) -> dict:
         "entryStructure": row.get("entry_structure", "unknown"),
         "risk": row.get("risk", "unknown"),
         "timeframe": row.get("timeframe", "4h"),
+        "execution": execution,
+    }
+
+
+def build_execution_plan(signal: str, side: str, invalidation: float | None) -> dict:
+    if signal == "YES":
+        return {
+            "status": "actionable",
+            "entry": f"direct {side.lower()} execution on valid setup",
+            "invalidation": invalidation,
+            "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        }
+    if signal == "WATCH":
+        return {
+            "status": "watch",
+            "entry": "wait for cleaner confirmation",
+            "invalidation": invalidation,
+            "exitTrigger": "no entry yet",
+        }
+    if signal == "NEAR_SETUP":
+        return {
+            "status": "near",
+            "entry": "wait for RSI threshold confirmation",
+            "invalidation": invalidation,
+            "exitTrigger": "no entry yet",
+        }
+    return {
+        "status": "none",
+        "entry": "no action",
+        "invalidation": invalidation,
+        "exitTrigger": "none",
     }
 
 
