@@ -20,6 +20,7 @@ type HistoryEntry = {
   summary: {
     yes: number;
     watch: number;
+    nearSetup?: number;
     no: number;
   };
   rows?: SignalRow[];
@@ -43,6 +44,7 @@ type PostExitRow = {
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  if (signal === "NEAR_SETUP") return "border-sky-200/70 bg-sky-300/20 text-sky-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
@@ -78,20 +80,24 @@ export default function CryptoDashboardPage() {
   const stats = useMemo(() => {
     const yesSignals = rows.filter((row) => row.signal === "YES").length;
     const watchSignals = rows.filter((row) => row.signal === "WATCH").length;
-    const longBias = rows.filter((row) => row.side === "LONG").length;
-    const shortBias = rows.filter((row) => row.side === "SHORT").length;
-    return { yesSignals, watchSignals, longBias, shortBias };
+    const nearSetupSignals = rows.filter((row) => row.signal === "NEAR_SETUP").length;
+    const longBias = rows.filter((row) => row.side === "LONG" || row.side === "BUY").length;
+    const shortBias = rows.filter((row) => row.side === "SHORT" || row.side === "SELL").length;
+    return { yesSignals, watchSignals, nearSetupSignals, longBias, shortBias };
   }, [rows]);
 
   const topYes = rows.filter((row) => row.signal === "YES");
   const topWatch = rows.filter((row) => row.signal === "WATCH");
+  const topNear = rows.filter((row) => row.signal === "NEAR_SETUP");
   const topSignalText = topYes.length > 0
     ? `YES active: ${topYes.map((row) => row.symbol).join(", ")}`
     : topWatch.length > 0
       ? `WATCH active: ${topWatch.map((row) => row.symbol).join(", ")}`
-      : "No active DiverT signal right now";
+      : topNear.length > 0
+        ? `NEAR SETUP: ${topNear.map((row) => row.symbol).join(", ")}`
+        : "No active DiverT signal right now";
 
-  const signalCandidates = rows.filter((row) => row.signal === "YES" || row.signal === "WATCH");
+  const signalCandidates = rows.filter((row) => row.signal === "YES" || row.signal === "WATCH" || row.signal === "NEAR_SETUP");
   const noSignalRows = rows.filter((row) => row.signal === "NO");
   const recentHistory = history.slice(-8).reverse();
   const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
@@ -121,7 +127,7 @@ export default function CryptoDashboardPage() {
           <div className={`${shellClass} p-4`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active candidates</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{signalCandidates.length}</p>
-            <p className="mt-1 text-sm text-slate-400">YES + WATCH currently visible</p>
+            <p className="mt-1 text-sm text-slate-400">YES + WATCH + NEAR SETUP currently visible</p>
           </div>
           <div className={`${shellClass} p-4`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Strongest context</p>
@@ -151,6 +157,7 @@ export default function CryptoDashboardPage() {
             <ul className="space-y-2 text-sm leading-7 text-slate-100">
               <li>YES: {stats.yesSignals}</li>
               <li>WATCH: {stats.watchSignals}</li>
+              <li>NEAR SETUP: {stats.nearSetupSignals}</li>
               <li>Long bias: {stats.longBias}</li>
               <li>Short bias: {stats.shortBias}</li>
             </ul>
@@ -181,7 +188,7 @@ export default function CryptoDashboardPage() {
           <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/5 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-slate-50">Signal Candidates</h2>
-              <span className="text-sm text-emerald-100/90">YES / WATCH focus</span>
+              <span className="text-sm text-emerald-100/90">YES / WATCH / NEAR SETUP</span>
             </div>
             {signalCandidates.length === 0 ? (
               <p className="text-sm leading-6 text-slate-300">No active YES or WATCH candidates right now.</p>
@@ -241,7 +248,7 @@ export default function CryptoDashboardPage() {
                   return (
                     <div key={entry.updatedAt} className="rounded-xl border border-white/10 bg-slate-950/25 p-3">
                       <p className="font-medium text-slate-100">{new Date(entry.updatedAt).toLocaleString()}</p>
-                      <p className="mt-1">YES: {entry.summary.yes} | WATCH: {entry.summary.watch} | NO: {entry.summary.no}</p>
+                      <p className="mt-1">YES: {entry.summary.yes} | WATCH: {entry.summary.watch} | NEAR: {entry.summary.nearSetup ?? 0} | NO: {entry.summary.no}</p>
                       <p className="mt-1 text-xs leading-5 text-slate-400">{activeText}</p>
                     </div>
                   );

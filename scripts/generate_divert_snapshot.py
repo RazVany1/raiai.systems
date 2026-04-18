@@ -8,7 +8,7 @@ RUNTIME_PATH = Path(r"D:\RAI\rai_systems\runtime")
 if str(RUNTIME_PATH) not in sys.path:
     sys.path.append(str(RUNTIME_PATH))
 
-from rai_crypto_signal_output_layer_v0_2 import RAICryptoSignalOutputLayerV2  # type: ignore
+from rai_crypto_signal_output_layer_v0_3 import RAICryptoSignalOutputLayerV3  # type: ignore
 
 SYMBOLS = [
     "BTCUSDT",
@@ -67,7 +67,7 @@ def load_history() -> list:
 
 
 def main() -> None:
-    layer = RAICryptoSignalOutputLayerV2(symbols=SYMBOLS)
+    layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     rows = [normalize_row(row) for row in layer.run()]
     updated_at = datetime.now(timezone.utc).isoformat()
 
@@ -86,6 +86,7 @@ def main() -> None:
         "summary": {
             "yes": sum(1 for row in rows if row["signal"] == "YES"),
             "watch": sum(1 for row in rows if row["signal"] == "WATCH"),
+            "nearSetup": sum(1 for row in rows if row["signal"] == "NEAR_SETUP"),
             "no": sum(1 for row in rows if row["signal"] == "NO"),
         },
         "rows": rows,
