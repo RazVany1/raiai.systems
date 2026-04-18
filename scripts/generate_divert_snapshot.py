@@ -8,7 +8,7 @@ RUNTIME_PATH = Path(r"D:\RAI\rai_systems\runtime")
 if str(RUNTIME_PATH) not in sys.path:
     sys.path.append(str(RUNTIME_PATH))
 
-from rai_crypto_signal_output_layer_v0_1 import RAICryptoSignalOutputLayerV1  # type: ignore
+from rai_crypto_signal_output_layer_v0_2 import RAICryptoSignalOutputLayerV2  # type: ignore
 
 SYMBOLS = [
     "BTCUSDT",
@@ -37,7 +37,8 @@ MAX_HISTORY = 50
 
 def normalize_row(row: dict) -> dict:
     signal = str(row.get("signal", "NO")).upper()
-    side = "LONG" if signal in {"YES", "WATCH"} else "NONE"
+    raw_side = str(row.get("side", "none")).upper()
+    side = raw_side if raw_side in {"BUY", "SELL", "LONG", "SHORT"} else ("LONG" if signal in {"YES", "WATCH"} else "NONE")
     quality = str(row.get("quality", "UNKNOWN")).upper()
     invalidation = row.get("invalidation")
     if invalidation is not None:
@@ -66,7 +67,7 @@ def load_history() -> list:
 
 
 def main() -> None:
-    layer = RAICryptoSignalOutputLayerV1(symbols=SYMBOLS)
+    layer = RAICryptoSignalOutputLayerV2(symbols=SYMBOLS)
     rows = [normalize_row(row) for row in layer.run()]
     updated_at = datetime.now(timezone.utc).isoformat()
 

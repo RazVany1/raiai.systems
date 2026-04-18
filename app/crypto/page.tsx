@@ -25,10 +25,25 @@ type HistoryEntry = {
   rows?: SignalRow[];
 };
 
+type PostExitRow = {
+  symbol: string;
+  timeframe: string;
+  entryPrice: number;
+  exitPrice: number;
+  invalidationPrice: number;
+  quality: string;
+  risk: string;
+  patternContext: string;
+  exitReason: string;
+  postExitReturns: Record<string, number>;
+  postExitMaxReturn: number | null;
+  notes: string[];
+};
+
 function signalBadgeClasses(signal: string) {
-  if (signal === "YES") return "border-emerald-300/60 bg-emerald-400/15 text-emerald-100";
-  if (signal === "WATCH") return "border-amber-300/60 bg-amber-400/15 text-amber-100";
-  return "border-slate-300/20 bg-slate-200/5 text-slate-200";
+  if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
 function contextText(patternContext?: string) {
@@ -37,11 +52,12 @@ function contextText(patternContext?: string) {
   return "neutral";
 }
 
-const shellClass = "rounded-2xl border border-slate-200/10 bg-slate-900/55 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm";
+const shellClass = "rounded-2xl border border-slate-100/12 bg-slate-800/70 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.16)] backdrop-blur-sm";
 
 export default function CryptoDashboardPage() {
   const [rows, setRows] = useState<SignalRow[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [postExit, setPostExit] = useState<PostExitRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -50,6 +66,7 @@ export default function CryptoDashboardPage() {
       const data = await res.json();
       setRows(data.rows || []);
       setHistory(data.history || []);
+      setPostExit(data.postExit || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -80,16 +97,16 @@ export default function CryptoDashboardPage() {
   const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_35%),linear-gradient(180deg,_#0b1220_0%,_#111827_100%)] px-6 py-10 md:px-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mb-2 text-4xl font-bold tracking-tight text-white">
               RAI Crypto Dashboard
             </h1>
-            <p className="text-base text-slate-300">DiverT Strategy live board</p>
+            <p className="text-base text-slate-200">DiverT Strategy live board</p>
           </div>
-          <div className="text-sm leading-6 text-slate-300">
+          <div className="text-sm leading-6 text-slate-200">
             <p>Status: dashboard v0.8</p>
             <p>Page refresh: 30s</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
@@ -114,14 +131,14 @@ export default function CryptoDashboardPage() {
         </section>
 
         <section className={`${shellClass} mb-8`}>
-          <h2 className="mb-2 text-xl font-semibold text-slate-100">Top Signal</h2>
-          <p className="text-sm leading-6 text-slate-300">{topSignalText}</p>
+          <h2 className="mb-2 text-xl font-semibold text-white">Top Signal</h2>
+          <p className="text-sm leading-7 text-slate-100">{topSignalText}</p>
         </section>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <section className={shellClass}>
-            <h2 className="mb-3 text-lg font-semibold text-slate-100">DiverT Strategy</h2>
-            <ul className="space-y-2 text-sm leading-6 text-slate-300">
+            <h2 className="mb-3 text-lg font-semibold text-white">DiverT Strategy</h2>
+            <ul className="space-y-2 text-sm leading-7 text-slate-100">
               <li>Price LL</li>
               <li>RSI HL</li>
               <li>RSI low 2 &gt; 30</li>
@@ -130,8 +147,8 @@ export default function CryptoDashboardPage() {
           </section>
 
           <section className={shellClass}>
-            <h2 className="mb-3 text-lg font-semibold text-slate-100">Signal Stats</h2>
-            <ul className="space-y-2 text-sm leading-6 text-slate-300">
+            <h2 className="mb-3 text-lg font-semibold text-white">Signal Stats</h2>
+            <ul className="space-y-2 text-sm leading-7 text-slate-100">
               <li>YES: {stats.yesSignals}</li>
               <li>WATCH: {stats.watchSignals}</li>
               <li>Long bias: {stats.longBias}</li>
@@ -140,8 +157,8 @@ export default function CryptoDashboardPage() {
           </section>
 
           <section className={shellClass}>
-            <h2 className="mb-3 text-lg font-semibold text-slate-100">Feed Engine</h2>
-            <ul className="space-y-2 text-sm leading-6 text-slate-300">
+            <h2 className="mb-3 text-lg font-semibold text-white">Feed Engine</h2>
+            <ul className="space-y-2 text-sm leading-7 text-slate-100">
               <li>Source: precomputed JSON</li>
               <li>Scanner: local generator</li>
               <li>Archive: enabled</li>
@@ -150,8 +167,8 @@ export default function CryptoDashboardPage() {
           </section>
 
           <section className={shellClass}>
-            <h2 className="mb-3 text-lg font-semibold text-slate-100">Next</h2>
-            <ul className="space-y-2 text-sm leading-6 text-slate-300">
+            <h2 className="mb-3 text-lg font-semibold text-white">Next</h2>
+            <ul className="space-y-2 text-sm leading-7 text-slate-100">
               <li>Activate local scheduler</li>
               <li>Add post-exit tracking</li>
               <li>Add richer archive view</li>
@@ -231,6 +248,41 @@ export default function CryptoDashboardPage() {
                 })
               )}
             </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <div className={shellClass}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-slate-50">Post-Exit Tracking</h2>
+              <span className="text-sm text-slate-300">learning layer</span>
+            </div>
+            <div className="space-y-3">
+              {postExit.length === 0 ? (
+                <p className="text-sm text-slate-300">No post-exit records yet.</p>
+              ) : (
+                postExit.map((row) => (
+                  <div key={`${row.symbol}-${row.exitPrice}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-lg font-semibold text-slate-100">{row.symbol}</span>
+                      <span className="rounded-full border border-sky-300/40 bg-sky-400/10 px-2 py-1 text-xs font-semibold text-sky-100">{row.exitReason}</span>
+                    </div>
+                    <p><strong className="text-slate-100">Exit:</strong> {row.exitPrice} | <strong className="text-slate-100">Max after exit:</strong> {row.postExitMaxReturn ?? "-"}%</p>
+                    <p><strong className="text-slate-100">+5:</strong> {row.postExitReturns?.bars_5 ?? "-"}% | <strong className="text-slate-100">+10:</strong> {row.postExitReturns?.bars_10 ?? "-"}% | <strong className="text-slate-100">+20:</strong> {row.postExitReturns?.bars_20 ?? "-"}%</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-400">{row.notes.join(" | ")}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className={shellClass}>
+            <h2 className="mb-3 text-xl font-semibold text-slate-100">Why this matters</h2>
+            <ul className="space-y-2 text-sm leading-6 text-slate-300">
+              <li>Shows what happened after taking the initial bounce</li>
+              <li>Helps separate quick-bounce coins from extension coins</li>
+              <li>Builds learning data for future hold/scale logic</li>
+            </ul>
           </div>
         </section>
 
