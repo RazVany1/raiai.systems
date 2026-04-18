@@ -32,6 +32,8 @@ SYMBOLS = [
 
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-live.json")
 ARCHIVE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-history.json")
+TRADE_LOG_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-trade-log.json")
+ALERTS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\divert-alerts.json")
 MAX_HISTORY = 50
 
 
@@ -104,10 +106,124 @@ def load_history() -> list:
         return []
 
 
+def load_json_list(path: Path) -> list:
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def build_trade_log(rows: list[dict], updated_at: str) -> list[dict]:
+    existing = load_json_list(TRADE_LOG_PATH)
+    by_symbol = {row.get("symbol"): row for row in existing}
+    result = []
+
+    for row in rows:
+        symbol = row.get("symbol")
+        signal = row.get("signal")
+        side = row.get("side")
+        quality = row.get("quality")
+        timeframe = row.get("timeframe")
+        invalidation = row.get("invalidation")
+        price_now = None
+        for note in row.get("notes", []):
+            if isinstance(note, str) and note.startswith("price_now="):
+                try:
+                    price_now = float(note.replace("price_now=", ""))
+                except Exception:
+                    price_now = None
+
+        current = by_symbol.get(symbol)
+
+        if signal == "YES" and price_now is not None:
+            if current and current.get("status") == "closed":
+                result.append(current)
+                continue
+            result.append({
+                "symbol": symbol,
+                "side": side,
+                "timeframe": timeframe,
+                "status": "open",
+                "entryPrice": current.get("entryPrice") if current and current.get("entryPrice") is not None else price_now,
+                "invalidationPrice": invalidation,
+                "exitPrice": None,
+                "resultPct": None,
+                "quality": quality,
+                "openedAt": current.get("openedAt") if current and current.get("openedAt") else updated_at,
+                "closedAt": None,
+                "notes": [f"auto_managed", f"alert:entry_ready"],
+            })
+        elif signal in {"WATCH", "NEAR_SETUP"}:
+            if current:
+                result.append(current)
+        elif current:
+            if current.get("status") == "open" and price_now is not None and current.get("entryPrice") is not None:
+                entry = float(current.get("entryPrice"))
+                raw_result = ((price_now - entry) / entry) * 100
+                if current.get("side") == "SELL":
+                    raw_result = -raw_result
+                result.append({
+                    **current,
+                    "status": "closed",
+                    "exitPrice": round(price_now, 6),
+                    "resultPct": round(raw_result, 2),
+                    "closedAt": updated_at,
+                    "notes": list(current.get("notes", [])) + ["alert:close_sent"],
+                })
+            else:
+                result.append(current)
+
+    deduped = []
+    seen = set()
+    for row in result:
+        symbol = row.get("symbol")
+        if symbol in seen:
+            continue
+        seen.add(symbol)
+        deduped.append(row)
+    return deduped
+
+
+def build_alerts(rows: list[dict], trade_log: list[dict], updated_at: str) -> list[dict]:
+    alerts = []
+    for row in rows:
+        if row.get("signal") == "YES":
+            alerts.append({
+                "symbol": row.get("symbol"),
+                "type": "setup",
+                "priority": "high" if row.get("quality") == "GOOD" else "medium",
+                "message": f"{row.get('signal')} {str(row.get('side', '')).lower()} setup active",
+                "createdAt": updated_at,
+            })
+    for trade in trade_log:
+        if trade.get("status") == "open":
+            alerts.append({
+                "symbol": trade.get("symbol"),
+                "type": "entry",
+                "priority": "high",
+                "message": f"{trade.get('side')} position active from trade log",
+                "createdAt": updated_at,
+            })
+        elif trade.get("status") == "closed" and trade.get("closedAt") == updated_at:
+            alerts.append({
+                "symbol": trade.get("symbol"),
+                "type": "close",
+                "priority": "medium",
+                "message": f"Trade closed at {trade.get('resultPct')}%",
+                "createdAt": updated_at,
+            })
+    return alerts[:12]
+
+
 def main() -> None:
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     rows = [normalize_row(row) for row in layer.run()]
     updated_at = datetime.now(timezone.utc).isoformat()
+
+    trade_log = build_trade_log(rows, updated_at)
+    alerts = build_alerts(rows, trade_log, updated_at)
 
     snapshot = {
         "strategy": "DiverT Strategy",
@@ -117,6 +233,8 @@ def main() -> None:
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+    TRADE_LOG_PATH.write_text(json.dumps(trade_log, indent=2, ensure_ascii=False), encoding="utf-8")
+    ALERTS_PATH.write_text(json.dumps(alerts, indent=2, ensure_ascii=False), encoding="utf-8")
 
     history = load_history()
     history.append({
@@ -134,6 +252,8 @@ def main() -> None:
 
     print(f"Snapshot updated: {OUTPUT_PATH}")
     print(f"History updated: {ARCHIVE_PATH}")
+    print(f"Trade log updated: {TRADE_LOG_PATH}")
+    print(f"Alerts updated: {ALERTS_PATH}")
 
 
 if __name__ == "__main__":
