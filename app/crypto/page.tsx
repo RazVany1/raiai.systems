@@ -62,6 +62,14 @@ type TradeLogRow = {
   notes: string[];
 };
 
+type PositionTrackerRow = {
+  symbol: string;
+  entryPrice: number | null;
+  currentPrice: number | null;
+  pnlPct: number | null;
+  status: string;
+};
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -82,6 +90,7 @@ export default function CryptoDashboardPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [postExit, setPostExit] = useState<PostExitRow[]>([]);
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
+  const [positionTracker, setPositionTracker] = useState<PositionTrackerRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -92,6 +101,7 @@ export default function CryptoDashboardPage() {
       setHistory(data.history || []);
       setPostExit(data.postExit || []);
       setTradeLog(data.tradeLog || []);
+      setPositionTracker(data.positionTracker || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -206,6 +216,24 @@ export default function CryptoDashboardPage() {
             </ul>
           </section>
         </div>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">Simple Position Tracker</h2>
+            <span className="text-sm text-slate-300">entry / now / pnl</span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {positionTracker.map((row) => (
+              <div key={row.symbol} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
+                <p className="mt-2"><strong className="text-slate-100">Entry:</strong> {row.entryPrice ?? "-"}</p>
+                <p><strong className="text-slate-100">Now:</strong> {row.currentPrice ?? "-"}</p>
+                <p><strong className="text-slate-100">P/L:</strong> {row.pnlPct ?? "-"}%</p>
+                <p><strong className="text-slate-100">Status:</strong> {row.status}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
           <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/5 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm">

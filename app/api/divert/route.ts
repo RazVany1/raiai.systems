@@ -13,10 +13,12 @@ export async function GET() {
   const history = readJson("divert-history.json");
   const postExit = readJson("divert-post-exit.json");
   const tradeLog = readJson("divert-trade-log.json");
+  const positionTracker = readJson("divert-position-tracker.json");
   return NextResponse.json({
     ...live,
     history,
     postExit,
     tradeLog,
+    positionTracker,
   });
 }
