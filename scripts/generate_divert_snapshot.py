@@ -43,6 +43,12 @@ def normalize_row(row: dict) -> dict:
     invalidation = row.get("invalidation")
     if invalidation is not None:
         invalidation = round(float(invalidation), 6)
+    current_price = row.get("current_price")
+    if current_price is not None:
+        current_price = round(float(current_price), 6)
+    notes = list(row.get("notes", []))
+    if current_price is not None:
+        notes.append(f"price_now={current_price}")
     execution = build_execution_plan(signal, side, invalidation)
     return {
         "symbol": row.get("symbol"),
@@ -50,7 +56,7 @@ def normalize_row(row: dict) -> dict:
         "side": side,
         "quality": quality,
         "invalidation": invalidation,
-        "notes": row.get("notes", []),
+        "notes": notes,
         "patternContext": row.get("pattern_context", "unknown"),
         "entryStructure": row.get("entry_structure", "unknown"),
         "risk": row.get("risk", "unknown"),

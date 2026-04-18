@@ -71,6 +71,8 @@ type PositionTrackerRow = {
   exitPrice?: number | null;
   pnlPct: number | null;
   status: string;
+  openedAt?: string | null;
+  closedAt?: string | null;
 };
 
 function signalBadgeClasses(signal: string) {
@@ -108,7 +110,6 @@ export default function CryptoDashboardPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [postExit, setPostExit] = useState<PostExitRow[]>([]);
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
-  const [positionTracker, setPositionTracker] = useState<PositionTrackerRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -119,7 +120,6 @@ export default function CryptoDashboardPage() {
       setHistory(data.history || []);
       setPostExit(data.postExit || []);
       setTradeLog(data.tradeLog || []);
-      setPositionTracker(data.positionTracker || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -153,22 +153,36 @@ export default function CryptoDashboardPage() {
   const recentHistory = history.slice(-8).reverse();
   const strongestPositive = rows.filter((row) => row.patternContext === "positive").map((row) => row.symbol).slice(0, 4);
 
-  const trackedPositions = useMemo(() => {
-    const priceMap = new Map(rows.map((row) => [row.symbol, row]));
+  const livePriceMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    rows.forEach((row) => {
+      const raw = row.notes.find((note) => note.startsWith("price_now="));
+      if (!raw) {
+        map.set(row.symbol, null);
+        return;
+      }
+      const value = Number(raw.replace("price_now=", ""));
+      map.set(row.symbol, Number.isFinite(value) ? value : null);
+    });
+    return map;
+  }, [rows]);
 
+  const trackedPositions = useMemo(() => {
     return tradeLog
       .filter((row) => row.entryPrice !== null || row.status === "closed")
       .map((row) => {
-        const liveRow = priceMap.get(row.symbol);
+        const livePrice = livePriceMap.get(row.symbol) ?? null;
         const currentPrice = row.status === "closed"
           ? row.exitPrice ?? row.entryPrice
-          : liveRow?.invalidation ?? row.entryPrice;
+          : livePrice ?? row.entryPrice;
 
-        const pnlPct = row.resultPct ?? (
+        const signedPnl = row.resultPct ?? (
           row.entryPrice != null && currentPrice != null
             ? Number((((currentPrice - row.entryPrice) / row.entryPrice) * 100).toFixed(2))
             : null
         );
+
+        const pnlPct = row.side === "SELL" && signedPnl != null ? Number((-signedPnl).toFixed(2)) : signedPnl;
 
         const normalizedStatus = row.status === "closed"
           ? ((pnlPct ?? 0) >= 0 ? "closed_green" : "closed_red")
@@ -183,9 +197,14 @@ export default function CryptoDashboardPage() {
           exitPrice: row.exitPrice,
           pnlPct,
           status: normalizedStatus,
+          openedAt: row.openedAt,
+          closedAt: row.closedAt,
         };
       });
-  }, [tradeLog, rows]);
+  }, [tradeLog, livePriceMap]);
+
+  const openPositions = trackedPositions.filter((row) => row.status.startsWith("open_"));
+  const closedPositions = trackedPositions.filter((row) => row.status.startsWith("closed_"));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
@@ -272,44 +291,101 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-slate-50">Simple Position Tracker</h2>
-            <span className="text-sm text-slate-300">one under another</span>
+            <span className="text-sm text-slate-300">open + closed</span>
           </div>
-          <div className="space-y-3">
-            {trackedPositions.length === 0 ? (
-              <p className="text-sm text-slate-300">No opened or closed signaled positions yet.</p>
-            ) : (
-              trackedPositions.map((row) => (
-                <div key={`${row.symbol}-${row.status}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
-                      <p className="text-xs text-slate-400">{row.side ?? "-"} | {row.timeframe ?? "-"}</p>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-100">Open Positions</h3>
+                <span className="text-xs text-slate-400">live P/L</span>
+              </div>
+              <div className="space-y-3">
+                {openPositions.length === 0 ? (
+                  <p className="text-sm text-slate-300">No open positions right now.</p>
+                ) : (
+                  openPositions.map((row) => (
+                    <div key={`${row.symbol}-${row.status}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
+                          <p className="text-xs text-slate-400">{row.side ?? "-"} | {row.timeframe ?? "-"}</p>
+                        </div>
+                        <span className={`inline-flex w-fit rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClasses(row.status)}`}>
+                          {row.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-4">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Entry</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.entryPrice ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Now</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.currentPrice ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Opened</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.openedAt ? new Date(row.openedAt).toLocaleString() : "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">P/L</p>
+                          <p className={`mt-1 font-semibold ${pnlTextClass(row.pnlPct)}`}>{row.pnlPct ?? "-"}%</p>
+                        </div>
+                      </div>
                     </div>
-                    <span className={`inline-flex w-fit rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClasses(row.status)}`}>
-                      {row.status}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-4">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Entry</p>
-                      <p className="mt-1 font-medium text-slate-100">{row.entryPrice ?? "-"}</p>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-100">Closed Positions</h3>
+                <span className="text-xs text-slate-400">final result</span>
+              </div>
+              <div className="space-y-3">
+                {closedPositions.length === 0 ? (
+                  <p className="text-sm text-slate-300">No closed positions yet.</p>
+                ) : (
+                  closedPositions.map((row) => (
+                    <div key={`${row.symbol}-${row.status}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
+                          <p className="text-xs text-slate-400">{row.side ?? "-"} | {row.timeframe ?? "-"}</p>
+                        </div>
+                        <span className={`inline-flex w-fit rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClasses(row.status)}`}>
+                          {row.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-5">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Entry</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.entryPrice ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Close</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.exitPrice ?? row.currentPrice ?? "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Opened</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.openedAt ? new Date(row.openedAt).toLocaleString() : "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Closed</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">P/L</p>
+                          <p className={`mt-1 font-semibold ${pnlTextClass(row.pnlPct)}`}>{row.pnlPct ?? "-"}%</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Now</p>
-                      <p className="mt-1 font-medium text-slate-100">{row.currentPrice ?? "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Close</p>
-                      <p className="mt-1 font-medium text-slate-100">{row.exitPrice ?? "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">P/L</p>
-                      <p className={`mt-1 font-semibold ${pnlTextClass(row.pnlPct)}`}>{row.pnlPct ?? "-"}%</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </section>
 
