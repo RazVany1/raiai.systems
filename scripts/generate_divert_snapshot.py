@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import sys
 
@@ -266,12 +266,30 @@ def main() -> None:
     rows = [normalize_row(row) for row in layer.run()]
     updated_at = datetime.now(timezone.utc).isoformat()
 
+    previous_live = {}
+    if OUTPUT_PATH.exists():
+        try:
+            previous_live = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            previous_live = {}
+
+    previous_yes = {row.get("symbol") for row in previous_live.get("rows", []) if row.get("signal") == "YES"}
+    current_yes = {row.get("symbol") for row in rows if row.get("signal") == "YES"}
+    new_yes_count = len(current_yes - previous_yes)
+
     trade_log = build_trade_log(rows, updated_at)
     alerts = build_alerts(rows, trade_log, updated_at)
+
+    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=30)).isoformat()
 
     snapshot = {
         "strategy": "DiverT Strategy",
         "updatedAt": updated_at,
+        "lastScan": {
+            "status": "success",
+            "newSignals": new_yes_count,
+            "nextScanAt": next_scan_at,
+        },
         "rows": rows,
     }
 

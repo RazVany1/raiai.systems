@@ -94,6 +94,12 @@ type BackcheckRow = {
   verdict: string;
 };
 
+type LastScanInfo = {
+  status: string;
+  newSignals: number;
+  nextScanAt: string;
+};
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -131,6 +137,7 @@ export default function CryptoDashboardPage() {
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [backcheck, setBackcheck] = useState<BackcheckRow[]>([]);
+  const [lastScan, setLastScan] = useState<LastScanInfo | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -143,6 +150,7 @@ export default function CryptoDashboardPage() {
       setTradeLog(data.tradeLog || []);
       setAlerts(data.alerts || []);
       setBackcheck(data.backcheck?.results || []);
+      setLastScan(data.lastScan || null);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -259,7 +267,7 @@ export default function CryptoDashboardPage() {
           </div>
         </div>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-3">
+        <section className="mb-8 grid gap-4 md:grid-cols-4">
           <div className={`${shellClass} p-4`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Last refresh</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
@@ -273,6 +281,11 @@ export default function CryptoDashboardPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Strongest context</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{strongestPositive.length ? strongestPositive.join(", ") : "None"}</p>
             <p className="mt-1 text-sm text-slate-400">Positive pattern context snapshot</p>
+          </div>
+          <div className={`${shellClass} p-4`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Last scan</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{lastScan ? `${lastScan.status} | +${lastScan.newSignals}` : "loading..."}</p>
+            <p className="mt-1 text-sm text-slate-400">Next: {lastScan?.nextScanAt ? new Date(lastScan.nextScanAt).toLocaleString() : "-"}</p>
           </div>
         </section>
 
