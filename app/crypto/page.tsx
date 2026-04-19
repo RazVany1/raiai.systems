@@ -18,6 +18,7 @@ type SignalRow = {
     entry: string;
     invalidation: number | null;
     exitTrigger: string;
+    closeRule?: string;
   };
 };
 
@@ -83,6 +84,16 @@ type AlertRow = {
   createdAt: string;
 };
 
+type BackcheckRow = {
+  symbol: string;
+  signal: string;
+  quality: string;
+  risk: string;
+  patternContext: string;
+  score: number;
+  verdict: string;
+};
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -119,6 +130,7 @@ export default function CryptoDashboardPage() {
   const [postExit, setPostExit] = useState<PostExitRow[]>([]);
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [backcheck, setBackcheck] = useState<BackcheckRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -130,6 +142,7 @@ export default function CryptoDashboardPage() {
       setPostExit(data.postExit || []);
       setTradeLog(data.tradeLog || []);
       setAlerts(data.alerts || []);
+      setBackcheck(data.backcheck?.results || []);
       setUpdatedAt(data.updatedAt || "");
     };
 
@@ -227,6 +240,7 @@ export default function CryptoDashboardPage() {
 
   const openPositions = trackedPositions.filter((row) => row.status.startsWith("open_"));
   const closedPositions = trackedPositions.filter((row) => row.status.startsWith("closed_"));
+  const visibleCandidates = signalCandidates.filter((row) => row.priorityScore >= 60);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
@@ -309,6 +323,25 @@ export default function CryptoDashboardPage() {
             </ul>
           </section>
         </div>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">Backcheck</h2>
+            <span className="text-sm text-slate-300">strong / keep / weak</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {backcheck.map((row) => (
+              <div key={row.symbol} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-slate-100">{row.symbol}</p>
+                  <span className="rounded-full border border-fuchsia-300/40 bg-fuchsia-400/10 px-2 py-1 text-xs font-semibold text-fuchsia-100">{row.verdict}</span>
+                </div>
+                <p className="mt-2">Score: <span className="font-semibold text-slate-100">{row.score}</span></p>
+                <p className="text-xs text-slate-400">{row.signal} | {row.quality} | {row.risk} | {row.patternContext}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
@@ -440,11 +473,11 @@ export default function CryptoDashboardPage() {
               <h2 className="text-2xl font-semibold text-slate-50">Signal Candidates</h2>
               <span className="text-sm text-emerald-100/90">YES / WATCH / NEAR SETUP</span>
             </div>
-            {signalCandidates.length === 0 ? (
-              <p className="text-sm leading-6 text-slate-300">No active YES or WATCH candidates right now.</p>
+            {visibleCandidates.length === 0 ? (
+              <p className="text-sm leading-6 text-slate-300">No strong candidates after cleanup.</p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {signalCandidates.map((row) => (
+                {visibleCandidates.map((row) => (
                   <div key={row.symbol} className="rounded-xl border border-white/10 bg-slate-950/35 p-4 text-sm text-slate-200">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <span className="text-lg font-semibold text-slate-50">{row.symbol}</span>
@@ -482,6 +515,7 @@ export default function CryptoDashboardPage() {
                       <p className="text-[11px] uppercase tracking-wide text-slate-400">Execution</p>
                       <p className="mt-1 font-medium text-slate-100">{row.execution?.entry ?? "-"}</p>
                       <p className="mt-1 text-xs text-slate-400">Exit: {row.execution?.exitTrigger ?? "-"}</p>
+                      <p className="mt-1 text-xs text-slate-400">Close rule: {row.execution?.closeRule ?? "-"}</p>
                     </div>
                     <p className="mt-3 text-xs leading-5 text-slate-400">{row.notes.join(" | ")}</p>
                   </div>

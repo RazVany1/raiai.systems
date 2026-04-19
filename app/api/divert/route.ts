@@ -15,6 +15,7 @@ export async function GET() {
   const tradeLog = readJson("divert-trade-log.json");
   const positionTracker = readJson("divert-position-tracker.json");
   const alerts = readJson("divert-alerts.json");
+  const backcheck = readJson("divert-backcheck.json");
   return NextResponse.json({
     ...live,
     history,
@@ -22,5 +23,6 @@ export async function GET() {
     tradeLog,
     positionTracker,
     alerts,
+    backcheck,
   });
 }
