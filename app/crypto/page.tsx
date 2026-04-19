@@ -100,6 +100,13 @@ type LastScanInfo = {
   nextScanAt: string;
 };
 
+function extractLivePrice(notes: string[]) {
+  const raw = notes.find((note) => note.startsWith("price_now="));
+  if (!raw) return null;
+  const value = Number(raw.replace("price_now=", ""));
+  return Number.isFinite(value) ? value : null;
+}
+
 function signalBadgeClasses(signal: string) {
   if (signal === "YES") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (signal === "WATCH") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
@@ -199,13 +206,7 @@ export default function CryptoDashboardPage() {
   const livePriceMap = useMemo(() => {
     const map = new Map<string, number | null>();
     rows.forEach((row) => {
-      const raw = row.notes.find((note) => note.startsWith("price_now="));
-      if (!raw) {
-        map.set(row.symbol, null);
-        return;
-      }
-      const value = Number(raw.replace("price_now=", ""));
-      map.set(row.symbol, Number.isFinite(value) ? value : null);
+      map.set(row.symbol, extractLivePrice(row.notes));
     });
     return map;
   }, [rows]);
@@ -285,6 +286,7 @@ export default function CryptoDashboardPage() {
           <div className={`${shellClass} p-4`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Last scan</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{lastScan ? `${lastScan.status} | +${lastScan.newSignals}` : "loading..."}</p>
+            <p className="mt-1 text-sm text-slate-400">At: {updatedAt ? new Date(updatedAt).toLocaleString() : "-"}</p>
             <p className="mt-1 text-sm text-slate-400">Next: {lastScan?.nextScanAt ? new Date(lastScan.nextScanAt).toLocaleString() : "-"}</p>
           </div>
         </section>
