@@ -46,6 +46,7 @@ type PostExitRow = {
   postExitReturns: Record<string, number>;
   postExitMaxReturn: number | null;
   notes: string[];
+  postExitDataQuality?: string;
 };
 
 type TradeLogRow = {
@@ -74,6 +75,7 @@ type PositionTrackerRow = {
   status: string;
   openedAt?: string | null;
   closedAt?: string | null;
+  invalidationPrice?: number | null;
 };
 
 type AlertRow = {
@@ -94,10 +96,40 @@ type BackcheckRow = {
   verdict: string;
 };
 
+type LiveMarketRow = {
+  symbol: string;
+  livePrice: number | null;
+  entryPrice: number | null;
+  invalidationPrice: number | null;
+  side: string | null;
+  livePnlPct: number | null;
+  distanceToInvalidationPct: number | null;
+  marketTimestamp: string;
+};
+
 type LastScanInfo = {
   status: string;
   newSignals: number;
   nextScanAt: string;
+};
+
+type StateMachineRow = {
+  symbol: string;
+  state: string;
+  status: string;
+  openedAt: string | null;
+  closedAt: string | null;
+};
+
+type ValidationSummary = {
+  status: string;
+  checks: Array<{ name: string; ok: boolean }>;
+};
+
+type OperationalSemantics = {
+  signalsCoveredByMarket?: string[];
+  tradeCoveredByMarket?: string[];
+  warnings?: string[];
 };
 
 function extractLivePrice(notes: string[]) {
@@ -144,7 +176,11 @@ export default function CryptoDashboardPage() {
   const [tradeLog, setTradeLog] = useState<TradeLogRow[]>([]);
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [backcheck, setBackcheck] = useState<BackcheckRow[]>([]);
+  const [liveMarket, setLiveMarket] = useState<LiveMarketRow[]>([]);
   const [lastScan, setLastScan] = useState<LastScanInfo | null>(null);
+  const [stateMachine, setStateMachine] = useState<StateMachineRow[]>([]);
+  const [validation, setValidation] = useState<ValidationSummary | null>(null);
+  const [operationalSemantics, setOperationalSemantics] = useState<OperationalSemantics | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
   useEffect(() => {
@@ -157,6 +193,10 @@ export default function CryptoDashboardPage() {
       setTradeLog(data.tradeLog || []);
       setAlerts(data.alerts || []);
       setBackcheck(data.backcheck?.results || []);
+      setLiveMarket(data.liveMarket?.rows || []);
+      setStateMachine(data.stateMachine?.rows || []);
+      setValidation(data.validation || null);
+      setOperationalSemantics(data.operationalSemantics || null);
       setLastScan(data.lastScan || null);
       setUpdatedAt(data.updatedAt || "");
     };
@@ -243,13 +283,16 @@ export default function CryptoDashboardPage() {
           status: normalizedStatus,
           openedAt: row.openedAt,
           closedAt: row.closedAt,
+          invalidationPrice: row.invalidationPrice,
         };
       });
   }, [tradeLog, livePriceMap]);
 
   const openPositions = trackedPositions.filter((row) => row.status.startsWith("open_"));
   const closedPositions = trackedPositions.filter((row) => row.status.startsWith("closed_"));
+  const waitingPositions = trackedPositions.filter((row) => row.status === "waiting");
   const visibleCandidates = signalCandidates.filter((row) => row.priorityScore >= 60);
+  const riskRows = liveMarket.filter((row) => row.entryPrice != null || row.invalidationPrice != null);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
@@ -296,6 +339,63 @@ export default function CryptoDashboardPage() {
           <p className="text-sm leading-7 text-slate-100">{topSignalText}</p>
         </section>
 
+        <section className={`${shellClass} mb-8`}>
+          <h2 className="mb-4 text-xl font-semibold text-white">Live Market Layer</h2>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {liveMarket.slice(0, 12).map((row) => (
+              <div key={row.symbol} className="rounded-xl border border-slate-100/10 bg-slate-900/40 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-white">{row.symbol}</p>
+                  <p className="text-xs text-slate-400">{row.side || "-"}</p>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-slate-100">
+                  {row.livePrice != null ? row.livePrice.toFixed(4) : "n/a"}
+                </p>
+                <p className={`mt-1 text-sm ${pnlTextClass(row.livePnlPct)}`}>
+                  Live P/L: {row.livePnlPct != null ? `${row.livePnlPct}%` : "n/a"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Dist. invalidation: {row.distanceToInvalidationPct != null ? `${row.distanceToInvalidationPct}%` : "n/a"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {row.marketTimestamp ? new Date(row.marketTimestamp).toLocaleString() : "-"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-8`}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white">System Validation</h2>
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${validation?.status === 'ok' ? 'border-emerald-200/70 bg-emerald-300/20 text-emerald-50' : 'border-amber-200/70 bg-amber-300/20 text-amber-50'}`}>
+              {validation?.status ?? 'n/a'}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {(validation?.checks || []).map((check) => (
+              <div key={check.name} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                <p className="font-semibold text-slate-100">{check.name}</p>
+                <p className={`mt-2 text-xs ${check.ok ? 'text-emerald-300' : 'text-amber-300'}`}>{check.ok ? 'ok' : 'warning'}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+            <p className="font-semibold text-slate-100">Operational semantics</p>
+            <p className="mt-2 text-xs text-slate-400">Signals covered by market: {(operationalSemantics?.signalsCoveredByMarket || []).length}</p>
+            <p className="text-xs text-slate-400">Trade symbols covered by market: {(operationalSemantics?.tradeCoveredByMarket || []).length}</p>
+            {operationalSemantics?.warnings?.length ? (
+              <div className="mt-2 space-y-1">
+                {operationalSemantics.warnings.map((warning) => (
+                  <p key={warning} className="text-xs text-amber-300">{warning}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-emerald-300">No semantic coverage warnings</p>
+            )}
+          </div>
+        </section>
+
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <section className={shellClass}>
             <h2 className="mb-3 text-lg font-semibold text-white">DiverT Strategy</h2>
@@ -329,15 +429,34 @@ export default function CryptoDashboardPage() {
           </section>
 
           <section className={shellClass}>
-            <h2 className="mb-3 text-lg font-semibold text-white">Next</h2>
+            <h2 className="mb-3 text-lg font-semibold text-white">Live Ops State</h2>
             <ul className="space-y-2 text-sm leading-7 text-slate-100">
-              <li>Activate local scheduler</li>
-              <li>Add post-exit tracking</li>
-              <li>Add richer archive view</li>
-              <li>Expand watch universe further if needed</li>
+              <li>Live market layer: active</li>
+              <li>Trade log: live-aware</li>
+              <li>Position tracker: synced</li>
+              <li>Auto close management: active</li>
             </ul>
           </section>
         </div>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">Candidate Ranking</h2>
+            <span className="text-sm text-slate-300">highest priority first</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {signalCandidates.slice(0, 12).map((row) => (
+              <div key={`rank-${row.symbol}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-slate-100">{row.symbol}</p>
+                  <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${signalBadgeClasses(row.signal)}`}>{row.signal}</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">Priority: {row.priorityScore}</p>
+                <p className="mt-1 text-xs text-slate-400">{row.quality} | {row.risk} | {contextText(row.patternContext)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
@@ -383,8 +502,45 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mt-8`}>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-slate-50">Simple Position Tracker</h2>
-            <span className="text-sm text-slate-300">open + closed</span>
+            <h2 className="text-2xl font-semibold text-slate-50">Position Tracker</h2>
+            <span className="text-sm text-slate-300">open + closed + waiting</span>
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-100">State Machine</h3>
+              <span className="text-xs text-slate-400">signal lifecycle</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {stateMachine.map((row) => (
+                <div key={`state-${row.symbol}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                  <p className="font-semibold text-slate-100">{row.symbol}</p>
+                  <p className="mt-2 text-xs text-slate-400">State: {row.state}</p>
+                  <p className="text-xs text-slate-400">Status: {row.status}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-100">Risk / Invalidation Monitor</h3>
+              <span className="text-xs text-slate-400">distance to invalidation</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {riskRows.map((row) => (
+                <div key={`risk-${row.symbol}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-slate-100">{row.symbol}</p>
+                    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${pnlTextClass(row.livePnlPct)}`}>
+                      {row.livePnlPct != null ? `${row.livePnlPct}%` : 'n/a'}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">Entry: {row.entryPrice ?? '-'} | Invalid.: {row.invalidationPrice ?? '-'}</p>
+                  <p className="mt-1 text-xs text-slate-400">Dist. invalidation: {row.distanceToInvalidationPct != null ? `${row.distanceToInvalidationPct}%` : 'n/a'}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
@@ -479,6 +635,89 @@ export default function CryptoDashboardPage() {
                 )}
               </div>
             </div>
+
+            <div className="mt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-100">Waiting / Watchlist</h3>
+                <span className="text-xs text-slate-400">no entry active</span>
+              </div>
+              <div className="space-y-3">
+                {waitingPositions.length === 0 ? (
+                  <p className="text-sm text-slate-300">No waiting items right now.</p>
+                ) : (
+                  waitingPositions.map((row) => (
+                    <div key={`${row.symbol}-${row.status}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-lg font-semibold text-slate-100">{row.symbol}</p>
+                          <p className="text-xs text-slate-400">{row.side ?? '-'} | {row.timeframe ?? '-'}</p>
+                        </div>
+                        <span className={`inline-flex w-fit rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClasses(row.status)}`}>
+                          {row.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-3">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Current</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.currentPrice ?? '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Invalidation</p>
+                          <p className="mt-1 font-medium text-slate-100">{row.invalidationPrice ?? '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Status</p>
+                          <p className="mt-1 font-medium text-slate-100">watch only</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">Post-Exit Learning</h2>
+            <span className="text-sm text-slate-300">what happened after close</span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {postExit.length === 0 ? (
+              <p className="text-sm text-slate-300">No post-exit rows yet.</p>
+            ) : (
+              postExit.map((row) => (
+                <div key={`${row.symbol}-${row.exitReason}-${row.exitPrice}`} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-slate-100">{row.symbol}</p>
+                    <span className="rounded-full border border-violet-300/40 bg-violet-400/10 px-2 py-1 text-xs font-semibold text-violet-100">{row.exitReason}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">Entry: {row.entryPrice} | Exit: {row.exitPrice}</p>
+                  <p className="mt-1 text-xs text-slate-400">Max post-exit: {row.postExitMaxReturn ?? 'n/a'}</p>
+                  <p className="mt-1 text-xs text-slate-400">Data quality: {row.postExitDataQuality ?? 'unknown'}</p>
+                  <p className="mt-1 text-xs text-slate-500">{row.notes?.join(' | ')}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className={`${shellClass} mt-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-slate-50">History View</h2>
+            <span className="text-sm text-slate-300">recent scans</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {recentHistory.map((entry) => (
+              <div key={entry.updatedAt} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
+                <p className="font-semibold text-slate-100">{new Date(entry.updatedAt).toLocaleString()}</p>
+                <p className="mt-2 text-xs text-slate-400">YES: {entry.summary.yes}</p>
+                <p className="text-xs text-slate-400">WATCH: {entry.summary.watch}</p>
+                <p className="text-xs text-slate-400">NEAR: {entry.summary.nearSetup ?? 0}</p>
+                <p className="text-xs text-slate-400">NO: {entry.summary.no}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -520,6 +759,10 @@ export default function CryptoDashboardPage() {
                       <div className="rounded-lg bg-white/5 px-3 py-2 sm:col-span-2">
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Priority Score</p>
                         <p className="mt-1 font-medium text-slate-100">{row.priorityScore}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/5 px-3 py-2 sm:col-span-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Execution</p>
+                        <p className="mt-1 font-medium text-slate-100">{row.execution?.status ?? '-'} | {row.execution?.entry ?? '-'}</p>
                       </div>
                     </div>
                     <div className="mt-3 rounded-lg bg-white/5 px-3 py-2">

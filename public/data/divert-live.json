@@ -1,10 +1,10 @@
 {
   "strategy": "DiverT Strategy",
-  "updatedAt": "2026-04-19T06:05:45.863961+00:00",
+  "updatedAt": "2026-04-21T14:44:47.592528+00:00",
   "lastScan": {
     "status": "success",
-    "newSignals": 1,
-    "nextScanAt": "2026-04-19T06:35:45.863961+00:00"
+    "newSignals": 0,
+    "nextScanAt": "2026-04-21T15:14:47.592528+00:00"
   },
   "rows": [
     {
@@ -34,8 +34,8 @@
       "symbol": "ETHUSDT",
       "signal": "YES",
       "side": "BUY",
-      "quality": "GOOD",
-      "invalidation": 2023.04,
+      "quality": "MEDIUM",
+      "invalidation": 1916.14,
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
@@ -43,12 +43,12 @@
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
-      "risk": "medium",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 2023.04,
+        "invalidation": 1916.14,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -57,8 +57,8 @@
       "symbol": "SOLUSDT",
       "signal": "YES",
       "side": "BUY",
-      "quality": "GOOD",
-      "invalidation": 85.11,
+      "quality": "MEDIUM",
+      "invalidation": 80.26,
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
@@ -66,12 +66,12 @@
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
-      "risk": "medium",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 85.11,
+        "invalidation": 80.26,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -80,8 +80,8 @@
       "symbol": "TAOUSDT",
       "signal": "YES",
       "side": "BUY",
-      "quality": "GOOD",
-      "invalidation": 172.5,
+      "quality": "MEDIUM",
+      "invalidation": 173.8,
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
@@ -89,12 +89,12 @@
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
-      "risk": "medium",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 172.5,
+        "invalidation": 173.8,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -110,7 +110,7 @@
         "Prima structura valida sub 70 confirmata",
         "Invalidarea defensiva este high-ul setupului"
       ],
-      "patternContext": "negative",
+      "patternContext": "neutral",
       "entryStructure": "sell_divert_v0_3",
       "risk": "medium",
       "timeframe": "4h",
@@ -133,7 +133,7 @@
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului"
       ],
-      "patternContext": "negative",
+      "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
@@ -149,7 +149,7 @@
       "symbol": "HBARUSDT",
       "signal": "YES",
       "side": "BUY",
-      "quality": "GOOD",
+      "quality": "MEDIUM",
       "invalidation": 0.09295,
       "notes": [
         "Buy DiverT setup valid",
@@ -158,7 +158,7 @@
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
-      "risk": "medium",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
@@ -179,7 +179,7 @@
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului"
       ],
-      "patternContext": "positive",
+      "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
@@ -202,7 +202,7 @@
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului"
       ],
-      "patternContext": "negative",
+      "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
       "risk": "medium",
       "timeframe": "4h",
@@ -225,7 +225,7 @@
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului"
       ],
-      "patternContext": "negative",
+      "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
@@ -242,7 +242,7 @@
       "signal": "YES",
       "side": "BUY",
       "quality": "GOOD",
-      "invalidation": 107.9,
+      "invalidation": 104.61,
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
@@ -255,7 +255,7 @@
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 107.9,
+        "invalidation": 104.61,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -308,25 +308,25 @@
     },
     {
       "symbol": "WIFUSDT",
-      "signal": "YES",
+      "signal": "NEAR_SETUP",
       "side": "BUY",
-      "quality": "MEDIUM",
+      "quality": "WATCH",
       "invalidation": 0.173,
       "notes": [
-        "Buy DiverT setup valid",
-        "Prima structura valida peste 30 confirmata",
-        "Invalidarea defensiva este low-ul setupului"
+        "Buy setup almost valid",
+        "RSI HL exista, dar low-ul valid este inca sub 30",
+        "Aproape de confirmare"
       ],
-      "patternContext": "negative",
-      "entryStructure": "buy_divert_v0_3",
+      "patternContext": "neutral",
+      "entryStructure": "buy_divert_near_setup_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "actionable",
-        "entry": "direct buy execution on valid setup",
+        "status": "near",
+        "entry": "wait for RSI threshold confirmation",
         "invalidation": 0.173,
-        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
-        "closeRule": "close on first reaction target or invalidation break"
+        "exitTrigger": "no entry yet",
+        "closeRule": "none"
       }
     },
     {

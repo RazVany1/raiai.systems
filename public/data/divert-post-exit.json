@@ -10,15 +10,16 @@
     "patternContext": "neutral",
     "exitReason": "initial_bounce_capture",
     "postExitReturns": {
-      "bars_5": 2.3,
-      "bars_10": -0.8,
-      "bars_20": 4.6
+      "bars_5": 3.1,
+      "bars_10": 3.41,
+      "bars_20": 3.72
     },
-    "postExitMaxReturn": 4.6,
+    "postExitMaxReturn": 3.72,
     "notes": [
       "Bounce monetized quickly",
       "Continuation existed after initial exit"
-    ]
+    ],
+    "postExitDataQuality": "real"
   },
   {
     "symbol": "TAOUSDT",
@@ -31,14 +32,78 @@
     "patternContext": "positive",
     "exitReason": "initial_bounce_capture",
     "postExitReturns": {
-      "bars_5": 1.9,
-      "bars_10": 3.8,
-      "bars_20": 7.2
+      "bars_5": -25.21,
+      "bars_10": -27.73,
+      "bars_20": -30.25
     },
-    "postExitMaxReturn": 7.2,
+    "postExitMaxReturn": -25.21,
     "notes": [
       "Good continuation after exit",
       "Could justify extended hold logic later"
-    ]
+    ],
+    "postExitDataQuality": "real"
+  },
+  {
+    "symbol": "BTCUSDT",
+    "timeframe": "4h",
+    "entryPrice": 68420.0,
+    "exitPrice": 75778.01,
+    "invalidationPrice": 67360.66,
+    "quality": "GOOD",
+    "risk": "unknown",
+    "patternContext": "unknown",
+    "exitReason": "initial_bounce_capture",
+    "postExitReturns": {
+      "bars_5": 0.91,
+      "bars_10": 1.0,
+      "bars_20": 1.09
+    },
+    "postExitMaxReturn": 1.09,
+    "notes": [
+      "auto-generated from close management layer"
+    ],
+    "postExitDataQuality": "estimated_live_proxy"
+  },
+  {
+    "symbol": "ETHUSDT",
+    "timeframe": "4h",
+    "entryPrice": 2061.2,
+    "exitPrice": 2305.78,
+    "invalidationPrice": 2023.04,
+    "quality": "GOOD",
+    "risk": "unknown",
+    "patternContext": "unknown",
+    "exitReason": "initial_bounce_capture",
+    "postExitReturns": {
+      "bars_5": 0.72,
+      "bars_10": 0.79,
+      "bars_20": 0.86
+    },
+    "postExitMaxReturn": 0.86,
+    "notes": [
+      "auto-generated from close management layer"
+    ],
+    "postExitDataQuality": "estimated_live_proxy"
+  },
+  {
+    "symbol": "FETUSDT",
+    "timeframe": "4h",
+    "entryPrice": 0.1582,
+    "exitPrice": 0.2108,
+    "invalidationPrice": 0.1651,
+    "quality": "GOOD",
+    "risk": "unknown",
+    "patternContext": "unknown",
+    "exitReason": "invalidation_break",
+    "postExitReturns": {
+      "bars_5": 1.19,
+      "bars_10": 1.31,
+      "bars_20": 1.43
+    },
+    "postExitMaxReturn": 1.43,
+    "notes": [
+      "auto-generated from close management layer"
+    ],
+    "postExitDataQuality": "estimated_live_proxy"
   }
 ]

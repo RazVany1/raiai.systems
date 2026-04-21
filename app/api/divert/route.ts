@@ -16,6 +16,10 @@ export async function GET() {
   const positionTracker = readJson("divert-position-tracker.json");
   const alerts = readJson("divert-alerts.json");
   const backcheck = readJson("divert-backcheck.json");
+  const liveMarket = readJson("divert-live-market.json");
+  const stateMachine = readJson("divert-state-machine.json");
+  const validation = readJson("divert-validation.json");
+  const operationalSemantics = readJson("divert-operational-semantics.json");
   return NextResponse.json({
     ...live,
     history,
@@ -24,5 +28,9 @@ export async function GET() {
     positionTracker,
     alerts,
     backcheck,
+    liveMarket,
+    stateMachine,
+    validation,
+    operationalSemantics,
   });
 }
