@@ -182,6 +182,7 @@ export default function CryptoDashboardPage() {
   const [validation, setValidation] = useState<ValidationSummary | null>(null);
   const [operationalSemantics, setOperationalSemantics] = useState<OperationalSemantics | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
+  const [refreshCountdown, setRefreshCountdown] = useState<number>(30);
 
   useEffect(() => {
     const load = async () => {
@@ -199,11 +200,18 @@ export default function CryptoDashboardPage() {
       setOperationalSemantics(data.operationalSemantics || null);
       setLastScan(data.lastScan || null);
       setUpdatedAt(data.updatedAt || "");
+      setRefreshCountdown(30);
     };
 
     load();
     const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
+    const countdownInterval = setInterval(() => {
+      setRefreshCountdown((prev) => (prev <= 1 ? 30 : prev - 1));
+    }, 1000);
+    return () => {
+      clearInterval(interval);
+      clearInterval(countdownInterval);
+    };
   }, []);
 
   const stats = useMemo(() => {
@@ -306,7 +314,7 @@ export default function CryptoDashboardPage() {
           </div>
           <div className="text-sm leading-6 text-slate-200">
             <p>Status: dashboard v0.8</p>
-            <p>Page refresh: 30s</p>
+            <p>Page refresh in: {refreshCountdown}s</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
