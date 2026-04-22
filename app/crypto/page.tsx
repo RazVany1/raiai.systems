@@ -182,7 +182,7 @@ export default function CryptoDashboardPage() {
   const [validation, setValidation] = useState<ValidationSummary | null>(null);
   const [operationalSemantics, setOperationalSemantics] = useState<OperationalSemantics | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
-  const [refreshCountdown, setRefreshCountdown] = useState<number>(30);
+  const [scanCountdown, setScanCountdown] = useState<string>("--");
 
   useEffect(() => {
     const load = async () => {
@@ -200,19 +200,26 @@ export default function CryptoDashboardPage() {
       setOperationalSemantics(data.operationalSemantics || null);
       setLastScan(data.lastScan || null);
       setUpdatedAt(data.updatedAt || "");
-      setRefreshCountdown(30);
     };
 
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 300000);
     const countdownInterval = setInterval(() => {
-      setRefreshCountdown((prev) => (prev <= 1 ? 30 : prev - 1));
+      setScanCountdown(() => {
+        if (!lastScan?.nextScanAt) return "--";
+        const diffMs = new Date(lastScan.nextScanAt).getTime() - Date.now();
+        if (diffMs <= 0) return "now";
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}m ${seconds}s`;
+      });
     }, 1000);
     return () => {
       clearInterval(interval);
       clearInterval(countdownInterval);
     };
-  }, []);
+  }, [lastScan?.nextScanAt]);
 
   const stats = useMemo(() => {
     const yesSignals = rows.filter((row) => row.signal === "YES").length;
@@ -301,6 +308,22 @@ export default function CryptoDashboardPage() {
   const waitingPositions = trackedPositions.filter((row) => row.status === "waiting");
   const visibleCandidates = signalCandidates.filter((row) => row.priorityScore >= 60);
   const riskRows = liveMarket.filter((row) => row.entryPrice != null || row.invalidationPrice != null);
+  const compactPositions = trackedPositions
+    .filter((row) => row.entryPrice != null)
+    .map((row) => ({
+      symbol: row.symbol,
+      side: row.side ?? "-",
+      entry: row.entryPrice,
+      currentOrExit: row.status.startsWith("closed_") ? (row.exitPrice ?? row.currentPrice ?? row.entryPrice) : (row.currentPrice ?? row.entryPrice),
+      pnl: row.pnlPct,
+      state: row.status.startsWith("closed_") ? "closed" : row.status.startsWith("open_") ? "running" : row.status,
+      openedAt: row.openedAt ?? "",
+    }))
+    .sort((a, b) => {
+      const ad = a.openedAt ? new Date(a.openedAt).getTime() : 0;
+      const bd = b.openedAt ? new Date(b.openedAt).getTime() : 0;
+      return ad - bd;
+    });
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
@@ -314,7 +337,7 @@ export default function CryptoDashboardPage() {
           </div>
           <div className="text-sm leading-6 text-slate-200">
             <p>Status: dashboard v0.8</p>
-            <p>Page refresh in: {refreshCountdown}s</p>
+            <p>Next scan in: {scanCountdown}</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
@@ -370,6 +393,39 @@ export default function CryptoDashboardPage() {
                 </p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-8`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white">Compact Positions Table</h2>
+            <span className="text-xs text-slate-400">all positions stay in history</span>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-sm text-slate-300">
+              <thead className="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Buy/Sell</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">Current / Close</th>
+                  <th className="px-4 py-3 text-left">P/L</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compactPositions.map((row) => (
+                  <tr key={`compact-${row.symbol}-${row.openedAt}`} className="border-t border-white/10">
+                    <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                    <td className="px-4 py-3">{row.side}</td>
+                    <td className="px-4 py-3">{row.entry ?? '-'}</td>
+                    <td className="px-4 py-3">{row.currentOrExit ?? '-'}</td>
+                    <td className={`px-4 py-3 ${pnlTextClass(row.pnl)}`}>{row.pnl != null ? `${row.pnl}%` : '-'}</td>
+                    <td className="px-4 py-3">{row.state}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 

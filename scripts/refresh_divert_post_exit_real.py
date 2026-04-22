@@ -21,16 +21,24 @@ def load_json(path: Path, fallback):
 def main():
     trade_log = load_json(TRADE_LOG_PATH, [])
     existing = load_json(POST_EXIT_PATH, [])
-    existing_symbols = {(row.get("symbol"), row.get("exitPrice")) for row in existing}
     tracker = RAICryptoPostExitTrackerV1()
 
-    updated = list(existing)
+    preserved = []
+    for item in existing:
+        if item.get("postExitDataQuality") == "real":
+            preserved.append(item)
+
+    updated = list(preserved)
     for row in trade_log:
         if row.get("status") != "closed":
             continue
         symbol = row.get("symbol")
         exit_price = row.get("exitPrice")
-        if (symbol, exit_price) in existing_symbols:
+        already_real = any(
+            x.get("symbol") == symbol and x.get("exitPrice") == exit_price and x.get("postExitDataQuality") == "real"
+            for x in updated
+        )
+        if already_real:
             continue
         try:
             rec = tracker.build_post_exit_record(
@@ -61,7 +69,9 @@ def main():
             }
             updated.append(payload)
         except Exception:
-            continue
+            fallback = next((x for x in existing if x.get("symbol") == symbol and x.get("exitPrice") == exit_price), None)
+            if fallback:
+                updated.append(fallback)
 
     POST_EXIT_PATH.write_text(json.dumps(updated, indent=2, ensure_ascii=False), encoding="utf-8")
     print(POST_EXIT_PATH)
