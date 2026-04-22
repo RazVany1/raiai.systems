@@ -152,7 +152,7 @@ function contextText(patternContext?: string) {
   return "neutral";
 }
 
-const shellClass = "rounded-2xl border border-slate-100/12 bg-slate-800/70 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.16)] backdrop-blur-sm";
+const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
 function statusBadgeClasses(status: string) {
   if (status === "closed_green") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
@@ -348,32 +348,32 @@ export default function CryptoDashboardPage() {
     });
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-6 py-10 md:px-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-bold tracking-tight text-white">
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">
               RAI Crypto Dashboard
             </h1>
           </div>
-          <div className="text-sm leading-6 text-slate-200">
+          <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard v0.8</p>
             <p>Next scan in: {scanCountdown}</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <div className={`${shellClass} p-4`}>
+        <section className="mb-4 grid gap-2 md:grid-cols-4">
+          <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Last refresh</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
           </div>
-          <div className={`${shellClass} p-4`}>
+          <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active candidates</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{signalCandidates.length}</p>
-            <p className="mt-1 text-sm text-slate-400">YES + WATCH + NEAR SETUP currently visible</p>
+            <p className="mt-1 text-base font-semibold text-slate-100">{signalCandidates.length}</p>
+            <p className="mt-0.5 text-xs text-slate-400">YES + WATCH + NEAR SETUP</p>
           </div>
-          <div className={`${shellClass} p-4`}>
+          <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Strongest context</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{strongestPositive.length ? strongestPositive.join(", ") : "None"}</p>
             <p className="mt-1 text-sm text-slate-400">Positive pattern context snapshot</p>
@@ -386,19 +386,19 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className={`${shellClass} mb-8`}>
-          <h2 className="mb-2 text-xl font-semibold text-white">Top Signal</h2>
-          <p className="text-sm leading-7 text-slate-100">{topSignalText}</p>
+        <section className={`${shellClass} mb-4`}>
+          <h2 className="mb-1 text-base font-semibold text-white">Top Signal</h2>
+          <p className="text-xs leading-5 text-slate-100">{topSignalText}</p>
         </section>
 
-        <section className={`${shellClass} mb-8`}>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Compact Positions Table</h2>
-            <span className="text-xs text-slate-400">all positions stay in history</span>
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Compact Positions</h2>
+            <span className="text-[10px] text-slate-400">history on</span>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-sm text-slate-300">
-              <thead className="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">Buy/Sell</th>
