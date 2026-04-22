@@ -169,6 +169,25 @@ function pnlTextClass(pnlPct: number | null) {
   return "text-slate-100";
 }
 
+function formatShortDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatPrice(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const abs = Math.abs(value);
+  if (abs >= 1000) return value.toFixed(0);
+  if (abs >= 100) return value.toFixed(1);
+  if (abs >= 10) return value.toFixed(2);
+  return value.toFixed(4);
+}
+
 export default function CryptoDashboardPage() {
   const [rows, setRows] = useState<SignalRow[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -275,13 +294,11 @@ export default function CryptoDashboardPage() {
           ? row.exitPrice ?? row.entryPrice
           : livePrice ?? row.entryPrice;
 
-        const signedPnl = row.resultPct ?? (
+        const pnlPct = row.resultPct ?? (
           row.entryPrice != null && currentPrice != null
             ? Number((((currentPrice - row.entryPrice) / row.entryPrice) * 100).toFixed(2))
             : null
         );
-
-        const pnlPct = row.side === "SELL" && signedPnl != null ? Number((-signedPnl).toFixed(2)) : signedPnl;
 
         const normalizedStatus = row.status === "closed"
           ? ((pnlPct ?? 0) >= 0 ? "closed_green" : "closed_red")
@@ -308,6 +325,10 @@ export default function CryptoDashboardPage() {
   const waitingPositions = trackedPositions.filter((row) => row.status === "waiting");
   const visibleCandidates = signalCandidates.filter((row) => row.priorityScore >= 60);
   const riskRows = liveMarket.filter((row) => row.entryPrice != null || row.invalidationPrice != null);
+  const openLiveMarketRows = liveMarket.filter((row) => {
+    const tracked = trackedPositions.find((position) => position.symbol === row.symbol);
+    return tracked?.status?.startsWith("open_");
+  });
   const compactPositions = trackedPositions
     .filter((row) => row.entryPrice != null)
     .map((row) => ({
@@ -318,6 +339,7 @@ export default function CryptoDashboardPage() {
       pnl: row.pnlPct,
       state: row.status.startsWith("closed_") ? "closed" : row.status.startsWith("open_") ? "running" : row.status,
       openedAt: row.openedAt ?? "",
+      openedAtLabel: formatShortDate(row.openedAt),
     }))
     .sort((a, b) => {
       const ad = a.openedAt ? new Date(a.openedAt).getTime() : 0;
@@ -371,32 +393,6 @@ export default function CryptoDashboardPage() {
         </section>
 
         <section className={`${shellClass} mb-8`}>
-          <h2 className="mb-4 text-xl font-semibold text-white">Live Market Layer</h2>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {liveMarket.slice(0, 12).map((row) => (
-              <div key={row.symbol} className="rounded-xl border border-slate-100/10 bg-slate-900/40 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">{row.symbol}</p>
-                  <p className="text-xs text-slate-400">{row.side || "-"}</p>
-                </div>
-                <p className="mt-2 text-lg font-semibold text-slate-100">
-                  {row.livePrice != null ? row.livePrice.toFixed(4) : "n/a"}
-                </p>
-                <p className={`mt-1 text-sm ${pnlTextClass(row.livePnlPct)}`}>
-                  Live P/L: {row.livePnlPct != null ? `${row.livePnlPct}%` : "n/a"}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Dist. invalidation: {row.distanceToInvalidationPct != null ? `${row.distanceToInvalidationPct}%` : "n/a"}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {row.marketTimestamp ? new Date(row.marketTimestamp).toLocaleString() : "-"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-8`}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">Compact Positions Table</h2>
             <span className="text-xs text-slate-400">all positions stay in history</span>
@@ -418,8 +414,8 @@ export default function CryptoDashboardPage() {
                   <tr key={`compact-${row.symbol}-${row.openedAt}`} className="border-t border-white/10">
                     <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                     <td className="px-4 py-3">{row.side}</td>
-                    <td className="px-4 py-3">{row.entry ?? '-'}</td>
-                    <td className="px-4 py-3">{row.currentOrExit ?? '-'}</td>
+                    <td className="px-4 py-3">{formatPrice(row.entry)} <span className="text-xs text-slate-400">({row.openedAtLabel})</span></td>
+                    <td className="px-4 py-3">{formatPrice(row.currentOrExit)}</td>
                     <td className={`px-4 py-3 ${pnlTextClass(row.pnl)}`}>{row.pnl != null ? `${row.pnl}%` : '-'}</td>
                     <td className="px-4 py-3">{row.state}</td>
                   </tr>
@@ -427,6 +423,36 @@ export default function CryptoDashboardPage() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className={`${shellClass} mb-8`}>
+          <h2 className="mb-4 text-xl font-semibold text-white">Live Market Layer</h2>
+          {openLiveMarketRows.length === 0 ? (
+            <p className="text-sm text-slate-300">No open positions in live monitoring right now.</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {openLiveMarketRows.map((row) => (
+                <div key={row.symbol} className="rounded-xl border border-slate-100/10 bg-slate-900/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">{row.symbol}</p>
+                    <p className="text-xs text-slate-400">{row.side || "-"}</p>
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-slate-100">
+                    {row.livePrice != null ? row.livePrice.toFixed(4) : "n/a"}
+                  </p>
+                  <p className={`mt-1 text-sm ${pnlTextClass(row.livePnlPct)}`}>
+                    Live P/L: {row.livePnlPct != null ? `${row.livePnlPct}%` : "n/a"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Dist. invalidation: {row.distanceToInvalidationPct != null ? `${row.distanceToInvalidationPct}%` : "n/a"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {row.marketTimestamp ? new Date(row.marketTimestamp).toLocaleString() : "-"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={`${shellClass} mb-8`}>
