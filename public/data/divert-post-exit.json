@@ -1,5 +1,27 @@
 [
   {
+    "symbol": "XMRUSDT",
+    "timeframe": "4h",
+    "entryPrice": 379.62,
+    "exitPrice": 118.7,
+    "invalidationPrice": 142.7,
+    "quality": "MEDIUM",
+    "risk": "live_monitored",
+    "patternContext": "live_monitored",
+    "exitReason": "invalidation_break",
+    "postExitReturns": {
+      "bars_5": 216.96,
+      "bars_10": 238.66,
+      "bars_20": 260.35
+    },
+    "postExitMaxReturn": 260.35,
+    "notes": [
+      "auto-generated from open-position monitor",
+      "closed_at_live_price=118.7"
+    ],
+    "postExitDataQuality": "real"
+  },
+  {
     "symbol": "TONUSDT",
     "timeframe": "4h",
     "entryPrice": 1.3776,
@@ -66,8 +88,12 @@
     "risk": "live_managed",
     "patternContext": "live_managed",
     "exitReason": "managed_close",
-    "postExitReturns": {},
-    "postExitMaxReturn": null,
+    "postExitReturns": {
+      "bars_5": -2.1,
+      "bars_10": -6.3,
+      "bars_20": -6.3
+    },
+    "postExitMaxReturn": -2.1,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
