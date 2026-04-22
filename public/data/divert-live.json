@@ -1,10 +1,10 @@
 {
   "strategy": "DiverT Strategy",
-  "updatedAt": "2026-04-22T11:16:56.968529+00:00",
+  "updatedAt": "2026-04-22T11:22:58.633784+00:00",
   "lastScan": {
     "status": "success",
-    "newSignals": 0,
-    "nextScanAt": "2026-04-22T11:46:56.968529+00:00"
+    "newSignals": 6,
+    "nextScanAt": "2026-04-22T11:52:58.633784+00:00"
   },
   "rows": [
     {
@@ -13,13 +13,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 65000.0,
-      "scanPrice": 78164.0,
+      "scanPrice": 78201.0,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=78164.0"
+        "price_now=78201.0"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -39,13 +39,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 1938.82,
-      "scanPrice": 2389.9,
+      "scanPrice": 2391.2,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=2389.9"
+        "price_now=2391.2"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -65,13 +65,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 78.96,
-      "scanPrice": 88.299,
+      "scanPrice": 88.232,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=88.299"
+        "price_now=88.232"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -87,50 +87,54 @@
     },
     {
       "symbol": "XRPUSDT",
-      "signal": "NO",
-      "side": "NONE",
-      "quality": "FRAGILE",
-      "invalidation": null,
-      "scanPrice": 1.4505,
+      "signal": "YES",
+      "side": "BUY",
+      "quality": "MEDIUM",
+      "invalidation": 1.3184,
+      "scanPrice": 1.4497,
       "sourceVenue": "hyper",
       "notes": [
-        "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.4505"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=1.4497"
       ],
       "patternContext": "neutral",
-      "entryStructure": "no_valid_divert_v0_3_signal",
-      "risk": "high",
+      "entryStructure": "buy_divert_v0_3",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "none",
-        "entry": "no action",
-        "invalidation": null,
-        "exitTrigger": "none",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 1.3184,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
       "symbol": "AAVEUSDT",
-      "signal": "NO",
-      "side": "NONE",
-      "quality": "FRAGILE",
-      "invalidation": null,
-      "scanPrice": 93.359,
+      "signal": "YES",
+      "side": "BUY",
+      "quality": "GOOD",
+      "invalidation": 89.4,
+      "scanPrice": 93.23,
       "sourceVenue": "hyper",
       "notes": [
-        "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=93.359"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=93.23"
       ],
       "patternContext": "neutral",
-      "entryStructure": "no_valid_divert_v0_3_signal",
-      "risk": "high",
+      "entryStructure": "buy_divert_v0_3",
+      "risk": "medium",
       "timeframe": "4h",
       "execution": {
-        "status": "none",
-        "entry": "no action",
-        "invalidation": null,
-        "exitTrigger": "none",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 89.4,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
@@ -139,13 +143,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 142.7,
-      "scanPrice": 376.5,
+      "scanPrice": 376.31,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=376.5"
+        "price_now=376.31"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -161,28 +165,28 @@
     },
     {
       "symbol": "DOGEUSDT",
-      "signal": "NEAR_SETUP",
+      "signal": "YES",
       "side": "SELL",
-      "quality": "WATCH",
-      "invalidation": 0.10199,
-      "scanPrice": 0.098352,
+      "quality": "MEDIUM",
+      "invalidation": 0.10218,
+      "scanPrice": 0.098099,
       "sourceVenue": "hyper",
       "notes": [
-        "Sell setup almost valid",
-        "RSI LH exista, dar high-ul valid este inca peste 70",
-        "Aproape de confirmare",
-        "price_now=0.098352"
+        "Sell DiverT setup valid",
+        "Prima structura valida sub 70 confirmata",
+        "Invalidarea defensiva este high-ul setupului",
+        "price_now=0.098099"
       ],
       "patternContext": "neutral",
-      "entryStructure": "sell_divert_near_setup_v0_3",
+      "entryStructure": "sell_divert_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "near",
-        "entry": "wait for RSI threshold confirmation",
-        "invalidation": 0.10199,
-        "exitTrigger": "no entry yet",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct sell execution on valid setup",
+        "invalidation": 0.10218,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
@@ -191,13 +195,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 596.42,
-      "scanPrice": 641.76,
+      "scanPrice": 641.65,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=641.76"
+        "price_now=641.65"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -217,13 +221,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 234.3,
-      "scanPrice": 247.24,
+      "scanPrice": 246.89,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=247.24"
+        "price_now=246.89"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -243,13 +247,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 0.8197,
-      "scanPrice": 0.9749,
+      "scanPrice": 0.97121,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.9749"
+        "price_now=0.97121"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -269,13 +273,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 0.0858,
-      "scanPrice": 0.12833,
+      "scanPrice": 0.12784,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.12833"
+        "price_now=0.12784"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -291,26 +295,28 @@
     },
     {
       "symbol": "ZROUSDT",
-      "signal": "NO",
-      "side": "NONE",
-      "quality": "FRAGILE",
-      "invalidation": null,
-      "scanPrice": 1.6235,
+      "signal": "YES",
+      "side": "BUY",
+      "quality": "GOOD",
+      "invalidation": 1.783,
+      "scanPrice": 1.6253,
       "sourceVenue": "hyper",
       "notes": [
-        "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.6235"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=1.6253"
       ],
       "patternContext": "neutral",
-      "entryStructure": "no_valid_divert_v0_3_signal",
-      "risk": "high",
+      "entryStructure": "buy_divert_v0_3",
+      "risk": "medium",
       "timeframe": "4h",
       "execution": {
-        "status": "none",
-        "entry": "no action",
-        "invalidation": null,
-        "exitTrigger": "none",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 1.783,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
@@ -319,13 +325,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 8.37,
-      "scanPrice": 9.5969,
+      "scanPrice": 9.5867,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=9.5969"
+        "price_now=9.5867"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -345,13 +351,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 8.37,
-      "scanPrice": 9.5196,
+      "scanPrice": 9.512,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=9.5196"
+        "price_now=9.512"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -371,13 +377,13 @@
       "side": "BUY",
       "quality": "WATCH",
       "invalidation": 0.2328,
-      "scanPrice": 0.25606,
+      "scanPrice": 0.25555,
       "sourceVenue": "hyper",
       "notes": [
         "Buy setup almost valid",
         "RSI HL exista, dar low-ul valid este inca sub 30",
         "Aproape de confirmare",
-        "price_now=0.25606"
+        "price_now=0.25555"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_near_setup_v0_3",
@@ -396,14 +402,14 @@
       "signal": "YES",
       "side": "BUY",
       "quality": "MEDIUM",
-      "invalidation": 1.26,
-      "scanPrice": 1.425,
+      "invalidation": 1.129,
+      "scanPrice": 1.4228,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=1.425"
+        "price_now=1.4228"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -412,57 +418,59 @@
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 1.26,
+        "invalidation": 1.129,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
       "symbol": "BCHUSDT",
-      "signal": "NO",
-      "side": "NONE",
-      "quality": "FRAGILE",
-      "invalidation": null,
-      "scanPrice": 467.46,
+      "signal": "NEAR_SETUP",
+      "side": "BUY",
+      "quality": "WATCH",
+      "invalidation": 419.5,
+      "scanPrice": 466.69,
       "sourceVenue": "hyper",
       "notes": [
-        "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=467.46"
+        "Buy setup almost valid",
+        "RSI HL exista, dar low-ul valid este inca sub 30",
+        "Aproape de confirmare",
+        "price_now=466.69"
       ],
       "patternContext": "neutral",
-      "entryStructure": "no_valid_divert_v0_3_signal",
-      "risk": "high",
+      "entryStructure": "buy_divert_near_setup_v0_3",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "none",
-        "entry": "no action",
-        "invalidation": null,
-        "exitTrigger": "none",
+        "status": "near",
+        "entry": "wait for RSI threshold confirmation",
+        "invalidation": 419.5,
+        "exitTrigger": "no entry yet",
         "closeRule": "none"
       }
     },
     {
       "symbol": "TONUSDT",
       "signal": "YES",
-      "side": "SELL",
+      "side": "BUY",
       "quality": "GOOD",
-      "invalidation": 1.35,
-      "scanPrice": 1.3762,
+      "invalidation": 1.199,
+      "scanPrice": 1.376,
       "sourceVenue": "hyper",
       "notes": [
-        "Sell DiverT setup valid",
-        "Prima structura valida sub 70 confirmata",
-        "Invalidarea defensiva este high-ul setupului",
-        "price_now=1.3762"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=1.376"
       ],
       "patternContext": "positive",
-      "entryStructure": "sell_divert_v0_3",
+      "entryStructure": "buy_divert_v0_3",
       "risk": "medium",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
-        "entry": "direct sell execution on valid setup",
-        "invalidation": 1.35,
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 1.199,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -472,14 +480,14 @@
       "signal": "YES",
       "side": "SELL",
       "quality": "MEDIUM",
-      "invalidation": 0.292,
-      "scanPrice": 0.33293,
+      "invalidation": 0.3301,
+      "scanPrice": 0.33363,
       "sourceVenue": "hyper",
       "notes": [
         "Sell DiverT setup valid",
         "Prima structura valida sub 70 confirmata",
         "Invalidarea defensiva este high-ul setupului",
-        "price_now=0.33293"
+        "price_now=0.33363"
       ],
       "patternContext": "neutral",
       "entryStructure": "sell_divert_v0_3",
@@ -488,7 +496,7 @@
       "execution": {
         "status": "actionable",
         "entry": "direct sell execution on valid setup",
-        "invalidation": 0.292,
+        "invalidation": 0.3301,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -498,14 +506,14 @@
       "signal": "YES",
       "side": "BUY",
       "quality": "MEDIUM",
-      "invalidation": 3.259,
-      "scanPrice": 3.3816,
+      "invalidation": 3.014,
+      "scanPrice": 3.3815,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=3.3816"
+        "price_now=3.3815"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -514,7 +522,7 @@
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 3.259,
+        "invalidation": 3.014,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -525,13 +533,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 0.2061,
-      "scanPrice": 0.23655,
+      "scanPrice": 0.23637,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.23655"
+        "price_now=0.23637"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -547,28 +555,28 @@
     },
     {
       "symbol": "WLDUSDT",
-      "signal": "NEAR_SETUP",
+      "signal": "YES",
       "side": "BUY",
-      "quality": "WATCH",
-      "invalidation": 0.3018,
-      "scanPrice": 0.26863,
+      "quality": "MEDIUM",
+      "invalidation": 0.2389,
+      "scanPrice": 0.26804,
       "sourceVenue": "hyper",
       "notes": [
-        "Buy setup almost valid",
-        "RSI HL exista, dar low-ul valid este inca sub 30",
-        "Aproape de confirmare",
-        "price_now=0.26863"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=0.26804"
       ],
       "patternContext": "neutral",
-      "entryStructure": "buy_divert_near_setup_v0_3",
+      "entryStructure": "buy_divert_v0_3",
       "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "near",
-        "entry": "wait for RSI threshold confirmation",
-        "invalidation": 0.3018,
-        "exitTrigger": "no entry yet",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 0.2389,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
@@ -577,11 +585,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 56.149,
+      "scanPrice": 56.139,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=56.149"
+        "price_now=56.139"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -601,13 +609,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 0.1382,
-      "scanPrice": 0.17958,
+      "scanPrice": 0.17885,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.17958"
+        "price_now=0.17885"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -625,24 +633,24 @@
       "symbol": "WIFUSDT",
       "signal": "YES",
       "side": "SELL",
-      "quality": "MEDIUM",
-      "invalidation": 0.194,
-      "scanPrice": 0.20195,
+      "quality": "GOOD",
+      "invalidation": 0.207,
+      "scanPrice": 0.20125,
       "sourceVenue": "hyper",
       "notes": [
         "Sell DiverT setup valid",
         "Prima structura valida sub 70 confirmata",
         "Invalidarea defensiva este high-ul setupului",
-        "price_now=0.20195"
+        "price_now=0.20125"
       ],
       "patternContext": "neutral",
       "entryStructure": "sell_divert_v0_3",
-      "risk": "medium_high",
+      "risk": "medium",
       "timeframe": "4h",
       "execution": {
         "status": "actionable",
         "entry": "direct sell execution on valid setup",
-        "invalidation": 0.194,
+        "invalidation": 0.207,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
@@ -653,13 +661,13 @@
       "side": "BUY",
       "quality": "GOOD",
       "invalidation": 0.386,
-      "scanPrice": 0.4912,
+      "scanPrice": 0.49129,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.4912"
+        "price_now=0.49129"
       ],
       "patternContext": "positive",
       "entryStructure": "buy_divert_v0_3",
@@ -679,11 +687,11 @@
       "side": "NONE",
       "quality": "UNKNOWN",
       "invalidation": null,
-      "scanPrice": 0.411,
+      "scanPrice": 0.41144,
       "sourceVenue": "hyper",
       "notes": [
         "Eroare la generare: HTTP Error 400: Bad Request",
-        "price_now=0.411"
+        "price_now=0.41144"
       ],
       "patternContext": "unknown",
       "entryStructure": "error",
@@ -703,13 +711,13 @@
       "side": "BUY",
       "quality": "MEDIUM",
       "invalidation": 0.839,
-      "scanPrice": 0.9986,
+      "scanPrice": 0.9902,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=0.9986"
+        "price_now=0.9902"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -728,14 +736,14 @@
       "signal": "YES",
       "side": "BUY",
       "quality": "MEDIUM",
-      "invalidation": 1.36,
-      "scanPrice": 1.3096,
+      "invalidation": 1.147,
+      "scanPrice": 1.3085,
       "sourceVenue": "hyper",
       "notes": [
         "Buy DiverT setup valid",
         "Prima structura valida peste 30 confirmata",
         "Invalidarea defensiva este low-ul setupului",
-        "price_now=1.3096"
+        "price_now=1.3085"
       ],
       "patternContext": "neutral",
       "entryStructure": "buy_divert_v0_3",
@@ -744,33 +752,35 @@
       "execution": {
         "status": "actionable",
         "entry": "direct buy execution on valid setup",
-        "invalidation": 1.36,
+        "invalidation": 1.147,
         "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
         "closeRule": "close on first reaction target or invalidation break"
       }
     },
     {
       "symbol": "HBARUSDT",
-      "signal": "NO",
-      "side": "NONE",
-      "quality": "FRAGILE",
-      "invalidation": null,
-      "scanPrice": 0.091095,
+      "signal": "YES",
+      "side": "BUY",
+      "quality": "MEDIUM",
+      "invalidation": 0.08603,
+      "scanPrice": 0.09109,
       "sourceVenue": "hyper",
       "notes": [
-        "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.091095"
+        "Buy DiverT setup valid",
+        "Prima structura valida peste 30 confirmata",
+        "Invalidarea defensiva este low-ul setupului",
+        "price_now=0.09109"
       ],
       "patternContext": "neutral",
-      "entryStructure": "no_valid_divert_v0_3_signal",
-      "risk": "high",
+      "entryStructure": "buy_divert_v0_3",
+      "risk": "medium_high",
       "timeframe": "4h",
       "execution": {
-        "status": "none",
-        "entry": "no action",
-        "invalidation": null,
-        "exitTrigger": "none",
-        "closeRule": "none"
+        "status": "actionable",
+        "entry": "direct buy execution on valid setup",
+        "invalidation": 0.08603,
+        "exitTrigger": "take initial bounce / reaction, keep defensive exit active",
+        "closeRule": "close on first reaction target or invalidation break"
       }
     }
   ]
