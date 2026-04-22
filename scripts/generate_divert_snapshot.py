@@ -146,25 +146,35 @@ def build_trade_log(rows: list[dict], updated_at: str) -> list[dict]:
                 result.append(current)
                 continue
 
-            existing_entry = current.get("entryPrice") if current and current.get("entryPrice") is not None else price_now
+            reuse_current = bool(
+                current
+                and current.get("status") == "open"
+                and current.get("side") == side
+                and current.get("invalidationPrice") is not None
+                and invalidation is not None
+                and abs(float(current.get("invalidationPrice")) - float(invalidation)) < 1e-9
+            )
+
+            entry_price = current.get("entryPrice") if reuse_current and current.get("entryPrice") is not None else price_now
+            opened_at = current.get("openedAt") if reuse_current and current and current.get("openedAt") else updated_at
             exit_trigger = None
-            if existing_entry is not None:
+            if entry_price is not None:
                 if side == "SELL":
-                    exit_trigger = round(float(existing_entry) * 0.97, 6)
+                    exit_trigger = round(float(entry_price) * 0.97, 6)
                 else:
-                    exit_trigger = round(float(existing_entry) * 1.03, 6)
+                    exit_trigger = round(float(entry_price) * 1.03, 6)
 
             result.append({
                 "symbol": symbol,
                 "side": side,
                 "timeframe": timeframe,
                 "status": "open",
-                "entryPrice": existing_entry,
+                "entryPrice": entry_price,
                 "invalidationPrice": invalidation,
                 "exitPrice": None,
                 "resultPct": None,
                 "quality": quality,
-                "openedAt": current.get("openedAt") if current and current.get("openedAt") else updated_at,
+                "openedAt": opened_at,
                 "closedAt": None,
                 "targetPrice": exit_trigger,
                 "exitRule": "close on target or invalidation",

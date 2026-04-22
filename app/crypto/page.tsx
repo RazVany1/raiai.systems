@@ -355,7 +355,6 @@ export default function CryptoDashboardPage() {
             <h1 className="mb-2 text-4xl font-bold tracking-tight text-white">
               RAI Crypto Dashboard
             </h1>
-            <p className="text-base text-slate-200">DiverT Strategy live board</p>
           </div>
           <div className="text-sm leading-6 text-slate-200">
             <p>Status: dashboard v0.8</p>
@@ -455,36 +454,6 @@ export default function CryptoDashboardPage() {
           )}
         </section>
 
-        <section className={`${shellClass} mb-8`}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">System Validation</h2>
-            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${validation?.status === 'ok' ? 'border-emerald-200/70 bg-emerald-300/20 text-emerald-50' : 'border-amber-200/70 bg-amber-300/20 text-amber-50'}`}>
-              {validation?.status ?? 'n/a'}
-            </span>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {(validation?.checks || []).map((check) => (
-              <div key={check.name} className="rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
-                <p className="font-semibold text-slate-100">{check.name}</p>
-                <p className={`mt-2 text-xs ${check.ok ? 'text-emerald-300' : 'text-amber-300'}`}>{check.ok ? 'ok' : 'warning'}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4 text-sm text-slate-300">
-            <p className="font-semibold text-slate-100">Operational semantics</p>
-            <p className="mt-2 text-xs text-slate-400">Signals covered by market: {(operationalSemantics?.signalsCoveredByMarket || []).length}</p>
-            <p className="text-xs text-slate-400">Trade symbols covered by market: {(operationalSemantics?.tradeCoveredByMarket || []).length}</p>
-            {operationalSemantics?.warnings?.length ? (
-              <div className="mt-2 space-y-1">
-                {operationalSemantics.warnings.map((warning) => (
-                  <p key={warning} className="text-xs text-amber-300">{warning}</p>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-emerald-300">No semantic coverage warnings</p>
-            )}
-          </div>
-        </section>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <section className={shellClass}>
