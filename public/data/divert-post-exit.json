@@ -10,11 +10,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": -0.02,
-      "bars_10": -0.02,
-      "bars_20": -0.02
+      "bars_5": -0.1,
+      "bars_10": -0.11,
+      "bars_20": -0.12
     },
-    "postExitMaxReturn": -0.02,
+    "postExitMaxReturn": -0.1,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -31,11 +31,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": 219.57,
-      "bars_10": 241.53,
-      "bars_20": 263.48
+      "bars_5": 220.05,
+      "bars_10": 242.06,
+      "bars_20": 264.06
     },
-    "postExitMaxReturn": 263.48,
+    "postExitMaxReturn": 264.06,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -52,11 +52,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": 0.48,
-      "bars_10": 0.53,
-      "bars_20": 0.58
+      "bars_5": 0.3,
+      "bars_10": 0.33,
+      "bars_20": 0.36
     },
-    "postExitMaxReturn": 0.58,
+    "postExitMaxReturn": 0.36,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -73,11 +73,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": 0.09,
-      "bars_10": 0.1,
-      "bars_20": 0.11
+      "bars_5": 0.12,
+      "bars_10": 0.13,
+      "bars_20": 0.14
     },
-    "postExitMaxReturn": 0.11,
+    "postExitMaxReturn": 0.14,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -94,11 +94,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": 0.35,
-      "bars_10": 0.39,
-      "bars_20": 0.42
+      "bars_5": 0.61,
+      "bars_10": 0.67,
+      "bars_20": 0.73
     },
-    "postExitMaxReturn": 0.42,
+    "postExitMaxReturn": 0.73,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -115,11 +115,11 @@
     "patternContext": "live_managed",
     "exitReason": "managed_close",
     "postExitReturns": {
-      "bars_5": 0.14,
-      "bars_10": 0.15,
-      "bars_20": 0.17
+      "bars_5": 0.21,
+      "bars_10": 0.23,
+      "bars_20": 0.25
     },
-    "postExitMaxReturn": 0.17,
+    "postExitMaxReturn": 0.25,
     "notes": [
       "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
@@ -136,11 +136,11 @@
     "patternContext": "live_monitored",
     "exitReason": "partial_objective_hit",
     "postExitReturns": {
-      "bars_5": 1.14,
-      "bars_10": 1.25,
-      "bars_20": 1.37
+      "bars_5": 0.92,
+      "bars_10": 1.01,
+      "bars_20": 1.1
     },
-    "postExitMaxReturn": 1.37,
+    "postExitMaxReturn": 1.1,
     "notes": [
       "auto-generated from open-position monitor",
       "closed_at_live_price=0.992"
@@ -158,14 +158,50 @@
     "patternContext": "live_monitored",
     "exitReason": "partial_objective_hit",
     "postExitReturns": {
-      "bars_5": -0.21,
-      "bars_10": -0.23,
-      "bars_20": -0.25
+      "bars_5": -0.13,
+      "bars_10": -0.14,
+      "bars_20": -0.16
     },
-    "postExitMaxReturn": -0.21,
+    "postExitMaxReturn": -0.13,
     "notes": [
       "auto-generated from open-position monitor",
       "closed_at_live_price=0.202"
+    ],
+    "postExitDataQuality": "real"
+  },
+  {
+    "symbol": "TONUSDT",
+    "timeframe": "4h",
+    "entryPrice": 1.3758,
+    "exitPrice": 1.3759,
+    "invalidationPrice": 1.35,
+    "quality": "GOOD",
+    "risk": "live_managed",
+    "patternContext": "live_managed",
+    "exitReason": "managed_close",
+    "postExitReturns": {
+      "bars_5": 0.08
+    },
+    "postExitMaxReturn": 0.08,
+    "notes": [
+      "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
+    ],
+    "postExitDataQuality": "real"
+  },
+  {
+    "symbol": "TRXUSDT",
+    "timeframe": "4h",
+    "entryPrice": 0.33345,
+    "exitPrice": 0.33345,
+    "invalidationPrice": 0.292,
+    "quality": "MEDIUM",
+    "risk": "live_managed",
+    "patternContext": "live_managed",
+    "exitReason": "managed_close",
+    "postExitReturns": {},
+    "postExitMaxReturn": null,
+    "notes": [
+      "Pozitia a fost inchisa pe bounce-ul initial si continuata in observatie pasiva"
     ],
     "postExitDataQuality": "real"
   }
