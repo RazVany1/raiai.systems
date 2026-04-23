@@ -64,32 +64,11 @@ export default function CryptoDashboardPage() {
   const [nextScanAt, setNextScanAt] = useState<string>("");
 
   useEffect(() => {
-    const load = async () => {
-      const res = await fetch("/data/rsi-trend-dashboard.json", { cache: "no-store" });
-      const data = await res.json();
-      setInterestRows(data.interestRows || []);
-      setTrendRows(data.trendRows || []);
-      setUpdatedAt(data.updatedAt || "");
-      setNextScanAt(data.nextScanAt || "");
-    };
-
-    load();
-
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    const scheduleNextLoad = (nextIso?: string) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      const fallbackMs = 5 * 60 * 1000;
-      if (!nextIso) {
-        timeoutId = setTimeout(load, fallbackMs);
-        return;
-      }
-      const targetMs = new Date(nextIso).getTime() - Date.now() + 15000;
-      timeoutId = setTimeout(load, Math.max(15000, targetMs));
-    };
-
-    const wrappedLoad = async () => {
-      const res = await fetch("/data/rsi-trend-dashboard.json", { cache: "no-store" });
+    const load = async () => {
+      const res = await fetch(`/data/rsi-trend-dashboard.json?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       setInterestRows(data.interestRows || []);
       setTrendRows(data.trendRows || []);
@@ -98,9 +77,23 @@ export default function CryptoDashboardPage() {
       scheduleNextLoad(data.nextScanAt);
     };
 
-    wrappedLoad();
+    const scheduleNextLoad = (nextIso?: string) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      const fallbackMs = 60 * 1000;
+      if (!nextIso) {
+        timeoutId = setTimeout(load, fallbackMs);
+        return;
+      }
+      const targetMs = new Date(nextIso).getTime() - Date.now() + 15000;
+      timeoutId = setTimeout(load, Math.max(15000, targetMs));
+    };
+
+    load();
+    intervalId = setInterval(load, 60 * 1000);
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
