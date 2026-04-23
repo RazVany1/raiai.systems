@@ -1,10 +1,13 @@
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
+import requests
 
 DASHBOARD_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-zone-alert-state.json")
 ALERTS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-zone-alerts.json")
+DELIVERED_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-zone-alerts-delivered.json")
 
 
 def load_json(path: Path, fallback):
@@ -16,6 +19,22 @@ def load_json(path: Path, fallback):
         return fallback
 
 
+def send_telegram_message(text: str) -> bool:
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if not bot_token or not chat_id:
+        return False
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={"chat_id": chat_id, "text": text},
+            timeout=20,
+        )
+        return response.ok
+    except Exception:
+        return False
+
+
 def main():
     dashboard = load_json(DASHBOARD_PATH, {})
     state = load_json(STATE_PATH, {"active": {}})
@@ -25,6 +44,8 @@ def main():
 
     current_active = {}
     alerts = []
+    delivered = load_json(DELIVERED_PATH, {"sent": []})
+    sent_keys = set(delivered.get("sent", [])) if isinstance(delivered.get("sent", []), list) else set()
 
     for row in current_rows:
         symbol = row.get("symbol")
@@ -40,7 +61,7 @@ def main():
         }
 
         if key not in active:
-            alerts.append({
+            alert = {
                 "symbol": symbol,
                 "type": "rsi_zone_entered",
                 "priority": "medium",
@@ -50,10 +71,15 @@ def main():
                 "deliveryStatus": "telegram_ready",
                 "chatDeliveryText": f"RSI ZONE ALERT: {symbol} entered {zone} on 4H, RSI={rsi}",
                 "createdAt": now_iso,
-            })
+            }
+            if key not in sent_keys and send_telegram_message(alert["chatDeliveryText"]):
+                alert["deliveryStatus"] = "telegram_sent"
+                sent_keys.add(key)
+            alerts.append(alert)
 
     ALERTS_PATH.write_text(json.dumps(alerts, indent=2, ensure_ascii=False), encoding="utf-8")
     STATE_PATH.write_text(json.dumps({"updatedAt": now_iso, "active": current_active}, indent=2, ensure_ascii=False), encoding="utf-8")
+    DELIVERED_PATH.write_text(json.dumps({"updatedAt": now_iso, "sent": sorted(sent_keys)}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(ALERTS_PATH)
 
 
