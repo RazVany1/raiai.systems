@@ -8,6 +8,8 @@ type InterestRow = {
   price: number | null;
   zone: string;
   detectedAt: string;
+  anchorRsi: number | null;
+  anchorTime: string | null;
   timeframe: string;
   sourceVenue: string;
 };
@@ -173,13 +175,15 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">RSI</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
                   <th className="px-4 py-3 text-left">Detected at</th>
                 </tr>
               </thead>
               <tbody>
                 {interestRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-4 text-slate-400">No coins in RSI interest zones right now.</td>
+                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI interest zones right now.</td>
                   </tr>
                 ) : (
                   interestRows.map((row) => (
@@ -188,6 +192,8 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
                       <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
                       <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
                     </tr>
                   ))

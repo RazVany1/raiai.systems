@@ -257,6 +257,33 @@ def detect_trend(closes: list[float], highs: list[float], lows: list[float]) -> 
     }
 
 
+def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str) -> dict:
+    current_index = len(rsi) - 1
+    if current_index <= 0:
+        return {"anchorRsi": None, "anchorTime": None}
+
+    if zone == "upper_interest":
+        threshold = 80
+        for i in range(current_index - 1, -1, -1):
+            value = rsi[i]
+            if value is not None and value >= threshold:
+                return {
+                    "anchorRsi": round(float(value), 2),
+                    "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
+                }
+    elif zone == "lower_interest":
+        threshold = 20
+        for i in range(current_index - 1, -1, -1):
+            value = rsi[i]
+            if value is not None and value <= threshold:
+                return {
+                    "anchorRsi": round(float(value), 2),
+                    "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
+                }
+
+    return {"anchorRsi": None, "anchorTime": None}
+
+
 def main():
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     interest_rows = []
@@ -281,12 +308,15 @@ def main():
                 zone = "upper_interest"
 
             if zone:
+                anchor = find_prior_rsi_anchor(rsi, klines, zone)
                 interest_rows.append({
                     "symbol": symbol,
                     "rsi": round(float(last_rsi), 2),
                     "price": price,
                     "zone": zone,
                     "detectedAt": detected_at,
+                    "anchorRsi": anchor["anchorRsi"],
+                    "anchorTime": anchor["anchorTime"],
                     "timeframe": "4h",
                     "sourceVenue": "hyper",
                 })
