@@ -23,19 +23,55 @@ SYMBOLS = [
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 
 
-def classify_trend(closes: list[float]) -> tuple[str, str]:
-    if len(closes) < 40:
-        return "unknown", "low"
-    sma_10 = sum(closes[-10:]) / 10
-    sma_20 = sum(closes[-20:]) / 20
-    sma_40 = sum(closes[-40:]) / 40
+def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
+    highs: list[tuple[int, float]] = []
+    lows: list[tuple[int, float]] = []
+    if len(values) < (window * 2 + 1):
+        return highs, lows
 
-    if sma_10 > sma_20 > sma_40:
-        strength = "strong" if (sma_10 / sma_40) > 1.03 else "medium"
+    for i in range(window, len(values) - window):
+        center = values[i]
+        left = values[i - window:i]
+        right = values[i + 1:i + window + 1]
+        if all(center > x for x in left) and all(center >= x for x in right):
+            highs.append((i, center))
+        if all(center < x for x in left) and all(center <= x for x in right):
+            lows.append((i, center))
+    return highs, lows
+
+
+def classify_trend(closes: list[float], highs: list[float], lows: list[float]) -> tuple[str, str]:
+    if len(closes) < 60:
+        return "unknown", "low"
+
+    pivot_highs, pivot_lows = find_pivots(closes, window=2)
+    recent_highs = pivot_highs[-3:]
+    recent_lows = pivot_lows[-3:]
+
+    sma_20 = sum(closes[-20:]) / 20
+    sma_50 = sum(closes[-50:]) / 50
+    current_close = closes[-1]
+
+    up_structure = False
+    down_structure = False
+
+    if len(recent_highs) >= 2 and len(recent_lows) >= 2:
+        up_structure = recent_highs[-1][1] > recent_highs[-2][1] and recent_lows[-1][1] > recent_lows[-2][1]
+        down_structure = recent_highs[-1][1] < recent_highs[-2][1] and recent_lows[-1][1] < recent_lows[-2][1]
+
+    above_ma = current_close > sma_20 > sma_50
+    below_ma = current_close < sma_20 < sma_50
+
+    if up_structure and above_ma:
+        spread = (current_close / sma_50) - 1
+        strength = "strong" if spread >= 0.04 else "medium"
         return "uptrend", strength
-    if sma_10 < sma_20 < sma_40:
-        strength = "strong" if (sma_40 / sma_10) > 1.03 else "medium"
+
+    if down_structure and below_ma:
+        spread = (sma_50 / current_close) - 1
+        strength = "strong" if spread >= 0.04 else "medium"
         return "downtrend", strength
+
     return "range", "low"
 
 
@@ -73,7 +109,8 @@ def main():
                     "sourceVenue": "hyper",
                 })
 
-            trend, strength = classify_trend(closes)
+            _, highs, lows, closes = layer.extract_ohlc(klines)
+            trend, strength = classify_trend(closes, highs, lows)
             trend_rows.append({
                 "symbol": symbol,
                 "trend": trend,
