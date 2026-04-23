@@ -64,8 +64,34 @@ export default function CryptoDashboardPage() {
     };
 
     load();
-    const interval = setInterval(load, 300000);
-    return () => clearInterval(interval);
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextLoad = (nextIso?: string) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      const fallbackMs = 5 * 60 * 1000;
+      if (!nextIso) {
+        timeoutId = setTimeout(load, fallbackMs);
+        return;
+      }
+      const targetMs = new Date(nextIso).getTime() - Date.now() + 15000;
+      timeoutId = setTimeout(load, Math.max(15000, targetMs));
+    };
+
+    const wrappedLoad = async () => {
+      const res = await fetch("/data/rsi-trend-dashboard.json", { cache: "no-store" });
+      const data = await res.json();
+      setInterestRows(data.interestRows || []);
+      setTrendRows(data.trendRows || []);
+      setUpdatedAt(data.updatedAt || "");
+      setNextScanAt(data.nextScanAt || "");
+      scheduleNextLoad(data.nextScanAt);
+    };
+
+    wrappedLoad();
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   const trendSummary = useMemo(() => {
