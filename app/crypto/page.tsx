@@ -74,6 +74,22 @@ export default function CryptoDashboardPage() {
     };
   }, [trendRows]);
 
+  const orderedTrendRows = useMemo(() => {
+    const order: Record<string, number> = {
+      uptrend: 0,
+      downtrend: 1,
+      range: 2,
+      unknown: 3,
+      error: 4,
+    };
+
+    return [...trendRows].sort((a, b) => {
+      const trendDiff = (order[a.trend] ?? 99) - (order[b.trend] ?? 99);
+      if (trendDiff !== 0) return trendDiff;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [trendRows]);
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
@@ -161,7 +177,7 @@ export default function CryptoDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {trendRows.map((row) => (
+                {orderedTrendRows.map((row) => (
                   <tr key={`${row.symbol}-${row.lastUpdate}`} className="border-t border-white/10">
                     <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                     <td className="px-4 py-3">
