@@ -50,6 +50,16 @@ def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, f
     return highs, lows
 
 
+def score_to_strength_signal(score: int, trend_name: str, structure_valid: bool, ema_aligned: bool) -> tuple[str, str, str]:
+    if score >= 80 and structure_valid and ema_aligned:
+        return trend_name, "strong", "STRONG"
+    if 60 <= score <= 79 and structure_valid:
+        return trend_name, "medium", "MODERATE"
+    if 40 <= score <= 59:
+        return trend_name, "low", "WEAK"
+    return "range", "low", "NONE"
+
+
 def detect_uptrend(closes: list[float], highs: list[float], lows: list[float]) -> dict:
     if len(closes) < 220:
         return {
@@ -61,11 +71,13 @@ def detect_uptrend(closes: list[float], highs: list[float], lows: list[float]) -
             "breakoutConfirmed": False,
             "lastHigherHigh": None,
             "lastHigherLow": None,
+            "lastLowerHigh": None,
+            "lastLowerLow": None,
         }
 
     ema50 = ema(closes, 50)
     ema200 = ema(closes, 200)
-    pivot_highs, pivot_lows = find_pivots(highs, window=2)
+    pivot_highs, _ = find_pivots(highs, window=2)
     _, swing_lows = find_pivots(lows, window=2)
 
     recent_highs = pivot_highs[-3:]
@@ -113,27 +125,13 @@ def detect_uptrend(closes: list[float], highs: list[float], lows: list[float]) -
     if not no_hl_break and last_hl is not None:
         score = min(score, 39)
 
-    if score >= 80 and structure_valid and ema_aligned:
-        trend = "uptrend"
-        strength = "strong"
-        signal = "STRONG"
-    elif 60 <= score <= 79 and structure_valid:
-        trend = "uptrend"
-        strength = "medium"
-        signal = "MODERATE"
-    elif 40 <= score <= 59:
-        trend = "uptrend"
-        strength = "low"
-        signal = "WEAK"
-    else:
-        trend = "range"
-        strength = "low"
-        signal = "NONE"
+    trend, strength, signal = score_to_strength_signal(score, "uptrend", structure_valid, ema_aligned)
 
     if not correction_healthy and trend == "uptrend" and signal == "WEAK":
         trend = "range"
         signal = "NONE"
         score = min(score, 39)
+        strength = "low"
 
     return {
         "trend": trend,
@@ -144,6 +142,118 @@ def detect_uptrend(closes: list[float], highs: list[float], lows: list[float]) -
         "breakoutConfirmed": breakout_confirmed,
         "lastHigherHigh": round(last_hh, 6) if last_hh is not None else None,
         "lastHigherLow": round(last_hl, 6) if last_hl is not None else None,
+        "lastLowerHigh": None,
+        "lastLowerLow": None,
+    }
+
+
+def detect_downtrend(closes: list[float], highs: list[float], lows: list[float]) -> dict:
+    if len(closes) < 220:
+        return {
+            "trend": "range",
+            "strength": "low",
+            "score": 0,
+            "trendSignal": "NONE",
+            "emaAligned": False,
+            "breakoutConfirmed": False,
+            "lastHigherHigh": None,
+            "lastHigherLow": None,
+            "lastLowerHigh": None,
+            "lastLowerLow": None,
+        }
+
+    ema50 = ema(closes, 50)
+    ema200 = ema(closes, 200)
+    pivot_highs, _ = find_pivots(highs, window=2)
+    _, swing_lows = find_pivots(lows, window=2)
+
+    recent_highs = pivot_highs[-3:]
+    recent_lows = swing_lows[-3:]
+
+    structure_valid = False
+    last_lh = None
+    last_ll = None
+    if len(recent_highs) >= 2 and len(recent_lows) >= 2:
+        last_lh = recent_highs[-1][1]
+        prev_lh = recent_highs[-2][1]
+        last_ll = recent_lows[-1][1]
+        prev_ll = recent_lows[-2][1]
+        structure_valid = last_lh < prev_lh and last_ll < prev_ll
+
+    no_lh_break = bool(last_lh is not None and closes[-1] <= last_lh)
+    ema_aligned = closes[-1] < ema50[-1] and ema50[-1] < ema200[-1]
+
+    breakout_confirmed = False
+    if len(swing_lows) >= 2:
+        previous_swing_low_value = swing_lows[-2][1]
+        breakout_confirmed = any(close < previous_swing_low_value for close in closes[-10:])
+
+    correction_healthy = False
+    if len(closes) >= 12:
+        recent_pullback_high = max(highs[-10:])
+        correction_healthy = recent_pullback_high <= ema50[-1] or recent_pullback_high <= ema200[-1]
+
+    bearish_closes = sum(1 for i in range(len(closes) - 8, len(closes)) if i > 0 and closes[i] < closes[i - 1])
+    net_negative = closes[-1] < closes[-8]
+    bearish_candle_dominance = bearish_closes >= 5 and net_negative
+
+    score = 0
+    if structure_valid:
+        score += 40
+    if ema_aligned:
+        score += 25
+    if breakout_confirmed:
+        score += 15
+    if no_lh_break:
+        score += 10
+    if bearish_candle_dominance:
+        score += 10
+
+    if not no_lh_break and last_lh is not None:
+        score = min(score, 39)
+
+    trend, strength, signal = score_to_strength_signal(score, "downtrend", structure_valid, ema_aligned)
+
+    if not correction_healthy and trend == "downtrend" and signal == "WEAK":
+        trend = "range"
+        signal = "NONE"
+        score = min(score, 39)
+        strength = "low"
+
+    return {
+        "trend": trend,
+        "strength": strength,
+        "score": score,
+        "trendSignal": signal,
+        "emaAligned": ema_aligned,
+        "breakoutConfirmed": breakout_confirmed,
+        "lastHigherHigh": None,
+        "lastHigherLow": None,
+        "lastLowerHigh": round(last_lh, 6) if last_lh is not None else None,
+        "lastLowerLow": round(last_ll, 6) if last_ll is not None else None,
+    }
+
+
+def detect_trend(closes: list[float], highs: list[float], lows: list[float]) -> dict:
+    up = detect_uptrend(closes, highs, lows)
+    down = detect_downtrend(closes, highs, lows)
+
+    if up["score"] >= down["score"] and up["trend"] == "uptrend":
+        return up
+    if down["trend"] == "downtrend":
+        return down
+
+    return {
+        "trend": "range",
+        "strength": "low",
+        "score": max(up["score"], down["score"]),
+        "trendSignal": "NONE",
+        "emaAligned": up["emaAligned"] if up["score"] >= down["score"] else down["emaAligned"],
+        "breakoutConfirmed": up["breakoutConfirmed"] if up["score"] >= down["score"] else down["breakoutConfirmed"],
+        "lastHigherHigh": up.get("lastHigherHigh"),
+        "lastHigherLow": up.get("lastHigherLow"),
+        "lastLowerHigh": down.get("lastLowerHigh"),
+        "lastLowerLow": down.get("lastLowerLow"),
     }
 
 
@@ -181,7 +291,7 @@ def main():
                     "sourceVenue": "hyper",
                 })
 
-            trend_info = detect_uptrend(closes, highs, lows)
+            trend_info = detect_trend(closes, highs, lows)
             trend_rows.append({
                 "symbol": symbol,
                 "trend": trend_info["trend"],
@@ -190,6 +300,8 @@ def main():
                 "trendSignal": trend_info["trendSignal"],
                 "lastHigherHigh": trend_info["lastHigherHigh"],
                 "lastHigherLow": trend_info["lastHigherLow"],
+                "lastLowerHigh": trend_info["lastLowerHigh"],
+                "lastLowerLow": trend_info["lastLowerLow"],
                 "emaAligned": trend_info["emaAligned"],
                 "breakoutConfirmed": trend_info["breakoutConfirmed"],
                 "price": price,
@@ -206,6 +318,8 @@ def main():
                 "trendSignal": "NONE",
                 "lastHigherHigh": None,
                 "lastHigherLow": None,
+                "lastLowerHigh": None,
+                "lastLowerLow": None,
                 "emaAligned": False,
                 "breakoutConfirmed": False,
                 "price": None,
