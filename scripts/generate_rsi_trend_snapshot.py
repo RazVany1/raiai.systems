@@ -23,6 +23,16 @@ SYMBOLS = [
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 
 
+def ema(values: list[float], period: int) -> list[float]:
+    if not values:
+        return []
+    k = 2 / (period + 1)
+    out = [values[0]]
+    for value in values[1:]:
+        out.append((value * k) + (out[-1] * (1 - k)))
+    return out
+
+
 def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
     highs: list[tuple[int, float]] = []
     lows: list[tuple[int, float]] = []
@@ -40,39 +50,101 @@ def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, f
     return highs, lows
 
 
-def classify_trend(closes: list[float], highs: list[float], lows: list[float]) -> tuple[str, str]:
-    if len(closes) < 60:
-        return "unknown", "low"
+def detect_uptrend(closes: list[float], highs: list[float], lows: list[float]) -> dict:
+    if len(closes) < 220:
+        return {
+            "trend": "range",
+            "strength": "low",
+            "score": 0,
+            "trendSignal": "NONE",
+            "emaAligned": False,
+            "breakoutConfirmed": False,
+            "lastHigherHigh": None,
+            "lastHigherLow": None,
+        }
 
-    pivot_highs, pivot_lows = find_pivots(closes, window=2)
+    ema50 = ema(closes, 50)
+    ema200 = ema(closes, 200)
+    pivot_highs, pivot_lows = find_pivots(highs, window=2)
+    _, swing_lows = find_pivots(lows, window=2)
+
     recent_highs = pivot_highs[-3:]
-    recent_lows = pivot_lows[-3:]
+    recent_lows = swing_lows[-3:]
 
-    sma_20 = sum(closes[-20:]) / 20
-    sma_50 = sum(closes[-50:]) / 50
-    current_close = closes[-1]
-
-    up_structure = False
-    down_structure = False
-
+    structure_valid = False
+    last_hh = None
+    last_hl = None
     if len(recent_highs) >= 2 and len(recent_lows) >= 2:
-        up_structure = recent_highs[-1][1] > recent_highs[-2][1] and recent_lows[-1][1] > recent_lows[-2][1]
-        down_structure = recent_highs[-1][1] < recent_highs[-2][1] and recent_lows[-1][1] < recent_lows[-2][1]
+        last_hh = recent_highs[-1][1]
+        prev_hh = recent_highs[-2][1]
+        last_hl = recent_lows[-1][1]
+        prev_hl = recent_lows[-2][1]
+        structure_valid = last_hh > prev_hh and last_hl > prev_hl
 
-    above_ma = current_close > sma_20 > sma_50
-    below_ma = current_close < sma_20 < sma_50
+    no_hl_break = bool(last_hl is not None and closes[-1] >= last_hl)
+    ema_aligned = closes[-1] > ema50[-1] and ema50[-1] > ema200[-1]
 
-    if up_structure and above_ma:
-        spread = (current_close / sma_50) - 1
-        strength = "strong" if spread >= 0.04 else "medium"
-        return "uptrend", strength
+    breakout_confirmed = False
+    if len(pivot_highs) >= 2:
+        previous_swing_high_value = pivot_highs[-2][1]
+        breakout_confirmed = any(close > previous_swing_high_value for close in closes[-10:])
 
-    if down_structure and below_ma:
-        spread = (sma_50 / current_close) - 1
-        strength = "strong" if spread >= 0.04 else "medium"
-        return "downtrend", strength
+    correction_healthy = False
+    if len(closes) >= 12:
+        recent_pullback_low = min(lows[-10:])
+        correction_healthy = recent_pullback_low >= ema50[-1] or recent_pullback_low >= ema200[-1]
 
-    return "range", "low"
+    bullish_closes = sum(1 for i in range(len(closes) - 8, len(closes)) if i > 0 and closes[i] > closes[i - 1])
+    net_positive = closes[-1] > closes[-8]
+    bullish_candle_dominance = bullish_closes >= 5 and net_positive
+
+    score = 0
+    if structure_valid:
+        score += 40
+    if ema_aligned:
+        score += 25
+    if breakout_confirmed:
+        score += 15
+    if no_hl_break:
+        score += 10
+    if bullish_candle_dominance:
+        score += 10
+
+    if not no_hl_break and last_hl is not None:
+        score = min(score, 39)
+
+    if score >= 80 and structure_valid and ema_aligned:
+        trend = "uptrend"
+        strength = "strong"
+        signal = "STRONG"
+    elif 60 <= score <= 79 and structure_valid:
+        trend = "uptrend"
+        strength = "medium"
+        signal = "MODERATE"
+    elif 40 <= score <= 59:
+        trend = "uptrend"
+        strength = "low"
+        signal = "WEAK"
+    else:
+        trend = "range"
+        strength = "low"
+        signal = "NONE"
+
+    if not correction_healthy and trend == "uptrend" and signal == "WEAK":
+        trend = "range"
+        signal = "NONE"
+        score = min(score, 39)
+
+    return {
+        "trend": trend,
+        "strength": strength,
+        "score": score,
+        "trendSignal": signal,
+        "emaAligned": ema_aligned,
+        "breakoutConfirmed": breakout_confirmed,
+        "lastHigherHigh": round(last_hh, 6) if last_hh is not None else None,
+        "lastHigherLow": round(last_hl, 6) if last_hl is not None else None,
+    }
 
 
 def main():
@@ -84,7 +156,7 @@ def main():
     for symbol in SYMBOLS:
         try:
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
-            _, _, _, closes = layer.extract_ohlc(klines)
+            _, highs, lows, closes = layer.extract_ohlc(klines)
             rsi = layer.compute_rsi(closes)
             last_rsi = rsi[-1]
             if last_rsi is None:
@@ -109,12 +181,17 @@ def main():
                     "sourceVenue": "hyper",
                 })
 
-            _, highs, lows, closes = layer.extract_ohlc(klines)
-            trend, strength = classify_trend(closes, highs, lows)
+            trend_info = detect_uptrend(closes, highs, lows)
             trend_rows.append({
                 "symbol": symbol,
-                "trend": trend,
-                "strength": strength,
+                "trend": trend_info["trend"],
+                "strength": trend_info["strength"],
+                "score": trend_info["score"],
+                "trendSignal": trend_info["trendSignal"],
+                "lastHigherHigh": trend_info["lastHigherHigh"],
+                "lastHigherLow": trend_info["lastHigherLow"],
+                "emaAligned": trend_info["emaAligned"],
+                "breakoutConfirmed": trend_info["breakoutConfirmed"],
                 "price": price,
                 "lastUpdate": detected_at,
                 "timeframe": "4h",
@@ -125,6 +202,12 @@ def main():
                 "symbol": symbol,
                 "trend": "error",
                 "strength": "unknown",
+                "score": 0,
+                "trendSignal": "NONE",
+                "lastHigherHigh": None,
+                "lastHigherLow": None,
+                "emaAligned": False,
+                "breakoutConfirmed": False,
                 "price": None,
                 "lastUpdate": updated_at,
                 "timeframe": "4h",

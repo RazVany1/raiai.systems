@@ -16,6 +16,12 @@ type TrendRow = {
   symbol: string;
   trend: string;
   strength: string;
+  score: number;
+  trendSignal: string;
+  lastHigherHigh: number | null;
+  lastHigherLow: number | null;
+  emaAligned: boolean;
+  breakoutConfirmed: boolean;
   price: number | null;
   lastUpdate: string;
   timeframe: string;
@@ -201,6 +207,12 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">Trend</th>
                   <th className="px-4 py-3 text-left">Strength</th>
+                  <th className="px-4 py-3 text-left">Score</th>
+                  <th className="px-4 py-3 text-left">Signal</th>
+                  <th className="px-4 py-3 text-left">Last HH</th>
+                  <th className="px-4 py-3 text-left">Last HL</th>
+                  <th className="px-4 py-3 text-left">EMA</th>
+                  <th className="px-4 py-3 text-left">Breakout</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Last update</th>
                 </tr>
@@ -215,6 +227,12 @@ export default function CryptoDashboardPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">{row.strength}</td>
+                    <td className="px-4 py-3">{row.score}</td>
+                    <td className="px-4 py-3">{row.trendSignal}</td>
+                    <td className="px-4 py-3">{formatPrice(row.lastHigherHigh)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.lastHigherLow)}</td>
+                    <td className="px-4 py-3">{row.emaAligned ? "aligned" : "no"}</td>
+                    <td className="px-4 py-3">{row.breakoutConfirmed ? "yes" : "no"}</td>
                     <td className="px-4 py-3">{formatPrice(row.price)}</td>
                     <td className="px-4 py-3">{new Date(row.lastUpdate).toLocaleString()}</td>
                   </tr>
