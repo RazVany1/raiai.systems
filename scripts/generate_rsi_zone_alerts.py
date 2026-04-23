@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-import requests
+import urllib.request
 
 DASHBOARD_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-zone-alert-state.json")
@@ -25,12 +25,15 @@ def send_telegram_message(text: str) -> bool:
     if not bot_token or not chat_id:
         return False
     try:
-        response = requests.post(
+        payload = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
+        req = urllib.request.Request(
             f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            json={"chat_id": chat_id, "text": text},
-            timeout=20,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
-        return response.ok
+        with urllib.request.urlopen(req, timeout=20) as response:
+            return 200 <= response.status < 300
     except Exception:
         return False
 
