@@ -68,7 +68,7 @@ export default function CryptoDashboardPage() {
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const load = async () => {
-      const res = await fetch(`/data/rsi-trend-dashboard.json?t=${Date.now()}`, { cache: "no-store" });
+      const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       setInterestRows(data.interestRows || []);
       setTrendRows(data.trendRows || []);
