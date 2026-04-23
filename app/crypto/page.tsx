@@ -51,6 +51,7 @@ export default function CryptoDashboardPage() {
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
+  const [nextScanAt, setNextScanAt] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +60,7 @@ export default function CryptoDashboardPage() {
       setInterestRows(data.interestRows || []);
       setTrendRows(data.trendRows || []);
       setUpdatedAt(data.updatedAt || "");
+      setNextScanAt(data.nextScanAt || "");
     };
 
     load();
@@ -101,6 +103,7 @@ export default function CryptoDashboardPage() {
           <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard simplified</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
+            <p>Next scan: {nextScanAt ? new Date(nextScanAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
 

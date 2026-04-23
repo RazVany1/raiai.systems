@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import sys
 
@@ -132,8 +132,11 @@ def main():
                 "error": str(exc),
             })
 
+    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=30)).isoformat()
+
     payload = {
         "updatedAt": updated_at,
+        "nextScanAt": next_scan_at,
         "interestRows": interest_rows,
         "trendRows": trend_rows,
     }
