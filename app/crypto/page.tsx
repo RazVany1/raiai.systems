@@ -32,20 +32,23 @@ type FormationRow = {
 
 type TrendRow = {
   symbol: string;
-  trend: string;
-  strength: string;
-  score: number;
-  trendSignal: string;
-  lastHigherHigh: number | null;
-  lastHigherLow: number | null;
-  lastLowerHigh: number | null;
-  lastLowerLow: number | null;
-  emaAligned: boolean;
-  breakoutConfirmed: boolean;
+  timeframe: string;
+  dailyBias: string;
+  emaDirection4h: string;
+  marketStructure: string;
+  adxTrendStrength: string;
+  adxValue: number | null;
+  bullishScore: number;
+  bearishScore: number;
+  finalMarketDirection: string;
+  invalidationLevel: number | null;
+  tradePermission: string;
   price: number | null;
   lastUpdate: string;
-  timeframe: string;
   sourceVenue: string;
+  dailyClose?: number;
+  dailyEma50?: number;
+  dailyEma200?: number;
   error?: string;
 };
 
@@ -65,9 +68,9 @@ function zoneLabel(zone: string) {
 }
 
 function trendBadgeClasses(trend: string) {
-  if (trend === "uptrend") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
-  if (trend === "downtrend") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
-  if (trend === "range") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
+  if (trend === "SIDEWAYS") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
@@ -117,23 +120,24 @@ export default function CryptoDashboardPage() {
 
   const trendSummary = useMemo(() => {
     return {
-      uptrend: trendRows.filter((row) => row.trend === "uptrend").length,
-      downtrend: trendRows.filter((row) => row.trend === "downtrend").length,
-      range: trendRows.filter((row) => row.trend === "range").length,
+      uptrend: trendRows.filter((row) => row.finalMarketDirection.includes("BULLISH")).length,
+      downtrend: trendRows.filter((row) => row.finalMarketDirection.includes("BEARISH")).length,
+      range: trendRows.filter((row) => row.finalMarketDirection === "SIDEWAYS" || row.finalMarketDirection === "UNCLEAR").length,
     };
   }, [trendRows]);
 
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
-      uptrend: 0,
-      downtrend: 1,
-      range: 2,
-      unknown: 3,
-      error: 4,
+      "STRONG BULLISH": 0,
+      "MODERATE BULLISH": 1,
+      "STRONG BEARISH": 2,
+      "MODERATE BEARISH": 3,
+      "SIDEWAYS": 4,
+      "UNCLEAR": 5,
     };
 
     return [...trendRows].sort((a, b) => {
-      const trendDiff = (order[a.trend] ?? 99) - (order[b.trend] ?? 99);
+      const trendDiff = (order[a.finalMarketDirection] ?? 99) - (order[b.finalMarketDirection] ?? 99);
       if (trendDiff !== 0) return trendDiff;
       return a.symbol.localeCompare(b.symbol);
     });
@@ -277,16 +281,15 @@ export default function CryptoDashboardPage() {
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Trend</th>
-                  <th className="px-4 py-3 text-left">Strength</th>
-                  <th className="px-4 py-3 text-left">Score</th>
-                  <th className="px-4 py-3 text-left">Signal</th>
-                  <th className="px-4 py-3 text-left">Last HH</th>
-                  <th className="px-4 py-3 text-left">Last HL</th>
-                  <th className="px-4 py-3 text-left">Last LH</th>
-                  <th className="px-4 py-3 text-left">Last LL</th>
-                  <th className="px-4 py-3 text-left">EMA</th>
-                  <th className="px-4 py-3 text-left">Breakout</th>
+                  <th className="px-4 py-3 text-left">Direction</th>
+                  <th className="px-4 py-3 text-left">Daily bias</th>
+                  <th className="px-4 py-3 text-left">4H EMA</th>
+                  <th className="px-4 py-3 text-left">Structure</th>
+                  <th className="px-4 py-3 text-left">ADX</th>
+                  <th className="px-4 py-3 text-left">Bull score</th>
+                  <th className="px-4 py-3 text-left">Bear score</th>
+                  <th className="px-4 py-3 text-left">Invalidation</th>
+                  <th className="px-4 py-3 text-left">Permission</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Last update</th>
                 </tr>
@@ -296,19 +299,18 @@ export default function CryptoDashboardPage() {
                   <tr key={`${row.symbol}-${row.lastUpdate}`} className="border-t border-white/10">
                     <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${trendBadgeClasses(row.trend)}`}>
-                        {row.trend}
+                      <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${trendBadgeClasses(row.finalMarketDirection)}`}>
+                        {row.finalMarketDirection}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{row.strength}</td>
-                    <td className="px-4 py-3">{row.score}</td>
-                    <td className="px-4 py-3">{row.trendSignal}</td>
-                    <td className="px-4 py-3">{formatPrice(row.lastHigherHigh)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.lastHigherLow)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.lastLowerHigh)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.lastLowerLow)}</td>
-                    <td className="px-4 py-3">{row.emaAligned ? "aligned" : "no"}</td>
-                    <td className="px-4 py-3">{row.breakoutConfirmed ? "yes" : "no"}</td>
+                    <td className="px-4 py-3">{row.dailyBias}</td>
+                    <td className="px-4 py-3">{row.emaDirection4h}</td>
+                    <td className="px-4 py-3">{row.marketStructure}</td>
+                    <td className="px-4 py-3">{row.adxValue != null ? `${row.adxValue.toFixed(2)} (${row.adxTrendStrength})` : row.adxTrendStrength}</td>
+                    <td className="px-4 py-3">{row.bullishScore}</td>
+                    <td className="px-4 py-3">{row.bearishScore}</td>
+                    <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
+                    <td className="px-4 py-3">{row.tradePermission}</td>
                     <td className="px-4 py-3">{formatPrice(row.price)}</td>
                     <td className="px-4 py-3">{new Date(row.lastUpdate).toLocaleString()}</td>
                   </tr>
