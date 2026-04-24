@@ -51,6 +51,204 @@ def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, f
     return highs, lows
 
 
+def adx(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> list[float | None]:
+    if len(closes) < period + 1:
+        return [None] * len(closes)
+
+    tr_list: list[float] = [0.0]
+    plus_dm: list[float] = [0.0]
+    minus_dm: list[float] = [0.0]
+
+    for i in range(1, len(closes)):
+        high_diff = highs[i] - highs[i - 1]
+        low_diff = lows[i - 1] - lows[i]
+        plus_dm.append(high_diff if high_diff > low_diff and high_diff > 0 else 0.0)
+        minus_dm.append(low_diff if low_diff > high_diff and low_diff > 0 else 0.0)
+        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+        tr_list.append(tr)
+
+    adx_values: list[float | None] = [None] * len(closes)
+    tr14 = sum(tr_list[1:period + 1])
+    plus14 = sum(plus_dm[1:period + 1])
+    minus14 = sum(minus_dm[1:period + 1])
+
+    dx_values: list[float | None] = [None] * len(closes)
+    for i in range(period, len(closes)):
+        if i > period:
+            tr14 = tr14 - (tr14 / period) + tr_list[i]
+            plus14 = plus14 - (plus14 / period) + plus_dm[i]
+            minus14 = minus14 - (minus14 / period) + minus_dm[i]
+
+        plus_di = 0.0 if tr14 == 0 else 100.0 * (plus14 / tr14)
+        minus_di = 0.0 if tr14 == 0 else 100.0 * (minus14 / tr14)
+        di_sum = plus_di + minus_di
+        dx_values[i] = 0.0 if di_sum == 0 else 100.0 * abs(plus_di - minus_di) / di_sum
+
+    valid_dx = [x for x in dx_values[period:] if x is not None]
+    if len(valid_dx) < period:
+        return adx_values
+
+    first_adx_index = period * 2 - 1
+    first_adx = sum(valid_dx[:period]) / period
+    if first_adx_index < len(adx_values):
+        adx_values[first_adx_index] = first_adx
+
+    prev_adx = first_adx
+    for i in range(first_adx_index + 1, len(closes)):
+        dx = dx_values[i]
+        if dx is None:
+            continue
+        prev_adx = ((prev_adx * (period - 1)) + dx) / period
+        adx_values[i] = prev_adx
+
+    return adx_values
+
+
+def repeated_ema50_crosses(closes: list[float], ema50_values: list[float], lookback: int = 12) -> bool:
+    start = max(1, len(closes) - lookback)
+    crosses = 0
+    for i in range(start, len(closes)):
+        prev_above = closes[i - 1] >= ema50_values[i - 1]
+        curr_above = closes[i] >= ema50_values[i]
+        if prev_above != curr_above:
+            crosses += 1
+    return crosses >= 3
+
+
+def slope_up(values: list[float], lookback: int = 3) -> bool:
+    if len(values) <= lookback:
+        return False
+    return values[-1] > values[-1 - lookback]
+
+
+def slope_down(values: list[float], lookback: int = 3) -> bool:
+    if len(values) <= lookback:
+        return False
+    return values[-1] < values[-1 - lookback]
+
+
+def classify_adx_strength(adx_value: float | None) -> str:
+    if adx_value is None:
+        return "unknown"
+    if adx_value < 20:
+        return "no trend"
+    if adx_value <= 25:
+        return "weak trend"
+    if adx_value <= 40:
+        return "valid trend"
+    return "strong trend"
+
+
+def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3) -> dict:
+    klines_4h = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
+    _, highs_4h, lows_4h, closes_4h = layer.extract_ohlc(klines_4h)
+    klines_1d = layer.fetch_binance_klines(symbol=symbol, interval="1d", limit=300)
+    _, highs_1d, lows_1d, closes_1d = layer.extract_ohlc(klines_1d)
+
+    ema20_4h = ema(closes_4h, 20)
+    ema50_4h = ema(closes_4h, 50)
+    ema200_4h = ema(closes_4h, 200)
+    ema50_1d = ema(closes_1d, 50)
+    ema200_1d = ema(closes_1d, 200)
+    adx_values = adx(highs_4h, lows_4h, closes_4h, 14)
+    last_adx = adx_values[-1]
+
+    daily_bias = "neutral"
+    if closes_1d[-1] > ema50_1d[-1] and ema50_1d[-1] > ema200_1d[-1]:
+        daily_bias = "bullish"
+    elif closes_1d[-1] < ema50_1d[-1] and ema50_1d[-1] < ema200_1d[-1]:
+        daily_bias = "bearish"
+
+    bullish_stack = closes_4h[-1] > 0 and ema20_4h[-1] > ema50_4h[-1] > ema200_4h[-1] and slope_up(ema20_4h) and slope_up(ema50_4h) and slope_up(ema200_4h)
+    bearish_stack = closes_4h[-1] > 0 and ema20_4h[-1] < ema50_4h[-1] < ema200_4h[-1] and slope_down(ema20_4h) and slope_down(ema50_4h) and slope_down(ema200_4h)
+    ema_direction = "bullish" if bullish_stack else "bearish" if bearish_stack else "neutral"
+
+    swing_highs, swing_lows = find_pivots(closes_4h, window=2)
+    fractal_highs, fractal_lows = find_pivots(closes_4h, window=5)
+    use_highs = fractal_highs if len(fractal_highs) >= 2 else swing_highs
+    use_lows = fractal_lows if len(fractal_lows) >= 2 else swing_lows
+
+    bullish_structure = len(use_highs) >= 2 and len(use_lows) >= 2 and use_highs[-1][1] > use_highs[-2][1] and use_lows[-1][1] > use_lows[-2][1]
+    bearish_structure = len(use_highs) >= 2 and len(use_lows) >= 2 and use_highs[-1][1] < use_highs[-2][1] and use_lows[-1][1] < use_lows[-2][1]
+    market_structure = "bullish HH/HL" if bullish_structure else "bearish LH/LL" if bearish_structure else "sideways/mixed"
+
+    bullish_score = 0
+    bearish_score = 0
+
+    if daily_bias == "bullish":
+        bullish_score += 2
+    if daily_bias == "bearish":
+        bearish_score += 2
+    if bullish_stack:
+        bullish_score += 2
+    if bearish_stack:
+        bearish_score += 2
+    if bullish_structure:
+        bullish_score += 2
+    if bearish_structure:
+        bearish_score += 2
+    if closes_4h[-1] > ema200_4h[-1]:
+        bullish_score += 1
+    if closes_4h[-1] < ema200_4h[-1]:
+        bearish_score += 1
+    if last_adx is not None and last_adx > 25:
+        bullish_score += 1
+        bearish_score += 1
+    if slope_up(ema20_4h):
+        bullish_score += 1
+    if slope_down(ema20_4h):
+        bearish_score += 1
+    if slope_up(ema50_4h):
+        bullish_score += 1
+    if slope_down(ema50_4h):
+        bearish_score += 1
+
+    final_direction = "UNCLEAR"
+    if last_adx is not None and last_adx < 20 and repeated_ema50_crosses(closes_4h, ema50_4h):
+        final_direction = "SIDEWAYS"
+    elif bullish_score >= 8 and bullish_score > bearish_score:
+        final_direction = "STRONG BULLISH"
+    elif 6 <= bullish_score <= 7 and bullish_score > bearish_score:
+        final_direction = "MODERATE BULLISH"
+    elif bearish_score >= 8 and bearish_score > bullish_score:
+        final_direction = "STRONG BEARISH"
+    elif 6 <= bearish_score <= 7 and bearish_score > bullish_score:
+        final_direction = "MODERATE BEARISH"
+
+    invalidation_level = None
+    if final_direction in {"STRONG BULLISH", "MODERATE BULLISH"}:
+        invalidation_level = round(use_lows[-1][1], 6) if use_lows else round(ema50_1d[-1], 6)
+    elif final_direction in {"STRONG BEARISH", "MODERATE BEARISH"}:
+        invalidation_level = round(use_highs[-1][1], 6) if use_highs else round(ema50_1d[-1], 6)
+
+    trade_permission = "NO TRADE"
+    if final_direction in {"STRONG BULLISH", "MODERATE BULLISH"}:
+        trade_permission = "LONG ONLY"
+    elif final_direction in {"STRONG BEARISH", "MODERATE BEARISH"}:
+        trade_permission = "SHORT ONLY"
+
+    return {
+        "symbol": symbol,
+        "timeframe": "4h",
+        "dailyBias": daily_bias,
+        "emaDirection4h": ema_direction,
+        "marketStructure": market_structure,
+        "adxTrendStrength": classify_adx_strength(last_adx),
+        "adxValue": round(last_adx, 2) if last_adx is not None else None,
+        "bullishScore": bullish_score,
+        "bearishScore": bearish_score,
+        "finalMarketDirection": final_direction,
+        "invalidationLevel": invalidation_level,
+        "tradePermission": trade_permission,
+        "price": fetch_hyper_price(symbol),
+        "lastUpdate": datetime.fromtimestamp(int(klines_4h[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+        "sourceVenue": "hyper",
+        "dailyClose": closes_1d[-1],
+        "dailyEma50": round(ema50_1d[-1], 6),
+        "dailyEma200": round(ema200_1d[-1], 6),
+    }
+
+
 def score_to_strength_signal(score: int, trend_name: str, structure_valid: bool, ema_aligned: bool) -> tuple[str, str, str]:
     if score >= 80 and structure_valid and ema_aligned:
         return trend_name, "strong", "STRONG"
@@ -436,40 +634,24 @@ def main():
 
             formation_rows.extend(detect_hl_lh_scanner(symbol, klines, closes, highs, lows, rsi))
 
-            trend_info = detect_trend(closes, highs, lows)
-            trend_rows.append({
-                "symbol": symbol,
-                "trend": trend_info["trend"],
-                "strength": trend_info["strength"],
-                "score": trend_info["score"],
-                "trendSignal": trend_info["trendSignal"],
-                "lastHigherHigh": trend_info["lastHigherHigh"],
-                "lastHigherLow": trend_info["lastHigherLow"],
-                "lastLowerHigh": trend_info["lastLowerHigh"],
-                "lastLowerLow": trend_info["lastLowerLow"],
-                "emaAligned": trend_info["emaAligned"],
-                "breakoutConfirmed": trend_info["breakoutConfirmed"],
-                "price": price,
-                "lastUpdate": detected_at,
-                "timeframe": "4h",
-                "sourceVenue": "hyper",
-            })
+            trend_rows.append(detect_market_direction(symbol, layer))
         except Exception as exc:
             trend_rows.append({
                 "symbol": symbol,
-                "trend": "error",
-                "strength": "unknown",
-                "score": 0,
-                "trendSignal": "NONE",
-                "lastHigherHigh": None,
-                "lastHigherLow": None,
-                "lastLowerHigh": None,
-                "lastLowerLow": None,
-                "emaAligned": False,
-                "breakoutConfirmed": False,
+                "symbol": symbol,
+                "timeframe": "4h",
+                "dailyBias": "error",
+                "emaDirection4h": "error",
+                "marketStructure": "error",
+                "adxTrendStrength": "unknown",
+                "adxValue": None,
+                "bullishScore": 0,
+                "bearishScore": 0,
+                "finalMarketDirection": "UNCLEAR",
+                "invalidationLevel": None,
+                "tradePermission": "NO TRADE",
                 "price": None,
                 "lastUpdate": updated_at,
-                "timeframe": "4h",
                 "sourceVenue": "hyper",
                 "error": str(exc),
             })
