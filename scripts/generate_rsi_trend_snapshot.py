@@ -329,6 +329,9 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                 state = "invalidated" if invalidated else "late" if late else "confirmed" if confirmed else "forming" if pullback_active and reaction else "watch" if pullback_active else None
                 if state:
                     divergence = find_rsi_divergence(rsi, price_lows, rsi_lows, "LONG")
+                    event_index = len(klines) - 1 if state in {"watch", "forming", "late", "invalidated"} else len(klines) - 1
+                    if state == "confirmed":
+                        event_index = len(klines) - 1
                     results.append({
                         "symbol": symbol,
                         "side": "LONG",
@@ -342,6 +345,7 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                         "rsiDivergence": divergence,
                         "price": fetch_hyper_price(symbol),
                         "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+                        "eventAt": datetime.fromtimestamp(int(klines[event_index][0]) / 1000, tz=timezone.utc).isoformat(),
                     })
 
         elif trend_info.get("trend") == "downtrend":
@@ -359,6 +363,9 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                 state = "invalidated" if invalidated else "late" if late else "confirmed" if confirmed else "forming" if pullback_active and reaction else "watch" if pullback_active else None
                 if state:
                     divergence = find_rsi_divergence(rsi, price_highs, rsi_highs, "SHORT")
+                    event_index = len(klines) - 1 if state in {"watch", "forming", "late", "invalidated"} else len(klines) - 1
+                    if state == "confirmed":
+                        event_index = len(klines) - 1
                     results.append({
                         "symbol": symbol,
                         "side": "SHORT",
@@ -372,6 +379,7 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                         "rsiDivergence": divergence,
                         "price": fetch_hyper_price(symbol),
                         "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+                        "eventAt": datetime.fromtimestamp(int(klines[event_index][0]) / 1000, tz=timezone.utc).isoformat(),
                     })
 
     return results
@@ -472,7 +480,7 @@ def main():
 
     for key, row in formation_index.items():
         if row["state"] == "confirmed":
-            confirmed_at = confirmed_state.get(f"{row['symbol']}:{row['side']}", {}).get("confirmedAt", updated_at)
+            confirmed_at = confirmed_state.get(f"{row['symbol']}:{row['side']}", {}).get("confirmedAt", row.get("eventAt", updated_at))
             row["confirmedAt"] = confirmed_at
             new_confirmed_state[f"{row['symbol']}:{row['side']}"] = {
                 "row": row,
