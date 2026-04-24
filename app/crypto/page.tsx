@@ -88,14 +88,22 @@ export default function CryptoDashboardPage() {
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const load = async () => {
-      const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
-      const data = await res.json();
-      setInterestRows(data.interestRows || []);
-      setFormationRows(data.formationRows || []);
-      setTrendRows(data.trendRows || []);
-      setUpdatedAt(data.updatedAt || "");
-      setNextScanAt(data.nextScanAt || "");
-      scheduleNextLoad(data.nextScanAt);
+      try {
+        const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
+        const data = await res.json();
+        setInterestRows(data.interestRows || []);
+        setFormationRows(data.formationRows || []);
+        setTrendRows(data.trendRows || []);
+        setUpdatedAt(data.updatedAt || "");
+        setNextScanAt(data.nextScanAt || "");
+        scheduleNextLoad(data.nextScanAt);
+      } catch (error) {
+        console.error("crypto dashboard load failed", error);
+        setInterestRows([]);
+        setFormationRows([]);
+        setTrendRows([]);
+      }
     };
 
     const scheduleNextLoad = (nextIso?: string) => {
