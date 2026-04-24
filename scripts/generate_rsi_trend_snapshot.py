@@ -22,6 +22,7 @@ SYMBOLS = [
 
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 FORMATION_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\hl-lh-formation-state.json")
+PAPER_POSITIONS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions.json")
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -689,17 +690,76 @@ def main():
             }
 
     formation_rows.sort(key=lambda row: (0 if row["state"] == "confirmed" else 1 if row["state"] == "forming" else 2, row["symbol"], row["side"]))
+
+    existing_positions = load_json(PAPER_POSITIONS_PATH, {"positions": []})
+    existing_map = {}
+    if isinstance(existing_positions, dict):
+        for pos in existing_positions.get("positions", []):
+            if isinstance(pos, dict):
+                existing_map[(pos.get("symbol"), pos.get("side"))] = pos
+
+    trend_map = {row["symbol"]: row for row in trend_rows if isinstance(row, dict)}
+    open_positions = []
+    seen_positions = set()
+
+    for row in formation_rows:
+        symbol = row.get("symbol")
+        side = row.get("side")
+        state = row.get("state")
+        trend = trend_map.get(symbol)
+        if not trend:
+            continue
+        allowed = (
+            side == "LONG" and trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"} and trend.get("tradePermission") == "LONG ONLY"
+        ) or (
+            side == "SHORT" and trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"} and trend.get("tradePermission") == "SHORT ONLY"
+        )
+        if state not in {"forming", "confirmed"} or not allowed:
+            continue
+
+        key = (symbol, side)
+        seen_positions.add(key)
+        existing = existing_map.get(key)
+        entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
+        entry_price = row.get("price")
+        if existing:
+            open_positions.append({
+                **existing,
+                "lastSeenAt": updated_at,
+                "currentPrice": entry_price,
+                "trendDirection": trend.get("finalMarketDirection"),
+                "entryState": existing.get("entryState", state),
+            })
+        else:
+            open_positions.append({
+                "symbol": symbol,
+                "side": side,
+                "entryPrice": entry_price,
+                "entryAt": entry_time,
+                "entryState": state,
+                "trendDirection": trend.get("finalMarketDirection"),
+                "tradePermission": trend.get("tradePermission"),
+                "invalidationLevel": trend.get("invalidationLevel"),
+                "formationType": row.get("formationType"),
+                "detectedAt": row.get("detectedAt"),
+                "lastSeenAt": updated_at,
+                "currentPrice": entry_price,
+                "status": "open",
+            })
+
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
+        "openPaperPositions": open_positions,
         "interestRows": interest_rows,
         "formationRows": formation_rows,
         "trendRows": trend_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
+    PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": open_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(OUTPUT_PATH)
 
 

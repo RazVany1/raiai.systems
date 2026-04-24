@@ -2,6 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type OpenPaperPosition = {
+  symbol: string;
+  side: string;
+  entryPrice: number | null;
+  entryAt: string;
+  entryState: string;
+  trendDirection: string;
+  tradePermission: string;
+  invalidationLevel: number | null;
+  formationType: string;
+  detectedAt: string;
+  lastSeenAt: string;
+  currentPrice: number | null;
+  status: string;
+};
+
 type InterestRow = {
   symbol: string;
   rsi: number;
@@ -77,6 +93,7 @@ function trendBadgeClasses(trend: string) {
 const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
 export default function CryptoDashboardPage() {
+  const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
@@ -92,6 +109,7 @@ export default function CryptoDashboardPage() {
         const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
         const data = await res.json();
+        setOpenPaperPositions(data.openPaperPositions || []);
         setInterestRows(data.interestRows || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
@@ -165,6 +183,53 @@ export default function CryptoDashboardPage() {
             <p>Next scan: {nextScanAt ? new Date(nextScanAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Open Paper Positions</h2>
+            <span className="text-[10px] text-slate-400">learning mode</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Direction</th>
+                  <th className="px-4 py-3 text-left">Entry price</th>
+                  <th className="px-4 py-3 text-left">Current price</th>
+                  <th className="px-4 py-3 text-left">Entry at</th>
+                  <th className="px-4 py-3 text-left">Entry state</th>
+                  <th className="px-4 py-3 text-left">Trend</th>
+                  <th className="px-4 py-3 text-left">Invalidation</th>
+                  <th className="px-4 py-3 text-left">Formation</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {openPaperPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-4 text-slate-400">No open paper positions right now.</td>
+                  </tr>
+                ) : (
+                  openPaperPositions.map((row) => (
+                    <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.side}</td>
+                      <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                      <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
+                      <td className="px-4 py-3">{row.entryState}</td>
+                      <td className="px-4 py-3">{row.trendDirection}</td>
+                      <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
+                      <td className="px-4 py-3">{row.formationType}</td>
+                      <td className="px-4 py-3">{row.status}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section className="mb-4 grid gap-2 md:grid-cols-4">
           <div className={`${shellClass} p-2.5`}>
