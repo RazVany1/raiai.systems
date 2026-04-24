@@ -21,6 +21,7 @@ SYMBOLS = [
 ]
 
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
+FORMATION_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\hl-lh-formation-state.json")
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -376,12 +377,23 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
     return results
 
 
+def load_json(path: Path, fallback):
+    if not path.exists():
+        return fallback
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
+
+
 def main():
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     interest_rows = []
     formation_rows = []
     trend_rows = []
     updated_at = datetime.now(timezone.utc).isoformat()
+    formation_state = load_json(FORMATION_STATE_PATH, {"confirmed": {}})
+    confirmed_state = formation_state.get("confirmed", {}) if isinstance(formation_state.get("confirmed"), dict) else {}
 
     for symbol in SYMBOLS:
         try:
@@ -454,8 +466,40 @@ def main():
                 "error": str(exc),
             })
 
-    formation_rows.sort(key=lambda row: (0 if row["state"] == "forming" else 1, row["symbol"], row["side"]))
-    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=30)).isoformat()
+    now_dt = datetime.fromisoformat(updated_at)
+    new_confirmed_state = {}
+    formation_index = {(row["symbol"], row["side"]): row for row in formation_rows}
+
+    for key, row in formation_index.items():
+        if row["state"] == "confirmed":
+            confirmed_at = confirmed_state.get(f"{row['symbol']}:{row['side']}", {}).get("confirmedAt", updated_at)
+            row["confirmedAt"] = confirmed_at
+            new_confirmed_state[f"{row['symbol']}:{row['side']}"] = {
+                "row": row,
+                "confirmedAt": confirmed_at,
+            }
+        else:
+            row["confirmedAt"] = None
+
+    for state_key, saved in confirmed_state.items():
+        saved_row = saved.get("row") if isinstance(saved, dict) else None
+        confirmed_at = saved.get("confirmedAt") if isinstance(saved, dict) else None
+        if not saved_row or not confirmed_at:
+            continue
+        confirmed_dt = datetime.fromisoformat(confirmed_at)
+        if (now_dt - confirmed_dt) <= timedelta(hours=10):
+            row_key = (saved_row.get("symbol"), saved_row.get("side"))
+            if row_key not in formation_index:
+                saved_row["state"] = "confirmed"
+                saved_row["confirmedAt"] = confirmed_at
+                formation_rows.append(saved_row)
+            new_confirmed_state[state_key] = {
+                "row": saved_row,
+                "confirmedAt": confirmed_at,
+            }
+
+    formation_rows.sort(key=lambda row: (0 if row["state"] == "confirmed" else 1 if row["state"] == "forming" else 2, row["symbol"], row["side"]))
+    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
     payload = {
         "updatedAt": updated_at,
@@ -465,6 +509,7 @@ def main():
         "trendRows": trend_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(OUTPUT_PATH)
 
 

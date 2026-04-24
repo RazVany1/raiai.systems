@@ -27,6 +27,7 @@ type FormationRow = {
   rsiDivergence: string;
   price: number | null;
   detectedAt: string;
+  confirmedAt?: string | null;
 };
 
 type TrendRow = {
@@ -233,13 +234,14 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">EMA zone</th>
                   <th className="px-4 py-3 text-left">RSI divergence</th>
                   <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Confirmed at</th>
                   <th className="px-4 py-3 text-left">Detected at</th>
                 </tr>
               </thead>
               <tbody>
                 {formationRows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No HL/LH formations detected right now.</td>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No HL/LH formations detected right now.</td>
                   </tr>
                 ) : (
                   formationRows.map((row) => (
@@ -255,6 +257,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{row.emaZone}</td>
                       <td className="px-4 py-3">{row.rsiDivergence}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{row.confirmedAt ? new Date(row.confirmedAt).toLocaleString() : "-"}</td>
                       <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
                     </tr>
                   ))
