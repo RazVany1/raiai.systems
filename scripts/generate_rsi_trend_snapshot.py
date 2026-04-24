@@ -309,60 +309,63 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
     rsi_highs, rsi_lows = find_pivots([x for x in rsi_clean], window=2)
     ema20 = ema(closes, 20)
     ema50 = ema(closes, 50)
+    trend_info = detect_trend(closes, highs, lows)
     results = []
 
     if len(price_highs) >= 2 and len(price_lows) >= 2:
-        last_hh = price_highs[-1]
-        prev_hh = price_highs[-2]
-        last_hl = price_lows[-1]
-        prev_hl = price_lows[-2]
-        uptrend = last_hh[1] > prev_hh[1] and last_hl[1] > prev_hl[1]
-        if uptrend:
-            pullback_active = closes[-1] <= last_hh[1] and closes[-1] >= last_hl[1]
-            reaction = closes[-1] > closes[-2]
-            state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
-            if state:
-                divergence = find_rsi_divergence(rsi, price_lows, rsi_lows, "LONG")
-                results.append({
-                    "symbol": symbol,
-                    "side": "LONG",
-                    "formationType": "HL",
-                    "trendStatus": "UPTREND",
-                    "state": state,
-                    "majorLevel": round(prev_hl[1], 6),
-                    "currentLevel": round(last_hl[1], 6),
-                    "reaction": "close_up" if reaction else "none",
-                    "emaZone": "above_ema20" if closes[-1] >= ema20[-1] else "above_ema50" if closes[-1] >= ema50[-1] else "below_ema50",
-                    "rsiDivergence": divergence,
-                    "price": fetch_hyper_price(symbol),
-                    "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
-                })
+        if trend_info.get("trend") == "uptrend":
+            last_hh = price_highs[-1]
+            prev_hh = price_highs[-2]
+            last_hl = price_lows[-1]
+            prev_hl = price_lows[-2]
+            uptrend = last_hh[1] > prev_hh[1] and last_hl[1] > prev_hl[1]
+            if uptrend:
+                pullback_active = closes[-1] <= last_hh[1] and closes[-1] >= last_hl[1]
+                reaction = closes[-1] > closes[-2]
+                state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
+                if state:
+                    divergence = find_rsi_divergence(rsi, price_lows, rsi_lows, "LONG")
+                    results.append({
+                        "symbol": symbol,
+                        "side": "LONG",
+                        "formationType": "HL",
+                        "trendStatus": "UPTREND",
+                        "state": state,
+                        "majorLevel": round(prev_hl[1], 6),
+                        "currentLevel": round(last_hl[1], 6),
+                        "reaction": "close_up" if reaction else "none",
+                        "emaZone": "above_ema20" if closes[-1] >= ema20[-1] else "above_ema50" if closes[-1] >= ema50[-1] else "below_ema50",
+                        "rsiDivergence": divergence,
+                        "price": fetch_hyper_price(symbol),
+                        "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+                    })
 
-        last_lh = price_highs[-1]
-        prev_lh = price_highs[-2]
-        last_ll = price_lows[-1]
-        prev_ll = price_lows[-2]
-        downtrend = last_lh[1] < prev_lh[1] and last_ll[1] < prev_ll[1]
-        if downtrend:
-            pullback_active = closes[-1] >= last_ll[1] and closes[-1] <= last_lh[1]
-            reaction = closes[-1] < closes[-2]
-            state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
-            if state:
-                divergence = find_rsi_divergence(rsi, price_highs, rsi_highs, "SHORT")
-                results.append({
-                    "symbol": symbol,
-                    "side": "SHORT",
-                    "formationType": "LH",
-                    "trendStatus": "DOWNTREND",
-                    "state": state,
-                    "majorLevel": round(prev_lh[1], 6),
-                    "currentLevel": round(last_lh[1], 6),
-                    "reaction": "close_down" if reaction else "none",
-                    "emaZone": "below_ema20" if closes[-1] <= ema20[-1] else "below_ema50" if closes[-1] <= ema50[-1] else "above_ema50",
-                    "rsiDivergence": divergence,
-                    "price": fetch_hyper_price(symbol),
-                    "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
-                })
+        elif trend_info.get("trend") == "downtrend":
+            last_lh = price_highs[-1]
+            prev_lh = price_highs[-2]
+            last_ll = price_lows[-1]
+            prev_ll = price_lows[-2]
+            downtrend = last_lh[1] < prev_lh[1] and last_ll[1] < prev_ll[1]
+            if downtrend:
+                pullback_active = closes[-1] >= last_ll[1] and closes[-1] <= last_lh[1]
+                reaction = closes[-1] < closes[-2]
+                state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
+                if state:
+                    divergence = find_rsi_divergence(rsi, price_highs, rsi_highs, "SHORT")
+                    results.append({
+                        "symbol": symbol,
+                        "side": "SHORT",
+                        "formationType": "LH",
+                        "trendStatus": "DOWNTREND",
+                        "state": state,
+                        "majorLevel": round(prev_lh[1], 6),
+                        "currentLevel": round(last_lh[1], 6),
+                        "reaction": "close_down" if reaction else "none",
+                        "emaZone": "below_ema20" if closes[-1] <= ema20[-1] else "below_ema50" if closes[-1] <= ema50[-1] else "above_ema50",
+                        "rsiDivergence": divergence,
+                        "price": fetch_hyper_price(symbol),
+                        "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+                    })
 
     return results
 
