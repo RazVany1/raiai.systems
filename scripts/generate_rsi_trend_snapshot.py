@@ -322,7 +322,10 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
             if uptrend:
                 pullback_active = closes[-1] <= last_hh[1] and closes[-1] >= last_hl[1]
                 reaction = closes[-1] > closes[-2]
-                state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
+                confirmed = reaction and closes[-1] > highs[-2]
+                late = closes[-1] > last_hh[1] * 0.985
+                invalidated = closes[-1] < prev_hl[1]
+                state = "invalidated" if invalidated else "late" if late else "confirmed" if confirmed else "forming" if pullback_active and reaction else "watch" if pullback_active else None
                 if state:
                     divergence = find_rsi_divergence(rsi, price_lows, rsi_lows, "LONG")
                     results.append({
@@ -349,7 +352,10 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
             if downtrend:
                 pullback_active = closes[-1] >= last_ll[1] and closes[-1] <= last_lh[1]
                 reaction = closes[-1] < closes[-2]
-                state = "forming" if pullback_active and reaction else "watch" if pullback_active else None
+                confirmed = reaction and closes[-1] < lows[-2]
+                late = closes[-1] < last_ll[1] * 1.015
+                invalidated = closes[-1] > prev_lh[1]
+                state = "invalidated" if invalidated else "late" if late else "confirmed" if confirmed else "forming" if pullback_active and reaction else "watch" if pullback_active else None
                 if state:
                     divergence = find_rsi_divergence(rsi, price_highs, rsi_highs, "SHORT")
                     results.append({
