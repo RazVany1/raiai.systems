@@ -13,6 +13,7 @@ python scripts\generate_rsi_zone_alerts.py
 
 $files = @(
   'public/data/rsi-trend-dashboard.json',
+  'public/data/hl-lh-formation-state.json',
   'public/data/rsi-zone-alerts.json',
   'public/data/rsi-zone-alert-state.json'
 )
