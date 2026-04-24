@@ -50,6 +50,24 @@ def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, f
     return highs, lows
 
 
+def find_fractal_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
+    return find_pivots(values, window=window)
+
+
+def fib_level(high_value: float, low_value: float, ratio: float) -> float:
+    return high_value - (high_value - low_value) * ratio
+
+
+def average(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def within_pct(a: float, b: float, pct: float = 0.008) -> bool:
+    if b == 0:
+        return False
+    return abs(a - b) / abs(b) <= pct
+
+
 def score_to_strength_signal(score: int, trend_name: str, structure_valid: bool, ema_aligned: bool) -> tuple[str, str, str]:
     if score >= 80 and structure_valid and ema_aligned:
         return trend_name, "strong", "STRONG"
@@ -284,16 +302,172 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str) -> d
     return {"anchorRsi": None, "anchorTime": None}
 
 
+def detect_entry_point(layer: RAICryptoSignalOutputLayerV3, symbol: str, klines_4h: list, closes_4h: list[float], highs_4h: list[float], lows_4h: list[float], volumes_4h: list[float]) -> dict | None:
+    if len(closes_4h) < 220:
+        return None
+
+    daily_klines = layer.fetch_binance_klines(symbol=symbol, interval="1d", limit=260)
+    _, daily_highs, daily_lows, daily_closes = layer.extract_ohlc(daily_klines)
+    daily_ema50 = ema(daily_closes, 50)
+    daily_ema200 = ema(daily_closes, 200)
+    ema20_4h = ema(closes_4h, 20)
+    ema50_4h = ema(closes_4h, 50)
+    ema200_4h = ema(closes_4h, 200)
+
+    daily_alignment = daily_closes[-1] > daily_ema50[-1] and daily_ema50[-1] > daily_ema200[-1]
+    h4_alignment = closes_4h[-1] > ema50_4h[-1] and ema50_4h[-1] > ema200_4h[-1]
+    ema_stack_bullish = ema20_4h[-1] > ema50_4h[-1] > ema200_4h[-1]
+
+    fractal_highs, fractal_lows = find_fractal_pivots(closes_4h, window=2)
+    if len(fractal_highs) < 2 or len(fractal_lows) < 2:
+        return None
+
+    last_swing_high = fractal_highs[-1]
+    prev_swing_high = fractal_highs[-2]
+    last_swing_low = fractal_lows[-1]
+    prev_swing_low = fractal_lows[-2]
+    structure_valid = last_swing_high[1] > prev_swing_high[1] and last_swing_low[1] > prev_swing_low[1]
+    structure_intact = closes_4h[-1] > last_swing_low[1]
+
+    if not (daily_alignment and h4_alignment and structure_valid and structure_intact and ema_stack_bullish):
+        return None
+
+    breakout_level = prev_swing_high[1]
+    last_hl = last_swing_low[1]
+    current_price = closes_4h[-1]
+
+    fib_382 = fib_level(last_swing_high[1], last_swing_low[1], 0.382)
+    fib_50 = fib_level(last_swing_high[1], last_swing_low[1], 0.5)
+    fib_618 = fib_level(last_swing_high[1], last_swing_low[1], 0.618)
+
+    zone_tier = None
+    zone_reason = []
+
+    tier1 = within_pct(current_price, breakout_level, 0.012) and current_price > last_hl
+    if tier1:
+        zone_tier = "TIER 1"
+        zone_reason.append("breakout_to_support")
+        if within_pct(current_price, ema20_4h[-1], 0.01) or within_pct(current_price, ema50_4h[-1], 0.01):
+            zone_reason.append("ema_overlap")
+
+    tier2 = (min(ema20_4h[-1], ema50_4h[-1]) <= current_price <= max(ema20_4h[-1], ema50_4h[-1]))
+    if zone_tier is None and tier2:
+        zone_tier = "TIER 2"
+        zone_reason.append("ema20_ema50_pullback")
+        if fib_50 <= current_price <= fib_382 or fib_382 <= current_price <= fib_50:
+            zone_reason.append("fib_overlap")
+
+    liquidity_sweep = False
+    if len(lows_4h) >= 3 and len(closes_4h) >= 3:
+        minor_low = min(lows_4h[-4:-1])
+        liquidity_sweep = lows_4h[-2] < minor_low and closes_4h[-1] > minor_low
+        if zone_tier in {"TIER 1", "TIER 2"} and liquidity_sweep:
+            zone_tier = "TIER 3"
+            zone_reason.append("liquidity_sweep_reclaim")
+
+    trendline_candidate = last_swing_low[1] + ((last_swing_high[1] - last_swing_low[1]) * 0.5)
+    if zone_tier is None and within_pct(current_price, trendline_candidate, 0.01):
+        if within_pct(current_price, ema20_4h[-1], 0.01) or within_pct(current_price, breakout_level, 0.012) or within_pct(current_price, last_hl, 0.012):
+            zone_tier = "TIER 4"
+            zone_reason.append("trendline_confluence")
+
+    tier5 = zone_tier is None and (within_pct(current_price, fib_618, 0.012) or within_pct(current_price, ema200_4h[-1], 0.012)) and structure_intact
+    if tier5:
+        zone_tier = "TIER 5"
+        zone_reason.append("deep_retracement_or_ema200")
+
+    if zone_tier is None:
+        return None
+
+    bullish_rejection = closes_4h[-1] > lows_4h[-1] + ((highs_4h[-1] - lows_4h[-1]) * 0.6)
+    close_above_prev_high = closes_4h[-1] > highs_4h[-2]
+    impulsive_reclaim = closes_4h[-1] > opensafe(highs_4h[-1], lows_4h[-1], closes_4h[-2])
+    trigger_detected = bullish_rejection or close_above_prev_high or liquidity_sweep or impulsive_reclaim
+    trigger_name = "bullish_rejection" if bullish_rejection else "close_above_prev_high" if close_above_prev_high else "liquidity_sweep_reclaim" if liquidity_sweep else "impulsive_reclaim" if impulsive_reclaim else "none"
+
+    pullback_volume = average(volumes_4h[-4:-1])
+    impulse_volume = average(volumes_4h[-9:-5])
+    reclaim_volume = volumes_4h[-1] if volumes_4h else 0
+    supportive_participation = pullback_volume < impulse_volume and reclaim_volume > pullback_volume
+
+    extensions_above_ema = sum(1 for close in closes_4h[-12:] if close > ema20_4h[-1] * 1.03)
+    repeated_high_retests = sum(1 for high in highs_4h[-10:] if within_pct(high, last_swing_high[1], 0.006))
+    deepening_retracements = min(lows_4h[-8:]) < min(lows_4h[-16:-8]) if len(lows_4h) >= 16 else False
+    if last_swing_low[0] > last_swing_high[0] - 8:
+        entry_timing = "EARLY TREND"
+    elif extensions_above_ema >= 4 or repeated_high_retests >= 3 or deepening_retracements:
+        entry_timing = "LATE TREND"
+    else:
+        entry_timing = "MID TREND"
+
+    daily_slope_up = daily_ema50[-1] > daily_ema50[-5] and daily_ema200[-1] >= daily_ema200[-5]
+    h4_slopes_up = ema20_4h[-1] > ema20_4h[-5] and ema50_4h[-1] > ema50_4h[-5] and ema200_4h[-1] >= ema200_4h[-5]
+    shallow_pullbacks = min(lows_4h[-8:]) >= ema50_4h[-1]
+    price_crosses = sum(1 for close in closes_4h[-12:] if close < ema20_4h[-1] or close < ema50_4h[-1])
+    flattening = abs(ema20_4h[-1] - ema20_4h[-5]) / ema20_4h[-1] < 0.002
+    if daily_alignment and h4_alignment and ema_stack_bullish and daily_slope_up and h4_slopes_up and shallow_pullbacks:
+        trend_strength = "STRONG TREND"
+    elif price_crosses >= 4 or flattening:
+        trend_strength = "WEAK TREND"
+    else:
+        trend_strength = "NORMAL TREND"
+
+    score = 0
+    if daily_alignment:
+        score += 2
+    if h4_alignment:
+        score += 2
+    if structure_valid and structure_intact:
+        score += 2
+    if zone_tier in {"TIER 1", "TIER 2"}:
+        score += 2
+    elif zone_tier in {"TIER 3", "TIER 4", "TIER 5"}:
+        score += 1
+    if trigger_detected:
+        score += 1
+    if supportive_participation:
+        score += 1
+
+    if entry_timing == "LATE TREND":
+        score = max(0, score - 1)
+    if trend_strength == "WEAK TREND" and zone_tier != "TIER 1":
+        score = min(score, 7)
+
+    invalid = closes_4h[-1] < last_hl or not daily_alignment or (current_price < fib_618 and current_price < ema50_4h[-1])
+    decision = "EXECUTE" if score >= 8 and not invalid else "REJECT"
+
+    return {
+        "symbol": symbol,
+        "trendStatus": "UPTREND",
+        "zoneTier": zone_tier,
+        "entryTrigger": trigger_name if trigger_detected else "none",
+        "trendStrength": trend_strength,
+        "entryTiming": entry_timing,
+        "structureIntegrity": "valid" if structure_intact else "broken",
+        "volumeConfirmation": "supportive" if supportive_participation else "weak",
+        "score": score,
+        "tradeDecision": decision,
+        "price": fetch_hyper_price(symbol),
+        "detectedAt": datetime.fromtimestamp(int(klines_4h[-1][0]) / 1000, tz=timezone.utc).isoformat(),
+    }
+
+
+def opensafe(high: float, low: float, previous_close: float) -> float:
+    return max(previous_close, low + ((high - low) * 0.7))
+
+
 def main():
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     interest_rows = []
+    entry_rows = []
     trend_rows = []
     updated_at = datetime.now(timezone.utc).isoformat()
 
     for symbol in SYMBOLS:
         try:
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
-            _, highs, lows, closes = layer.extract_ohlc(klines)
+            timestamps, highs, lows, closes = layer.extract_ohlc(klines)
+            volumes = [float(k[5]) for k in klines]
             rsi = layer.compute_rsi(closes)
             last_rsi = rsi[-1]
             if last_rsi is None:
@@ -320,6 +494,10 @@ def main():
                     "timeframe": "4h",
                     "sourceVenue": "hyper",
                 })
+
+            entry_info = detect_entry_point(layer, symbol, klines, closes, highs, lows, volumes)
+            if entry_info:
+                entry_rows.append(entry_info)
 
             trend_info = detect_trend(closes, highs, lows)
             trend_rows.append({
@@ -359,12 +537,14 @@ def main():
                 "error": str(exc),
             })
 
+    entry_rows.sort(key=lambda row: (-row["score"], row["symbol"]))
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=30)).isoformat()
 
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
         "interestRows": interest_rows,
+        "entryRows": entry_rows,
         "trendRows": trend_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

@@ -14,6 +14,21 @@ type InterestRow = {
   sourceVenue: string;
 };
 
+type EntryRow = {
+  symbol: string;
+  trendStatus: string;
+  zoneTier: string;
+  entryTrigger: string;
+  trendStrength: string;
+  entryTiming: string;
+  structureIntegrity: string;
+  volumeConfirmation: string;
+  score: number;
+  tradeDecision: string;
+  price: number | null;
+  detectedAt: string;
+};
+
 type TrendRow = {
   symbol: string;
   trend: string;
@@ -59,6 +74,7 @@ const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 sh
 
 export default function CryptoDashboardPage() {
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
+  const [entryRows, setEntryRows] = useState<EntryRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
@@ -71,6 +87,7 @@ export default function CryptoDashboardPage() {
       const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       setInterestRows(data.interestRows || []);
+      setEntryRows(data.entryRows || []);
       setTrendRows(data.trendRows || []);
       setUpdatedAt(data.updatedAt || "");
       setNextScanAt(data.nextScanAt || "");
@@ -187,6 +204,57 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
                       <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
                       <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
+                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Entry Points</h2>
+            <span className="text-[10px] text-slate-400">4H only</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Trend</th>
+                  <th className="px-4 py-3 text-left">Tier</th>
+                  <th className="px-4 py-3 text-left">Trigger</th>
+                  <th className="px-4 py-3 text-left">Strength</th>
+                  <th className="px-4 py-3 text-left">Timing</th>
+                  <th className="px-4 py-3 text-left">Structure</th>
+                  <th className="px-4 py-3 text-left">Volume</th>
+                  <th className="px-4 py-3 text-left">Score</th>
+                  <th className="px-4 py-3 text-left">Decision</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Detected at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entryRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="px-4 py-4 text-slate-400">No entry points detected right now.</td>
+                  </tr>
+                ) : (
+                  entryRows.map((row) => (
+                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.trendStatus}</td>
+                      <td className="px-4 py-3">{row.zoneTier}</td>
+                      <td className="px-4 py-3">{row.entryTrigger}</td>
+                      <td className="px-4 py-3">{row.trendStrength}</td>
+                      <td className="px-4 py-3">{row.entryTiming}</td>
+                      <td className="px-4 py-3">{row.structureIntegrity}</td>
+                      <td className="px-4 py-3">{row.volumeConfirmation}</td>
+                      <td className="px-4 py-3">{row.score}</td>
+                      <td className="px-4 py-3">{row.tradeDecision}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
                       <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
                     </tr>
                   ))
