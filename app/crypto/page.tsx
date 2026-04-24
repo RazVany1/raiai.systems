@@ -16,6 +16,7 @@ type InterestRow = {
 
 type EntryRow = {
   symbol: string;
+  side: string;
   trendStatus: string;
   zoneTier: string;
   entryTrigger: string;
@@ -223,6 +224,7 @@ export default function CryptoDashboardPage() {
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Side</th>
                   <th className="px-4 py-3 text-left">Trend</th>
                   <th className="px-4 py-3 text-left">Tier</th>
                   <th className="px-4 py-3 text-left">Trigger</th>
@@ -239,12 +241,13 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {entryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No entry points detected right now.</td>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No entry points detected right now.</td>
                   </tr>
                 ) : (
                   entryRows.map((row) => (
                     <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.side}</td>
                       <td className="px-4 py-3">{row.trendStatus}</td>
                       <td className="px-4 py-3">{row.zoneTier}</td>
                       <td className="px-4 py-3">{row.entryTrigger}</td>
