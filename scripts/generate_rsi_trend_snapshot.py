@@ -24,6 +24,7 @@ SYMBOLS = [
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 FORMATION_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\hl-lh-formation-state.json")
 PAPER_POSITIONS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions.json")
+PAPER_POSITIONS_HISTORY_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions-history.json")
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -807,6 +808,29 @@ def main():
     status_order = {"open": 0, "weakened": 1, "monitoring": 2, "closed_invalidated": 3}
     paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
 
+    history_data = load_json(PAPER_POSITIONS_HISTORY_PATH, {"positions": []})
+    history_list = history_data.get("positions", []) if isinstance(history_data, dict) and isinstance(history_data.get("positions"), list) else []
+    history_map = {}
+    for pos in history_list:
+        if isinstance(pos, dict):
+            history_map[(pos.get("symbol"), pos.get("side"), pos.get("entryAt"))] = pos
+
+    for pos in paper_positions:
+        hist_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
+        previous = history_map.get(hist_key, {})
+        history_map[hist_key] = {
+            **previous,
+            **pos,
+            "firstSeenAt": previous.get("firstSeenAt", updated_at),
+            "lastSeenAt": updated_at,
+        }
+
+    history_positions = sorted(
+        history_map.values(),
+        key=lambda row: (row.get("entryAt", ""), row.get("symbol", ""), row.get("side", "")),
+        reverse=True,
+    )
+
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
     payload = {
@@ -820,6 +844,7 @@ def main():
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": paper_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
+    PAPER_POSITIONS_HISTORY_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": history_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(OUTPUT_PATH)
 
 
