@@ -1,4 +1,4 @@
-import json
+﻿import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import sys
@@ -735,41 +735,12 @@ def main():
                 break
         if existing is None and existing_candidates:
             existing = existing_candidates[0]
+
         if existing:
-+            handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
-             closed_at = existing.get("closedAt")
-             status = existing.get("status", "open")
-             if status.startswith("closed"):
-                 status = status
-             else:
-@@
-         else:
-             paper_positions.append({
-                 "symbol": symbol,
-                 "side": side,
-                 "entryPrice": entry_price,
-                 "entryAt": entry_time,
-@@
-                 "status": "open",
-                 "closedAt": None,
-             })
-+            handled_entry_keys.add((symbol, side, entry_time))
- 
--    for key, existing in existing_map.items():
--        if key in handled_keys:
-+    for key, existing in existing_by_entry.items():
-+        if key in handled_entry_keys:
-             continue
--        symbol, side = key
-+        symbol, side, _entry_at = key
-         trend = trend_map.get(symbol)
--        formation = formation_map.get(key)
-+        formation = formation_map.get((symbol, side))
+            handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
             closed_at = existing.get("closedAt")
             status = existing.get("status", "open")
-            if status.startswith("closed"):
-                status = status
-            else:
+            if not status.startswith("closed"):
                 status = "open"
             paper_positions.append({
                 **existing,
@@ -799,13 +770,14 @@ def main():
                 "status": "open",
                 "closedAt": None,
             })
+            handled_entry_keys.add((symbol, side, entry_time))
 
-    for key, existing in existing_map.items():
-        if key in handled_keys:
+    for key, existing in existing_by_entry.items():
+        if key in handled_entry_keys:
             continue
-        symbol, side = key
+        symbol, side, _entry_at = key
         trend = trend_map.get(symbol)
-        formation = formation_map.get(key)
+        formation = formation_map.get((symbol, side))
         current_price = trend.get("price") if trend else existing.get("currentPrice")
         invalidation_level = existing.get("invalidationLevel")
         if trend and trend.get("invalidationLevel") is not None:
@@ -843,7 +815,6 @@ def main():
             "status": status,
             "closedAt": closed_at,
         })
-
     status_order = {"open": 0, "weakened": 1, "monitoring": 2, "closed_invalidated": 3}
     paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
 
@@ -889,3 +860,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
