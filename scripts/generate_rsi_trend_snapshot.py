@@ -700,8 +700,9 @@ def main():
                 existing_map[(pos.get("symbol"), pos.get("side"))] = pos
 
     trend_map = {row["symbol"]: row for row in trend_rows if isinstance(row, dict)}
-    open_positions = []
-    seen_positions = set()
+    formation_map = {(row.get("symbol"), row.get("side")): row for row in formation_rows if isinstance(row, dict)}
+    paper_positions = []
+    handled_keys = set()
 
     for row in formation_rows:
         symbol = row.get("symbol")
@@ -719,20 +720,30 @@ def main():
             continue
 
         key = (symbol, side)
-        seen_positions.add(key)
+        handled_keys.add(key)
         existing = existing_map.get(key)
         entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
         entry_price = row.get("price")
         if existing:
-            open_positions.append({
+            closed_at = existing.get("closedAt")
+            status = existing.get("status", "open")
+            if status.startswith("closed"):
+                status = status
+            else:
+                status = "open"
+            paper_positions.append({
                 **existing,
                 "lastSeenAt": updated_at,
                 "currentPrice": entry_price,
                 "trendDirection": trend.get("finalMarketDirection"),
+                "tradePermission": trend.get("tradePermission"),
+                "invalidationLevel": trend.get("invalidationLevel"),
                 "entryState": existing.get("entryState", state),
+                "status": status,
+                "closedAt": closed_at,
             })
         else:
-            open_positions.append({
+            paper_positions.append({
                 "symbol": symbol,
                 "side": side,
                 "entryPrice": entry_price,
@@ -746,21 +757,69 @@ def main():
                 "lastSeenAt": updated_at,
                 "currentPrice": entry_price,
                 "status": "open",
+                "closedAt": None,
             })
+
+    for key, existing in existing_map.items():
+        if key in handled_keys:
+            continue
+        symbol, side = key
+        trend = trend_map.get(symbol)
+        formation = formation_map.get(key)
+        current_price = trend.get("price") if trend else existing.get("currentPrice")
+        invalidation_level = existing.get("invalidationLevel")
+        if trend and trend.get("invalidationLevel") is not None:
+            invalidation_level = trend.get("invalidationLevel")
+
+        status = existing.get("status", "open")
+        closed_at = existing.get("closedAt")
+
+        invalidated = False
+        if current_price is not None and invalidation_level is not None:
+            if side == "LONG" and current_price <= invalidation_level:
+                invalidated = True
+            if side == "SHORT" and current_price >= invalidation_level:
+                invalidated = True
+        if formation and formation.get("state") == "invalidated":
+            invalidated = True
+
+        if invalidated:
+            status = "closed_invalidated"
+            closed_at = closed_at or updated_at
+        elif formation and formation.get("state") in {"watch", "late"}:
+            status = "weakened"
+        elif formation and formation.get("state") in {"forming", "confirmed"}:
+            status = "open"
+        elif trend:
+            status = "monitoring"
+
+        paper_positions.append({
+            **existing,
+            "currentPrice": current_price,
+            "lastSeenAt": updated_at,
+            "trendDirection": trend.get("finalMarketDirection") if trend else existing.get("trendDirection"),
+            "tradePermission": trend.get("tradePermission") if trend else existing.get("tradePermission"),
+            "invalidationLevel": invalidation_level,
+            "status": status,
+            "closedAt": closed_at,
+        })
+
+    status_order = {"open": 0, "weakened": 1, "monitoring": 2, "closed_invalidated": 3}
+    paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
 
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
-        "openPaperPositions": open_positions,
+        "openPaperPositions": paper_positions,
         "interestRows": interest_rows,
         "formationRows": formation_rows,
         "trendRows": trend_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
-    PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": open_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
+    PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": paper_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(OUTPUT_PATH)
 
 

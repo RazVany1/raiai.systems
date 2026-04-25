@@ -16,6 +16,7 @@ type OpenPaperPosition = {
   lastSeenAt: string;
   currentPrice: number | null;
   status: string;
+  closedAt?: string | null;
 };
 
 type InterestRow = {
@@ -186,7 +187,7 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Open Paper Positions</h2>
+            <h2 className="text-base font-semibold text-white">Paper Positions</h2>
             <span className="text-[10px] text-slate-400">learning mode</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
@@ -203,12 +204,13 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Invalidation</th>
                   <th className="px-4 py-3 text-left">Formation</th>
                   <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Closed at</th>
                 </tr>
               </thead>
               <tbody>
                 {openPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-4 text-slate-400">No open paper positions right now.</td>
+                    <td colSpan={11} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
                   openPaperPositions.map((row) => (
@@ -223,6 +225,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
                       <td className="px-4 py-3">{row.formationType}</td>
                       <td className="px-4 py-3">{row.status}</td>
+                      <td className="px-4 py-3">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</td>
                     </tr>
                   ))
                 )}
