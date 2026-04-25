@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-04-25T09:30:01.992731+00:00",
-  "nextScanAt": "2026-04-25T09:45:01.992731+00:00",
+  "updatedAt": "2026-04-25T09:45:02.144233+00:00",
+  "nextScanAt": "2026-04-25T10:00:02.144233+00:00",
   "openPaperPositions": [
     {
       "symbol": "RUNEUSDT",
@@ -13,7 +13,7 @@
       "invalidationLevel": 0.471,
       "formationType": "HL",
       "detectedAt": "2026-04-24T20:00:00+00:00",
-      "lastSeenAt": "2026-04-25T09:30:01.992731+00:00",
+      "lastSeenAt": "2026-04-25T09:45:02.144233+00:00",
       "currentPrice": 0.47825,
       "status": "open",
       "closedAt": null,
@@ -30,8 +30,8 @@
       "invalidationLevel": 0.471,
       "formationType": "HL",
       "detectedAt": "2026-04-25T00:00:00+00:00",
-      "lastSeenAt": "2026-04-25T09:30:01.992731+00:00",
-      "currentPrice": 0.47882,
+      "lastSeenAt": "2026-04-25T09:45:02.144233+00:00",
+      "currentPrice": 0.48014,
       "status": "open",
       "closedAt": null,
       "firstSeenAt": "2026-04-25T03:45:01.981469+00:00"
@@ -47,8 +47,8 @@
       "invalidationLevel": 3.255,
       "formationType": "HL",
       "detectedAt": "2026-04-25T00:00:00+00:00",
-      "lastSeenAt": "2026-04-25T09:30:01.992731+00:00",
-      "currentPrice": 3.5357,
+      "lastSeenAt": "2026-04-25T09:45:02.144233+00:00",
+      "currentPrice": 3.537,
       "status": "weakened",
       "closedAt": null,
       "firstSeenAt": "2026-04-25T00:30:01.873115+00:00"
@@ -57,12 +57,23 @@
   "interestRows": [
     {
       "symbol": "TRXUSDT",
-      "rsi": 29.98,
-      "price": 0.32196,
+      "rsi": 29.5,
+      "price": 0.32176,
       "zone": "lower_interest",
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "anchorRsi": null,
       "anchorTime": null,
+      "timeframe": "4h",
+      "sourceVenue": "hyper"
+    },
+    {
+      "symbol": "DYDXUSDT",
+      "rsi": 71.28,
+      "price": 0.16904,
+      "zone": "upper_interest",
+      "detectedAt": "2026-04-25T08:00:00+00:00",
+      "anchorRsi": 80.91,
+      "anchorTime": "2026-04-18T04:00:00+00:00",
       "timeframe": "4h",
       "sourceVenue": "hyper"
     }
@@ -85,22 +96,6 @@
       "confirmedAt": "2026-04-25T00:00:00+00:00"
     },
     {
-      "symbol": "ONDOUSDT",
-      "side": "LONG",
-      "formationType": "HL",
-      "trendStatus": "UPTREND",
-      "state": "forming",
-      "majorLevel": 0.2614,
-      "currentLevel": 0.2621,
-      "reaction": "close_up",
-      "emaZone": "above_ema20",
-      "rsiDivergence": "none",
-      "price": 0.26235,
-      "detectedAt": "2026-04-25T08:00:00+00:00",
-      "eventAt": "2026-04-25T08:00:00+00:00",
-      "confirmedAt": null
-    },
-    {
       "symbol": "TONUSDT",
       "side": "SHORT",
       "formationType": "LH",
@@ -109,9 +104,9 @@
       "majorLevel": 1.376,
       "currentLevel": 1.35,
       "reaction": "close_down",
-      "emaZone": "below_ema20",
+      "emaZone": "below_ema50",
       "rsiDivergence": "none",
-      "price": 1.3387,
+      "price": 1.3425,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -127,7 +122,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 0.2523,
+      "price": 0.2535,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -143,7 +138,7 @@
       "reaction": "none",
       "emaZone": "above_ema20",
       "rsiDivergence": "bullish_hidden",
-      "price": 0.13092,
+      "price": 0.13151,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -159,7 +154,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "bullish_hidden",
-      "price": 2.0248,
+      "price": 2.0266,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -172,10 +167,10 @@
       "state": "late",
       "majorLevel": 0.09387,
       "currentLevel": 0.0956,
-      "reaction": "none",
+      "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 0.098353,
+      "price": 0.098585,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -191,7 +186,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 8.5456,
+      "price": 8.5529,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -207,7 +202,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 0.091601,
+      "price": 0.091946,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -223,23 +218,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 3.5359,
-      "detectedAt": "2026-04-25T08:00:00+00:00",
-      "eventAt": "2026-04-25T08:00:00+00:00",
-      "confirmedAt": null
-    },
-    {
-      "symbol": "LINKUSDT",
-      "side": "LONG",
-      "formationType": "HL",
-      "trendStatus": "UPTREND",
-      "state": "late",
-      "majorLevel": 9.18,
-      "currentLevel": 9.28,
-      "reaction": "none",
-      "emaZone": "above_ema20",
-      "rsiDivergence": "none",
-      "price": 9.3956,
+      "price": 3.5375,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -252,10 +231,26 @@
       "state": "late",
       "majorLevel": 54.85,
       "currentLevel": 55.14,
-      "reaction": "none",
+      "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 56.366,
+      "price": 56.491,
+      "detectedAt": "2026-04-25T08:00:00+00:00",
+      "eventAt": "2026-04-25T08:00:00+00:00",
+      "confirmedAt": null
+    },
+    {
+      "symbol": "ONDOUSDT",
+      "side": "LONG",
+      "formationType": "HL",
+      "trendStatus": "UPTREND",
+      "state": "late",
+      "majorLevel": 0.2614,
+      "currentLevel": 0.2621,
+      "reaction": "close_up",
+      "emaZone": "above_ema20",
+      "rsiDivergence": "none",
+      "price": 0.26312,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -271,7 +266,7 @@
       "reaction": "close_up",
       "emaZone": "above_ema20",
       "rsiDivergence": "none",
-      "price": 86.563,
+      "price": 86.656,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -287,7 +282,7 @@
       "reaction": "none",
       "emaZone": "below_ema20",
       "rsiDivergence": "bearish_hidden",
-      "price": 0.3571,
+      "price": 0.35804,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -303,7 +298,7 @@
       "reaction": "close_down",
       "emaZone": "below_ema20",
       "rsiDivergence": "bearish_hidden",
-      "price": 0.32196,
+      "price": 0.32176,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -316,10 +311,10 @@
       "state": "late",
       "majorLevel": 1.4162,
       "currentLevel": 1.4334,
-      "reaction": "none",
-      "emaZone": "above_ema50",
+      "reaction": "close_up",
+      "emaZone": "above_ema20",
       "rsiDivergence": "bullish_hidden",
-      "price": 1.4325,
+      "price": 1.4351,
       "detectedAt": "2026-04-25T08:00:00+00:00",
       "eventAt": "2026-04-25T08:00:00+00:00",
       "confirmedAt": null
@@ -333,18 +328,18 @@
       "emaDirection4h": "bullish",
       "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "no trend",
-      "adxValue": 14.61,
+      "adxValue": 14.73,
       "bullishScore": 7,
       "bearishScore": 0,
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 75023.43,
       "tradePermission": "LONG ONLY",
-      "price": 77552.0,
+      "price": 77708.0,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 77590.11,
-      "dailyEma50": 72963.113394,
-      "dailyEma200": 83156.074997
+      "dailyClose": 77733.23,
+      "dailyEma50": 72968.725943,
+      "dailyEma200": 83157.499076
     },
     {
       "symbol": "ETHUSDT",
@@ -353,18 +348,18 @@
       "emaDirection4h": "neutral",
       "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "no trend",
-      "adxValue": 16.75,
+      "adxValue": 16.64,
       "bullishScore": 3,
       "bearishScore": 2,
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 2316.2,
+      "price": 2320.5,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 2317.54,
-      "dailyEma50": 2233.183609,
-      "dailyEma200": 2631.925247
+      "dailyClose": 2321.66,
+      "dailyEma50": 2233.345177,
+      "dailyEma200": 2631.966242
     },
     {
       "symbol": "SOLUSDT",
@@ -379,12 +374,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 86.563,
+      "price": 86.656,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 86.62,
-      "dailyEma50": 87.032233,
-      "dailyEma200": 115.53324
+      "dailyClose": 86.73,
+      "dailyEma50": 87.036547,
+      "dailyEma200": 115.534334
     },
     {
       "symbol": "XRPUSDT",
@@ -399,12 +394,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 1.4325,
+      "price": 1.4351,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.4333,
-      "dailyEma50": 1.415345,
-      "dailyEma200": 1.779024
+      "dailyClose": 1.4359,
+      "dailyEma50": 1.415447,
+      "dailyEma200": 1.77905
     },
     {
       "symbol": "AAVEUSDT",
@@ -419,12 +414,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 95.285,
+      "price": 95.346,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 95.32,
-      "dailyEma50": 103.65361,
-      "dailyEma200": 152.766234
+      "dailyClose": 95.35,
+      "dailyEma50": 103.654787,
+      "dailyEma200": 152.766533
     },
     {
       "symbol": "XMRUSDT",
@@ -439,7 +434,7 @@
       "finalMarketDirection": "MODERATE BEARISH",
       "invalidationLevel": 122.6,
       "tradePermission": "SHORT ONLY",
-      "price": 372.43,
+      "price": 372.57,
       "lastUpdate": "2024-02-20T00:00:00+00:00",
       "sourceVenue": "hyper",
       "dailyClose": 118.7,
@@ -459,12 +454,12 @@
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 0.0956,
       "tradePermission": "LONG ONLY",
-      "price": 0.098353,
+      "price": 0.098579,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.0984,
-      "dailyEma50": 0.09597,
-      "dailyEma200": 0.125412
+      "dailyClose": 0.09863,
+      "dailyEma50": 0.095979,
+      "dailyEma200": 0.125414
     },
     {
       "symbol": "BNBUSDT",
@@ -479,12 +474,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 637.27,
+      "price": 638.08,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 637.25,
-      "dailyEma50": 634.041171,
-      "dailyEma200": 739.694797
+      "dailyClose": 638.01,
+      "dailyEma50": 634.070975,
+      "dailyEma200": 739.702359
     },
     {
       "symbol": "TAOUSDT",
@@ -499,32 +494,32 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 249.96,
+      "price": 250.66,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 250.0,
-      "dailyEma50": 260.334056,
-      "dailyEma200": 270.267354
+      "dailyClose": 250.6,
+      "dailyEma50": 260.357586,
+      "dailyEma200": 270.273324
     },
     {
       "symbol": "SUIUSDT",
       "timeframe": "4h",
       "dailyBias": "bearish",
       "emaDirection4h": "neutral",
-      "marketStructure": "sideways/mixed",
+      "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "no trend",
-      "adxValue": 12.38,
-      "bullishScore": 3,
+      "adxValue": 12.36,
+      "bullishScore": 5,
       "bearishScore": 2,
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.95042,
+      "price": 0.95317,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.9508,
-      "dailyEma50": 0.959822,
-      "dailyEma200": 1.489943
+      "dailyClose": 0.9537,
+      "dailyEma50": 0.959936,
+      "dailyEma200": 1.489972
     },
     {
       "symbol": "ARBUSDT",
@@ -539,12 +534,12 @@
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 0.1242,
       "tradePermission": "LONG ONLY",
-      "price": 0.13092,
+      "price": 0.13151,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.131,
-      "dailyEma50": 0.114032,
-      "dailyEma200": 0.183252
+      "dailyClose": 0.1316,
+      "dailyEma50": 0.114055,
+      "dailyEma200": 0.183258
     },
     {
       "symbol": "ZROUSDT",
@@ -553,18 +548,18 @@
       "emaDirection4h": "bearish",
       "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "no trend",
-      "adxValue": 12.26,
+      "adxValue": 12.37,
       "bullishScore": 2,
       "bearishScore": 5,
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 1.584,
+      "price": 1.5871,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.583,
-      "dailyEma50": 1.852408,
-      "dailyEma200": 1.795065
+      "dailyClose": 1.587,
+      "dailyEma50": 1.852565,
+      "dailyEma200": 1.795105
     },
     {
       "symbol": "AVAXUSDT",
@@ -579,12 +574,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 9.4536,
+      "price": 9.4767,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 9.46,
-      "dailyEma50": 9.424723,
-      "dailyEma200": 12.670514
+      "dailyClose": 9.47,
+      "dailyEma50": 9.425115,
+      "dailyEma200": 12.670614
     },
     {
       "symbol": "LINKUSDT",
@@ -599,12 +594,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 9.3955,
+      "price": 9.4206,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 9.4,
-      "dailyEma50": 9.217387,
-      "dailyEma200": 11.669836
+      "dailyClose": 9.43,
+      "dailyEma50": 9.218563,
+      "dailyEma200": 11.670135
     },
     {
       "symbol": "ADAUSDT",
@@ -613,18 +608,18 @@
       "emaDirection4h": "neutral",
       "marketStructure": "sideways/mixed",
       "adxTrendStrength": "no trend",
-      "adxValue": 8.11,
+      "adxValue": 8.46,
       "bullishScore": 3,
       "bearishScore": 2,
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.2523,
+      "price": 0.2535,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.2524,
-      "dailyEma50": 0.258776,
-      "dailyEma200": 0.376371
+      "dailyClose": 0.2537,
+      "dailyEma50": 0.258827,
+      "dailyEma200": 0.376384
     },
     {
       "symbol": "NEARUSDT",
@@ -639,12 +634,12 @@
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 1.38,
       "tradePermission": "LONG ONLY",
-      "price": 1.4114,
+      "price": 1.4149,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.412,
-      "dailyEma50": 1.322933,
-      "dailyEma200": 1.584457
+      "dailyClose": 1.416,
+      "dailyEma50": 1.32309,
+      "dailyEma200": 1.584497
     },
     {
       "symbol": "BCHUSDT",
@@ -659,12 +654,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 454.42,
+      "price": 455.14,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 454.6,
-      "dailyEma50": 460.640874,
-      "dailyEma200": 509.195896
+      "dailyClose": 455.3,
+      "dailyEma50": 460.668325,
+      "dailyEma200": 509.202861
     },
     {
       "symbol": "TONUSDT",
@@ -679,12 +674,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 1.3387,
+      "price": 1.3425,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.339,
-      "dailyEma50": 1.332999,
-      "dailyEma200": 1.674218
+      "dailyClose": 1.343,
+      "dailyEma50": 1.333156,
+      "dailyEma200": 1.674257
     },
     {
       "symbol": "TRXUSDT",
@@ -699,12 +694,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.32196,
+      "price": 0.32176,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.3225,
-      "dailyEma50": 0.314604,
-      "dailyEma200": 0.302588
+      "dailyClose": 0.3224,
+      "dailyEma50": 0.3146,
+      "dailyEma200": 0.302587
     },
     {
       "symbol": "UNIUSDT",
@@ -719,12 +714,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 3.2681,
+      "price": 3.2729,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 3.269,
-      "dailyEma50": 3.452804,
-      "dailyEma200": 4.842153
+      "dailyClose": 3.274,
+      "dailyEma50": 3.453,
+      "dailyEma200": 4.842202
     },
     {
       "symbol": "CRVUSDT",
@@ -739,12 +734,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.22863,
+      "price": 0.22914,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.2288,
-      "dailyEma50": 0.231979,
-      "dailyEma200": 0.349301
+      "dailyClose": 0.2294,
+      "dailyEma50": 0.232002,
+      "dailyEma200": 0.349307
     },
     {
       "symbol": "WLDUSDT",
@@ -759,12 +754,12 @@
       "finalMarketDirection": "MODERATE BEARISH",
       "invalidationLevel": 0.2643,
       "tradePermission": "SHORT ONLY",
-      "price": 0.26209,
+      "price": 0.26276,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.2622,
-      "dailyEma50": 0.306249,
-      "dailyEma200": 0.514247
+      "dailyClose": 0.2629,
+      "dailyEma50": 0.306277,
+      "dailyEma200": 0.514254
     },
     {
       "symbol": "LTCUSDT",
@@ -779,12 +774,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 56.366,
+      "price": 56.491,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 56.39,
-      "dailyEma50": 55.670768,
-      "dailyEma200": 69.294909
+      "dailyClose": 56.53,
+      "dailyEma50": 55.676258,
+      "dailyEma200": 69.296302
     },
     {
       "symbol": "JUPUSDT",
@@ -799,12 +794,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.1737,
+      "price": 0.17406,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.1739,
-      "dailyEma50": 0.167444,
-      "dailyEma200": 0.231536
+      "dailyClose": 0.1743,
+      "dailyEma50": 0.167459,
+      "dailyEma200": 0.23154
     },
     {
       "symbol": "WIFUSDT",
@@ -819,12 +814,12 @@
       "finalMarketDirection": "STRONG BEARISH",
       "invalidationLevel": 0.182,
       "tradePermission": "SHORT ONLY",
-      "price": 0.17944,
+      "price": 0.1796,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.18,
-      "dailyEma50": 0.196793,
-      "dailyEma200": 0.344877
+      "dailyClose": 0.179,
+      "dailyEma50": 0.196754,
+      "dailyEma200": 0.344868
     },
     {
       "symbol": "RUNEUSDT",
@@ -839,12 +834,12 @@
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 0.471,
       "tradePermission": "LONG ONLY",
-      "price": 0.47882,
+      "price": 0.48014,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.48,
-      "dailyEma50": 0.428695,
-      "dailyEma200": 0.610307
+      "dailyClose": 0.481,
+      "dailyEma50": 0.428734,
+      "dailyEma200": 0.610317
     },
     {
       "symbol": "AEROUSDT",
@@ -860,7 +855,7 @@
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
       "price": null,
-      "lastUpdate": "2026-04-25T09:30:01.992731+00:00",
+      "lastUpdate": "2026-04-25T09:45:02.144233+00:00",
       "sourceVenue": "hyper",
       "error": "HTTP Error 400: Bad Request"
     },
@@ -877,12 +872,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.9765,
+      "price": 0.9773,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.977,
-      "dailyEma50": 0.959483,
-      "dailyEma200": 1.806823
+      "dailyClose": 0.978,
+      "dailyEma50": 0.959522,
+      "dailyEma200": 1.806833
     },
     {
       "symbol": "DOTUSDT",
@@ -897,32 +892,32 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 1.2677,
+      "price": 1.2717,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.269,
-      "dailyEma50": 1.339742,
-      "dailyEma200": 1.95385
+      "dailyClose": 1.273,
+      "dailyEma50": 1.339899,
+      "dailyEma200": 1.95389
     },
     {
       "symbol": "HBARUSDT",
       "timeframe": "4h",
-      "dailyBias": "bearish",
+      "dailyBias": "neutral",
       "emaDirection4h": "bullish",
       "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "weak trend",
       "adxValue": 22.34,
       "bullishScore": 7,
-      "bearishScore": 2,
+      "bearishScore": 0,
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 0.09014,
       "tradePermission": "LONG ONLY",
-      "price": 0.091601,
+      "price": 0.091946,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.09161,
-      "dailyEma50": 0.091716,
-      "dailyEma200": 0.119198
+      "dailyClose": 0.09195,
+      "dailyEma50": 0.091729,
+      "dailyEma200": 0.119202
     },
     {
       "symbol": "OPUSDT",
@@ -937,12 +932,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.13051,
+      "price": 0.13078,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.1307,
-      "dailyEma50": 0.128311,
-      "dailyEma200": 0.262898
+      "dailyClose": 0.131,
+      "dailyEma50": 0.128323,
+      "dailyEma200": 0.262901
     },
     {
       "symbol": "ATOMUSDT",
@@ -957,12 +952,12 @@
       "finalMarketDirection": "STRONG BULLISH",
       "invalidationLevel": 1.839,
       "tradePermission": "LONG ONLY",
-      "price": 2.0247,
+      "price": 2.0261,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 2.025,
-      "dailyEma50": 1.839969,
-      "dailyEma200": 2.371679
+      "dailyClose": 2.027,
+      "dailyEma50": 1.840048,
+      "dailyEma200": 2.371699
     },
     {
       "symbol": "FILUSDT",
@@ -977,7 +972,7 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.95158,
+      "price": 0.9522,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
       "dailyClose": 0.953,
@@ -991,13 +986,13 @@
       "emaDirection4h": "bullish",
       "marketStructure": "bullish HH/HL",
       "adxTrendStrength": "valid trend",
-      "adxValue": 29.38,
+      "adxValue": 29.43,
       "bullishScore": 8,
       "bearishScore": 1,
       "finalMarketDirection": "STRONG BULLISH",
       "invalidationLevel": 3.255,
       "tradePermission": "LONG ONLY",
-      "price": 3.5357,
+      "price": 3.537,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
       "dailyClose": 3.541,
@@ -1017,12 +1012,12 @@
       "finalMarketDirection": "STRONG BULLISH",
       "invalidationLevel": 0.06052,
       "tradePermission": "LONG ONLY",
-      "price": 0.063025,
+      "price": 0.062759,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.06306,
-      "dailyEma50": 0.061403,
-      "dailyEma200": 0.116268
+      "dailyClose": 0.06278,
+      "dailyEma50": 0.061392,
+      "dailyEma200": 0.116265
     },
     {
       "symbol": "TIAUSDT",
@@ -1037,12 +1032,12 @@
       "finalMarketDirection": "UNCLEAR",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.3571,
+      "price": 0.35804,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.3574,
-      "dailyEma50": 0.343164,
-      "dailyEma200": 0.589957
+      "dailyClose": 0.3585,
+      "dailyEma50": 0.343207,
+      "dailyEma200": 0.589968
     },
     {
       "symbol": "ONDOUSDT",
@@ -1057,12 +1052,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 0.26235,
+      "price": 0.26312,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.2626,
-      "dailyEma50": 0.264745,
-      "dailyEma200": 0.408279
+      "dailyClose": 0.2634,
+      "dailyEma50": 0.264776,
+      "dailyEma200": 0.408287
     },
     {
       "symbol": "DYDXUSDT",
@@ -1077,12 +1072,12 @@
       "finalMarketDirection": "MODERATE BULLISH",
       "invalidationLevel": 0.1312,
       "tradePermission": "LONG ONLY",
-      "price": 0.17085,
+      "price": 0.16915,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 0.17101,
-      "dailyEma50": 0.114753,
-      "dailyEma200": 0.204849
+      "dailyClose": 0.16934,
+      "dailyEma50": 0.114687,
+      "dailyEma200": 0.204833
     },
     {
       "symbol": "PENDLEUSDT",
@@ -1097,12 +1092,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 1.2843,
+      "price": 1.2884,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 1.286,
-      "dailyEma50": 1.239573,
-      "dailyEma200": 1.959487
+      "dailyClose": 1.289,
+      "dailyEma50": 1.239691,
+      "dailyEma200": 1.959517
     },
     {
       "symbol": "ETCUSDT",
@@ -1117,12 +1112,12 @@
       "finalMarketDirection": "SIDEWAYS",
       "invalidationLevel": null,
       "tradePermission": "NO TRADE",
-      "price": 8.5456,
+      "price": 8.5529,
       "lastUpdate": "2026-04-25T08:00:00+00:00",
       "sourceVenue": "hyper",
-      "dailyClose": 8.55,
-      "dailyEma50": 8.580255,
-      "dailyEma200": 11.335076
+      "dailyClose": 8.56,
+      "dailyEma50": 8.580647,
+      "dailyEma200": 11.335175
     }
   ]
 }
