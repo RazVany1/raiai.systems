@@ -84,6 +84,15 @@ function zoneLabel(zone: string) {
   return zone;
 }
 
+function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
+  if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || entryPrice === 0) return "-";
+  const raw = side === "SHORT"
+    ? ((entryPrice - currentPrice) / entryPrice) * 100
+    : ((currentPrice - entryPrice) / entryPrice) * 100;
+  const sign = raw > 0 ? "+" : "";
+  return `${sign}${raw.toFixed(2)}%`;
+}
+
 function trendBadgeClasses(trend: string) {
   if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
@@ -198,6 +207,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Direction</th>
                   <th className="px-4 py-3 text-left">Entry price</th>
                   <th className="px-4 py-3 text-left">Current price</th>
+                  <th className="px-4 py-3 text-left">P/L</th>
                   <th className="px-4 py-3 text-left">Entry at</th>
                   <th className="px-4 py-3 text-left">Entry state</th>
                   <th className="px-4 py-3 text-left">Trend</th>
@@ -210,7 +220,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {openPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
+                    <td colSpan={12} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
                   openPaperPositions.map((row) => (
@@ -219,6 +229,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{row.side}</td>
                       <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                       <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                      <td className="px-4 py-3">{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
                       <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.entryState}</td>
                       <td className="px-4 py-3">{row.trendDirection}</td>
