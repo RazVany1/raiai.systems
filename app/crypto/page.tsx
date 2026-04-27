@@ -184,6 +184,29 @@ export default function CryptoDashboardPage() {
     });
   }, [openPaperPositions]);
 
+  const paperPositionLabels = useMemo(() => {
+    const bySymbol = new Map<string, OpenPaperPosition[]>();
+    for (const row of openPaperPositions) {
+      const bucket = bySymbol.get(row.symbol) || [];
+      bucket.push(row);
+      bySymbol.set(row.symbol, bucket);
+    }
+
+    const labelMap = new Map<string, string>();
+    for (const [symbol, rows] of bySymbol.entries()) {
+      const ordered = [...rows].sort((a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime());
+      if (ordered.length === 1) {
+        const row = ordered[0];
+        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, row.symbol);
+        continue;
+      }
+      ordered.forEach((row, index) => {
+        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, `${symbol} (${index + 1})`);
+      });
+    }
+    return labelMap;
+  }, [openPaperPositions]);
+
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
       "STRONG BULLISH": 0,
@@ -249,7 +272,7 @@ export default function CryptoDashboardPage() {
                 ) : (
                   orderedPaperPositions.map((row) => (
                     <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
                       <td className="px-4 py-3">{row.side}</td>
                       <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                       <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
