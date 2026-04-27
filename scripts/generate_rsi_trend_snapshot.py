@@ -55,6 +55,25 @@ def find_pivots(values: list[float], window: int = 2) -> tuple[list[tuple[int, f
     return highs, lows
 
 
+def atr(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> list[float | None]:
+    if len(closes) < period + 1:
+        return [None] * len(closes)
+
+    tr_list: list[float] = [0.0]
+    for i in range(1, len(closes)):
+        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+        tr_list.append(tr)
+
+    atr_values: list[float | None] = [None] * len(closes)
+    first_atr = sum(tr_list[1:period + 1]) / period
+    atr_values[period] = first_atr
+    prev_atr = first_atr
+    for i in range(period + 1, len(closes)):
+        prev_atr = ((prev_atr * (period - 1)) + tr_list[i]) / period
+        atr_values[i] = prev_atr
+    return atr_values
+
+
 def adx(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> list[float | None]:
     if len(closes) < period + 1:
         return [None] * len(closes)
@@ -662,6 +681,11 @@ def append_position_snapshots(path: Path, paper_positions: list[dict], trend_map
             "candleLow4h": rounded(market.get("low4h")),
             "candleClose4h": rounded(market.get("close4h")),
             "candleVolume4h": rounded(market.get("volume4h"), 2),
+            "ema20_4h": rounded(market.get("ema20_4h")),
+            "ema50_4h": rounded(market.get("ema50_4h")),
+            "distanceToEma20Pct": rounded(market.get("distanceToEma20Pct"), 4),
+            "distanceToEma50Pct": rounded(market.get("distanceToEma50Pct"), 4),
+            "atr14_4h": rounded(market.get("atr14_4h")),
             "candleTime4h": market.get("candleTime4h"),
             "sourceVenue": trend.get("sourceVenue") or market.get("sourceVenue") or "hyper",
         }
@@ -710,18 +734,36 @@ def main():
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
             opens, highs, lows, closes = layer.extract_ohlc(klines)
             rsi = layer.compute_rsi(closes)
+            ema20_scan = ema(closes, 20)
+            ema50_scan = ema(closes, 50)
+            atr_scan = atr(highs, lows, closes, 14)
             last_rsi = rsi[-1]
             if last_rsi is None:
                 continue
             price = fetch_hyper_price(symbol)
             detected_at = datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat()
+            last_close = closes[-1] if closes else None
+            last_ema20 = ema20_scan[-1] if ema20_scan else None
+            last_ema50 = ema50_scan[-1] if ema50_scan else None
+            dist_ema20_pct = None
+            dist_ema50_pct = None
+            if isinstance(last_close, (int, float)) and isinstance(last_ema20, (int, float)) and last_ema20 != 0:
+                dist_ema20_pct = ((last_close - last_ema20) / last_ema20) * 100.0
+            if isinstance(last_close, (int, float)) and isinstance(last_ema50, (int, float)) and last_ema50 != 0:
+                dist_ema50_pct = ((last_close - last_ema50) / last_ema50) * 100.0
+
             market_scan_map[symbol] = {
                 "rsi4h": float(last_rsi),
                 "open4h": opens[-1] if opens else None,
                 "high4h": highs[-1] if highs else None,
                 "low4h": lows[-1] if lows else None,
-                "close4h": closes[-1] if closes else None,
+                "close4h": last_close,
                 "volume4h": float(klines[-1][5]) if len(klines[-1]) > 5 else None,
+                "ema20_4h": last_ema20,
+                "ema50_4h": last_ema50,
+                "distanceToEma20Pct": dist_ema20_pct,
+                "distanceToEma50Pct": dist_ema50_pct,
+                "atr14_4h": atr_scan[-1] if atr_scan else None,
                 "candleTime4h": detected_at,
                 "sourceVenue": "hyper",
             }
