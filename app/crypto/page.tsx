@@ -215,8 +215,8 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Entry price</th>
                   <th className="px-4 py-3 text-left">Current price</th>
                   <th className="px-4 py-3 text-left">P/L</th>
-                  <th className="px-4 py-3 text-left">Max P/L</th>
-                  <th className="px-4 py-3 text-left">Min P/L</th>
+                  <th className="px-4 py-3 text-left">Best P/L</th>
+                  <th className="px-4 py-3 text-left">Worst P/L</th>
                   <th className="px-4 py-3 text-left">Entry at</th>
                   <th className="px-4 py-3 text-left">Entry state</th>
                   <th className="px-4 py-3 text-left">Trend</th>
