@@ -100,6 +100,13 @@ function formatPL(entryPrice?: number | null, currentPrice?: number | null, side
   return formatPercent(raw);
 }
 
+function percentTextClass(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "text-slate-300";
+  if (value > 0) return "text-emerald-300";
+  if (value < 0) return "text-rose-300";
+  return "text-slate-300";
+}
+
 function trendBadgeClasses(trend: string) {
   if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
@@ -246,9 +253,15 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{row.side}</td>
                       <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                       <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                      <td className="px-4 py-3">{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                      <td className="px-4 py-3 text-emerald-300">{formatPercent(row.maxPlPercent)}</td>
-                      <td className="px-4 py-3 text-rose-300">{formatPercent(row.minPlPercent)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(
+                        row.entryPrice != null && row.currentPrice != null && Number.isFinite(row.entryPrice) && Number.isFinite(row.currentPrice) && row.entryPrice !== 0
+                          ? (row.side === "SHORT"
+                            ? ((row.entryPrice - row.currentPrice) / row.entryPrice) * 100
+                            : ((row.currentPrice - row.entryPrice) / row.entryPrice) * 100)
+                          : null
+                      )}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
                       <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.entryState}</td>
                       <td className="px-4 py-3">{row.trendDirection}</td>
