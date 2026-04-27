@@ -18,7 +18,8 @@ $files = @(
   'public/data/rsi-zone-alerts.json',
   'public/data/rsi-zone-alert-state.json',
   'public/data/paper-entry-alerts.json',
-  'public/data/paper-entry-alert-state.json'
+  'public/data/paper-entry-alert-state.json',
+  'public/data/paper-position-snapshots.json'
 )
 
 $changed = git status --porcelain -- $files
