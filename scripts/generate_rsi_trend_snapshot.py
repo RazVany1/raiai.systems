@@ -142,6 +142,18 @@ def classify_adx_strength(adx_value: float | None) -> str:
     return "strong trend"
 
 
+def compute_pl_percent(entry_price: float | None, current_price: float | None, side: str | None) -> float | None:
+    if entry_price is None or current_price is None:
+        return None
+    if not isinstance(entry_price, (int, float)) or not isinstance(current_price, (int, float)):
+        return None
+    if entry_price == 0:
+        return None
+    if side == "SHORT":
+        return ((entry_price - current_price) / entry_price) * 100.0
+    return ((current_price - entry_price) / entry_price) * 100.0
+
+
 def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3) -> dict:
     klines_4h = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
     _, highs_4h, lows_4h, closes_4h = layer.extract_ohlc(klines_4h)
@@ -742,6 +754,15 @@ def main():
             status = existing.get("status", "open")
             if not status.startswith("closed"):
                 status = "open"
+            current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
+            previous_max_pl = existing.get("maxPlPercent")
+            previous_min_pl = existing.get("minPlPercent")
+            max_pl = current_pl if current_pl is not None else previous_max_pl
+            min_pl = current_pl if current_pl is not None else previous_min_pl
+            if isinstance(previous_max_pl, (int, float)):
+                max_pl = previous_max_pl if max_pl is None else max(previous_max_pl, max_pl)
+            if isinstance(previous_min_pl, (int, float)):
+                min_pl = previous_min_pl if min_pl is None else min(previous_min_pl, min_pl)
             paper_positions.append({
                 **existing,
                 "lastSeenAt": updated_at,
@@ -752,6 +773,8 @@ def main():
                 "entryState": existing.get("entryState", state),
                 "status": status,
                 "closedAt": closed_at,
+                "maxPlPercent": max_pl,
+                "minPlPercent": min_pl,
             })
         else:
             paper_positions.append({
@@ -769,6 +792,8 @@ def main():
                 "currentPrice": entry_price,
                 "status": "open",
                 "closedAt": None,
+                "maxPlPercent": 0.0,
+                "minPlPercent": 0.0,
             })
             handled_entry_keys.add((symbol, side, entry_time))
 
@@ -805,6 +830,16 @@ def main():
         elif trend:
             status = "monitoring"
 
+        current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
+        previous_max_pl = existing.get("maxPlPercent")
+        previous_min_pl = existing.get("minPlPercent")
+        max_pl = current_pl if current_pl is not None else previous_max_pl
+        min_pl = current_pl if current_pl is not None else previous_min_pl
+        if isinstance(previous_max_pl, (int, float)):
+            max_pl = previous_max_pl if max_pl is None else max(previous_max_pl, max_pl)
+        if isinstance(previous_min_pl, (int, float)):
+            min_pl = previous_min_pl if min_pl is None else min(previous_min_pl, min_pl)
+
         paper_positions.append({
             **existing,
             "currentPrice": current_price,
@@ -814,6 +849,8 @@ def main():
             "invalidationLevel": invalidation_level,
             "status": status,
             "closedAt": closed_at,
+            "maxPlPercent": max_pl,
+            "minPlPercent": min_pl,
         })
     status_order = {"open": 0, "weakened": 1, "monitoring": 2, "closed_invalidated": 3}
     paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)

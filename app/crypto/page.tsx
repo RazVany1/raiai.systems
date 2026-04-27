@@ -16,6 +16,8 @@ type OpenPaperPosition = {
   lastSeenAt: string;
   currentPrice: number | null;
   status: string;
+  maxPlPercent?: number | null;
+  minPlPercent?: number | null;
   closedAt?: string | null;
 };
 
@@ -84,13 +86,18 @@ function zoneLabel(zone: string) {
   return zone;
 }
 
+function formatPercent(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
 function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
   if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || entryPrice === 0) return "-";
   const raw = side === "SHORT"
     ? ((entryPrice - currentPrice) / entryPrice) * 100
     : ((currentPrice - entryPrice) / entryPrice) * 100;
-  const sign = raw > 0 ? "+" : "";
-  return `${sign}${raw.toFixed(2)}%`;
+  return formatPercent(raw);
 }
 
 function trendBadgeClasses(trend: string) {
@@ -208,6 +215,8 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Entry price</th>
                   <th className="px-4 py-3 text-left">Current price</th>
                   <th className="px-4 py-3 text-left">P/L</th>
+                  <th className="px-4 py-3 text-left">Max P/L</th>
+                  <th className="px-4 py-3 text-left">Min P/L</th>
                   <th className="px-4 py-3 text-left">Entry at</th>
                   <th className="px-4 py-3 text-left">Entry state</th>
                   <th className="px-4 py-3 text-left">Trend</th>
@@ -220,7 +229,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {openPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
+                    <td colSpan={14} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
                   openPaperPositions.map((row) => (
@@ -230,6 +239,8 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                       <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
                       <td className="px-4 py-3">{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                      <td className="px-4 py-3 text-emerald-300">{formatPercent(row.maxPlPercent)}</td>
+                      <td className="px-4 py-3 text-rose-300">{formatPercent(row.minPlPercent)}</td>
                       <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.entryState}</td>
                       <td className="px-4 py-3">{row.trendDirection}</td>
