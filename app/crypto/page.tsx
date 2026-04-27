@@ -169,6 +169,14 @@ export default function CryptoDashboardPage() {
     };
   }, [trendRows]);
 
+  const orderedPaperPositions = useMemo(() => {
+    return [...openPaperPositions].sort((a, b) => {
+      const aTime = new Date(a.entryAt).getTime();
+      const bTime = new Date(b.entryAt).getTime();
+      return bTime - aTime;
+    });
+  }, [openPaperPositions]);
+
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
       "STRONG BULLISH": 0,
@@ -227,12 +235,12 @@ export default function CryptoDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {openPaperPositions.length === 0 ? (
+                {orderedPaperPositions.length === 0 ? (
                   <tr>
                     <td colSpan={14} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
-                  openPaperPositions.map((row) => (
+                  orderedPaperPositions.map((row) => (
                     <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.side}</td>
