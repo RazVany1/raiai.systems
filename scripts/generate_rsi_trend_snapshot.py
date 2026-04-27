@@ -757,12 +757,15 @@ def main():
             current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
             previous_max_pl = existing.get("maxPlPercent")
             previous_min_pl = existing.get("minPlPercent")
-            max_pl = current_pl if current_pl is not None else previous_max_pl
-            min_pl = current_pl if current_pl is not None else previous_min_pl
+            max_pl = 0.0
+            min_pl = 0.0
             if isinstance(previous_max_pl, (int, float)):
-                max_pl = previous_max_pl if max_pl is None else max(previous_max_pl, max_pl)
+                max_pl = max(0.0, previous_max_pl)
             if isinstance(previous_min_pl, (int, float)):
-                min_pl = previous_min_pl if min_pl is None else min(previous_min_pl, min_pl)
+                min_pl = min(0.0, previous_min_pl)
+            if isinstance(current_pl, (int, float)):
+                max_pl = max(max_pl, current_pl)
+                min_pl = min(min_pl, current_pl)
             paper_positions.append({
                 **existing,
                 "lastSeenAt": updated_at,
@@ -833,12 +836,15 @@ def main():
         current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
         previous_max_pl = existing.get("maxPlPercent")
         previous_min_pl = existing.get("minPlPercent")
-        max_pl = current_pl if current_pl is not None else previous_max_pl
-        min_pl = current_pl if current_pl is not None else previous_min_pl
+        max_pl = 0.0
+        min_pl = 0.0
         if isinstance(previous_max_pl, (int, float)):
-            max_pl = previous_max_pl if max_pl is None else max(previous_max_pl, max_pl)
+            max_pl = max(0.0, previous_max_pl)
         if isinstance(previous_min_pl, (int, float)):
-            min_pl = previous_min_pl if min_pl is None else min(previous_min_pl, min_pl)
+            min_pl = min(0.0, previous_min_pl)
+        if isinstance(current_pl, (int, float)):
+            max_pl = max(max_pl, current_pl)
+            min_pl = min(min_pl, current_pl)
 
         paper_positions.append({
             **existing,
