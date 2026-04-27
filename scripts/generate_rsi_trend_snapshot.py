@@ -25,6 +25,7 @@ OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.js
 FORMATION_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\hl-lh-formation-state.json")
 PAPER_POSITIONS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions.json")
 PAPER_POSITIONS_HISTORY_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions-history.json")
+PAPER_POSITION_SNAPSHOTS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-position-snapshots.json")
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -607,11 +608,99 @@ def load_json(path: Path, fallback):
         return fallback
 
 
+def rounded(value, digits: int = 6):
+    if isinstance(value, (int, float)):
+        return round(float(value), digits)
+    return None
+
+
+def append_position_snapshots(path: Path, paper_positions: list[dict], trend_map: dict, formation_map: dict, market_scan_map: dict, updated_at: str):
+    existing = load_json(path, {"updatedAt": None, "positions": {}})
+    position_map = existing.get("positions", {}) if isinstance(existing, dict) and isinstance(existing.get("positions"), dict) else {}
+
+    for pos in paper_positions:
+        position_key = f"{pos.get('symbol')}:{pos.get('side')}:{pos.get('entryAt')}"
+        symbol = pos.get("symbol")
+        side = pos.get("side")
+        trend = trend_map.get(symbol, {}) if isinstance(trend_map.get(symbol), dict) else {}
+        formation = formation_map.get((symbol, side), {}) if isinstance(formation_map.get((symbol, side)), dict) else {}
+        market = market_scan_map.get(symbol, {}) if isinstance(market_scan_map.get(symbol), dict) else {}
+        current_pl = compute_pl_percent(pos.get("entryPrice"), pos.get("currentPrice"), side)
+
+        snapshot = {
+            "scanAt": updated_at,
+            "symbol": symbol,
+            "side": side,
+            "entryAt": pos.get("entryAt"),
+            "entryPrice": rounded(pos.get("entryPrice")),
+            "currentPrice": rounded(pos.get("currentPrice")),
+            "currentPlPercent": rounded(current_pl, 4),
+            "bestPlPercent": rounded(pos.get("maxPlPercent"), 4),
+            "worstPlPercent": rounded(pos.get("minPlPercent"), 4),
+            "status": pos.get("status"),
+            "entryState": pos.get("entryState"),
+            "trendDirection": pos.get("trendDirection"),
+            "tradePermission": pos.get("tradePermission"),
+            "invalidationLevel": rounded(pos.get("invalidationLevel")),
+            "formationType": pos.get("formationType") or formation.get("formationType"),
+            "formationState": formation.get("state"),
+            "formationTrendStatus": formation.get("trendStatus"),
+            "reaction": formation.get("reaction"),
+            "emaZone": formation.get("emaZone"),
+            "rsiDivergence": formation.get("rsiDivergence"),
+            "formationDetectedAt": formation.get("detectedAt"),
+            "formationConfirmedAt": formation.get("confirmedAt"),
+            "marketDirection": trend.get("finalMarketDirection"),
+            "adxTrendStrength": trend.get("adxTrendStrength"),
+            "adxValue": rounded(trend.get("adxValue"), 2),
+            "dailyBias": trend.get("dailyBias"),
+            "emaDirection4h": trend.get("emaDirection4h"),
+            "marketStructure": trend.get("marketStructure"),
+            "rsi4h": rounded(market.get("rsi4h"), 2),
+            "candleOpen4h": rounded(market.get("open4h")),
+            "candleHigh4h": rounded(market.get("high4h")),
+            "candleLow4h": rounded(market.get("low4h")),
+            "candleClose4h": rounded(market.get("close4h")),
+            "candleVolume4h": rounded(market.get("volume4h"), 2),
+            "candleTime4h": market.get("candleTime4h"),
+            "sourceVenue": trend.get("sourceVenue") or market.get("sourceVenue") or "hyper",
+        }
+
+        bucket = position_map.get(position_key)
+        if not isinstance(bucket, dict):
+            bucket = {
+                "symbol": symbol,
+                "side": side,
+                "entryAt": pos.get("entryAt"),
+                "entryPrice": rounded(pos.get("entryPrice")),
+                "snapshots": [],
+            }
+        snapshots = bucket.get("snapshots") if isinstance(bucket.get("snapshots"), list) else []
+        if not snapshots or snapshots[-1].get("scanAt") != updated_at:
+            snapshots.append(snapshot)
+        bucket.update({
+            "symbol": symbol,
+            "side": side,
+            "entryAt": pos.get("entryAt"),
+            "entryPrice": rounded(pos.get("entryPrice")),
+            "lastSnapshotAt": updated_at,
+            "snapshots": snapshots,
+        })
+        position_map[position_key] = bucket
+
+    payload = {
+        "updatedAt": updated_at,
+        "positions": position_map,
+    }
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def main():
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     interest_rows = []
     formation_rows = []
     trend_rows = []
+    market_scan_map = {}
     updated_at = datetime.now(timezone.utc).isoformat()
     formation_state = load_json(FORMATION_STATE_PATH, {"confirmed": {}})
     confirmed_state = formation_state.get("confirmed", {}) if isinstance(formation_state.get("confirmed"), dict) else {}
@@ -619,13 +708,23 @@ def main():
     for symbol in SYMBOLS:
         try:
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
-            _, highs, lows, closes = layer.extract_ohlc(klines)
+            opens, highs, lows, closes = layer.extract_ohlc(klines)
             rsi = layer.compute_rsi(closes)
             last_rsi = rsi[-1]
             if last_rsi is None:
                 continue
             price = fetch_hyper_price(symbol)
             detected_at = datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat()
+            market_scan_map[symbol] = {
+                "rsi4h": float(last_rsi),
+                "open4h": opens[-1] if opens else None,
+                "high4h": highs[-1] if highs else None,
+                "low4h": lows[-1] if lows else None,
+                "close4h": closes[-1] if closes else None,
+                "volume4h": float(klines[-1][5]) if len(klines[-1]) > 5 else None,
+                "candleTime4h": detected_at,
+                "sourceVenue": "hyper",
+            }
 
             zone = None
             if 28 <= last_rsi <= 32:
@@ -898,6 +997,7 @@ def main():
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": paper_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_HISTORY_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": history_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
+    append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)
 
 
