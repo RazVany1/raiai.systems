@@ -27,6 +27,7 @@ FORMATION_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\hl-lh-formati
 PAPER_POSITIONS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions.json")
 PAPER_POSITIONS_HISTORY_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions-history.json")
 PAPER_POSITION_SNAPSHOTS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-position-snapshots.json")
+RSI_INTEREST_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-state.json")
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -729,6 +730,8 @@ def main():
     updated_at = datetime.now(timezone.utc).isoformat()
     formation_state = load_json(FORMATION_STATE_PATH, {"confirmed": {}})
     confirmed_state = formation_state.get("confirmed", {}) if isinstance(formation_state.get("confirmed"), dict) else {}
+    interest_state = load_json(RSI_INTEREST_STATE_PATH, {"rows": {}})
+    saved_interest_rows = interest_state.get("rows", {}) if isinstance(interest_state.get("rows"), dict) else {}
 
     for symbol in SYMBOLS:
         try:
@@ -814,6 +817,47 @@ def main():
             })
 
     now_dt = datetime.fromisoformat(updated_at)
+
+    current_interest_map = {}
+    for row in interest_rows:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_interest_rows.get(key, {}) if isinstance(saved_interest_rows.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_interest_map[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_interest_map = dict(current_interest_map)
+    for key, saved in saved_interest_rows.items():
+        if key in retained_interest_map or not isinstance(saved, dict):
+            continue
+        first_detected_at = saved.get("firstDetectedAt") or saved.get("detectedAt")
+        if not first_detected_at:
+            continue
+        try:
+            first_detected_dt = datetime.fromisoformat(first_detected_at)
+        except Exception:
+            continue
+        if (now_dt - first_detected_dt) <= timedelta(hours=24):
+            retained_interest_map[key] = {
+                **saved,
+                "currentlyInZone": False,
+            }
+
+    interest_rows = sorted(
+        retained_interest_map.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
     new_confirmed_state = {}
     formation_index = {(row["symbol"], row["side"]): row for row in formation_rows}
 
@@ -918,6 +962,8 @@ def main():
                 "entryState": existing.get("entryState", state),
                 "status": status,
                 "closedAt": closed_at,
+                "closePrice": existing.get("closePrice"),
+                "closePlPercent": existing.get("closePlPercent"),
                 "maxPlPercent": max_pl,
                 "minPlPercent": min_pl,
             })
@@ -937,6 +983,8 @@ def main():
                 "currentPrice": entry_price,
                 "status": "open",
                 "closedAt": None,
+                "closePrice": None,
+                "closePlPercent": None,
                 "maxPlPercent": 0.0,
                 "minPlPercent": 0.0,
             })
@@ -976,6 +1024,12 @@ def main():
             status = "monitoring"
 
         current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
+        close_price = existing.get("closePrice")
+        close_pl_percent = existing.get("closePlPercent")
+        if status.startswith("closed") and close_price is None:
+            close_price = current_price
+        if status.startswith("closed") and close_pl_percent is None:
+            close_pl_percent = current_pl
         previous_max_pl = existing.get("maxPlPercent")
         previous_min_pl = existing.get("minPlPercent")
         max_pl = 0.0
@@ -997,6 +1051,8 @@ def main():
             "invalidationLevel": invalidation_level,
             "status": status,
             "closedAt": closed_at,
+            "closePrice": close_price,
+            "closePlPercent": close_pl_percent,
             "maxPlPercent": max_pl,
             "minPlPercent": min_pl,
         })
@@ -1040,6 +1096,7 @@ def main():
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": paper_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_HISTORY_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": history_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
     append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)
 

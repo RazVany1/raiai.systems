@@ -19,6 +19,8 @@ type OpenPaperPosition = {
   maxPlPercent?: number | null;
   minPlPercent?: number | null;
   closedAt?: string | null;
+  closePrice?: number | null;
+  closePlPercent?: number | null;
 };
 
 type InterestRow = {
@@ -261,13 +263,15 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Invalidation</th>
                   <th className="px-4 py-3 text-left">Formation</th>
                   <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Close price</th>
+                  <th className="px-4 py-3 text-left">Close P/L</th>
                   <th className="px-4 py-3 text-left">Closed at</th>
                 </tr>
               </thead>
               <tbody>
                 {orderedPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
+                    <td colSpan={16} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
                   orderedPaperPositions.map((row) => (
@@ -291,6 +295,8 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
                       <td className="px-4 py-3">{row.formationType}</td>
                       <td className="px-4 py-3">{row.status}</td>
+                      <td className="px-4 py-3">{formatPrice(row.closePrice)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.closePlPercent)}`}>{formatPercent(row.closePlPercent)}</td>
                       <td className="px-4 py-3">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</td>
                     </tr>
                   ))
