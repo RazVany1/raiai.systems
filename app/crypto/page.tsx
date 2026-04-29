@@ -75,7 +75,23 @@ type TrendRow = {
   dailyClose?: number;
   dailyEma50?: number;
   dailyEma200?: number;
+  altContextLabel?: string;
+  altContextScore?: number;
   error?: string;
+};
+
+type BtcContextRow = {
+  symbol: string;
+  price?: number | null;
+  value?: number | null;
+  trend?: string;
+  bias?: string;
+  ema?: string;
+  structure?: string;
+  adx?: number | null;
+  permission?: string;
+  lastUpdate?: string;
+  sourceVenue?: string;
 };
 
 function formatPrice(value?: number | null) {
@@ -133,6 +149,7 @@ export default function CryptoDashboardPage() {
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
+  const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
 
@@ -149,6 +166,7 @@ export default function CryptoDashboardPage() {
         setInterestRows(data.interestRows || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
+        setBtcContextRows(data.btcContextRows || []);
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
         scheduleNextLoad(data.nextScanAt);
@@ -157,6 +175,7 @@ export default function CryptoDashboardPage() {
         setInterestRows([]);
         setFormationRows([]);
         setTrendRows([]);
+        setBtcContextRows([]);
       }
     };
 
@@ -236,6 +255,10 @@ export default function CryptoDashboardPage() {
     });
   }, [trendRows]);
 
+  const btcContextDisplayRows = useMemo(() => {
+    return btcContextRows;
+  }, [btcContextRows]);
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
@@ -312,6 +335,49 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{formatPrice(row.closePrice)}</td>
                       <td className={`px-4 py-3 ${percentTextClass(row.closePlPercent)}`}>{formatPercent(row.closePlPercent)}</td>
                       <td className="px-4 py-3">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">BTC Context</h2>
+            <span className="text-[10px] text-slate-400">macro filter</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Symbol</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Trend</th>
+                  <th className="px-4 py-3 text-left">Daily bias</th>
+                  <th className="px-4 py-3 text-left">4H EMA</th>
+                  <th className="px-4 py-3 text-left">Structure</th>
+                  <th className="px-4 py-3 text-left">ADX</th>
+                  <th className="px-4 py-3 text-left">Permission</th>
+                </tr>
+              </thead>
+              <tbody>
+                {btcContextDisplayRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-4 text-slate-400">No BTC context yet.</td>
+                  </tr>
+                ) : (
+                  btcContextDisplayRows.map((row) => (
+                    <tr key={row.symbol} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.symbol === "BTC.D" ? formatPercent(row.value) : formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{row.trend ? <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${trendBadgeClasses(row.trend)}`}>{row.trend}</span> : "-"}</td>
+                      <td className="px-4 py-3">{row.bias || "-"}</td>
+                      <td className="px-4 py-3">{row.ema || "-"}</td>
+                      <td className="px-4 py-3">{row.structure || "-"}</td>
+                      <td className="px-4 py-3">{row.adx != null ? row.adx : "-"}</td>
+                      <td className="px-4 py-3">{row.permission || "-"}</td>
                     </tr>
                   ))
                 )}
@@ -451,6 +517,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Bull score</th>
                   <th className="px-4 py-3 text-left">Bear score</th>
                   <th className="px-4 py-3 text-left">Invalidation</th>
+                  <th className="px-4 py-3 text-left">Context</th>
                   <th className="px-4 py-3 text-left">Permission</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Last update</th>
@@ -472,6 +539,7 @@ export default function CryptoDashboardPage() {
                     <td className="px-4 py-3">{row.bullishScore}</td>
                     <td className="px-4 py-3">{row.bearishScore}</td>
                     <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
+                    <td className="px-4 py-3">{row.altContextLabel ? `${row.altContextLabel}${typeof row.altContextScore === "number" ? ` (${row.altContextScore > 0 ? "+" : ""}${row.altContextScore})` : ""}` : "-"}</td>
                     <td className="px-4 py-3">{row.tradePermission}</td>
                     <td className="px-4 py-3">{formatPrice(row.price)}</td>
                     <td className="px-4 py-3">{new Date(row.lastUpdate).toLocaleString()}</td>

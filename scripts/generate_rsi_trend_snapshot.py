@@ -2,6 +2,7 @@
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import sys
+from urllib.request import urlopen
 
 RUNTIME_PATH = Path(r"D:\RAI\rai_systems\runtime")
 if str(RUNTIME_PATH) not in sys.path:
@@ -643,6 +644,38 @@ def rounded(value, digits: int = 6):
     return None
 
 
+def fetch_btc_dominance_context(previous_rows: list[dict] | None, updated_at: str) -> dict | None:
+    try:
+        with urlopen("https://api.coingecko.com/api/v3/global", timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        data = payload.get("data", {}) if isinstance(payload, dict) else {}
+        dominance = data.get("market_cap_percentage", {}).get("btc") if isinstance(data.get("market_cap_percentage"), dict) else None
+        if not isinstance(dominance, (int, float)):
+            return None
+        previous_value = None
+        if isinstance(previous_rows, list):
+            for row in previous_rows:
+                if isinstance(row, dict) and row.get("symbol") == "BTC.D":
+                    previous_value = row.get("value")
+                    break
+        trend = "flat"
+        if isinstance(previous_value, (int, float)):
+            if dominance > previous_value + 0.1:
+                trend = "rising"
+            elif dominance < previous_value - 0.1:
+                trend = "falling"
+        return {
+            "symbol": "BTC.D",
+            "value": round(float(dominance), 2),
+            "trend": trend,
+            "bias": "alts weaker" if trend == "rising" else "alts stronger" if trend == "falling" else "mixed",
+            "lastUpdate": updated_at,
+            "sourceVenue": "coingecko",
+        }
+    except Exception:
+        return None
+
+
 def append_position_snapshots(path: Path, paper_positions: list[dict], trend_map: dict, formation_map: dict, market_scan_map: dict, updated_at: str):
     existing = load_json(path, {"updatedAt": None, "positions": {}})
     position_map = existing.get("positions", {}) if isinstance(existing, dict) and isinstance(existing.get("positions"), dict) else {}
@@ -730,6 +763,8 @@ def append_position_snapshots(path: Path, paper_positions: list[dict], trend_map
 
 
 def main():
+    previous_output = load_json(OUTPUT_PATH, {})
+    previous_btc_context_rows = previous_output.get("btcContextRows", []) if isinstance(previous_output, dict) and isinstance(previous_output.get("btcContextRows"), list) else []
     layer = RAICryptoSignalOutputLayerV3(symbols=SYMBOLS)
     interest_rows = []
     formation_rows = []
@@ -1115,6 +1150,67 @@ def main():
 
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
+    btc_context_rows = []
+    btc_row = next((row for row in trend_rows if row.get("symbol") == "BTCUSDT"), None)
+    if isinstance(btc_row, dict):
+        btc_context_rows.append({
+            "symbol": "BTCUSDT",
+            "price": btc_row.get("price"),
+            "trend": btc_row.get("finalMarketDirection"),
+            "bias": btc_row.get("dailyBias"),
+            "ema": btc_row.get("emaDirection4h"),
+            "structure": btc_row.get("marketStructure"),
+            "adx": btc_row.get("adxValue"),
+            "permission": btc_row.get("tradePermission"),
+            "lastUpdate": btc_row.get("lastUpdate"),
+            "sourceVenue": btc_row.get("sourceVenue"),
+        })
+    btc_d_row = fetch_btc_dominance_context(previous_btc_context_rows, updated_at)
+    if btc_d_row:
+        btc_context_rows.append(btc_d_row)
+
+    btc_trend = btc_row.get("finalMarketDirection") if isinstance(btc_row, dict) else None
+    btc_d_trend = btc_d_row.get("trend") if isinstance(btc_d_row, dict) else None
+    for row in trend_rows:
+        symbol = row.get("symbol")
+        if symbol == "BTCUSDT":
+            row["altContextLabel"] = "benchmark"
+            row["altContextScore"] = 0
+            continue
+        direction = row.get("finalMarketDirection")
+        score = 0
+        label = "mixed"
+        if btc_trend in {"STRONG BULLISH", "MODERATE BULLISH"}:
+            score += 1
+        elif btc_trend in {"STRONG BEARISH", "MODERATE BEARISH"}:
+            score -= 1
+        if btc_d_trend == "falling":
+            score += 1
+        elif btc_d_trend == "rising":
+            score -= 1
+
+        if direction in {"STRONG BULLISH", "MODERATE BULLISH"}:
+            if score >= 2:
+                label = "tailwind"
+            elif score == 1:
+                label = "supportive"
+            elif score == 0:
+                label = "mixed"
+            else:
+                label = "headwind"
+        elif direction in {"STRONG BEARISH", "MODERATE BEARISH"}:
+            if score <= -1:
+                label = "supportive"
+            elif score == 0:
+                label = "mixed"
+            else:
+                label = "headwind"
+        else:
+            label = "mixed"
+
+        row["altContextLabel"] = label
+        row["altContextScore"] = score
+
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
@@ -1122,6 +1218,7 @@ def main():
         "interestRows": interest_rows,
         "formationRows": formation_rows,
         "trendRows": trend_rows,
+        "btcContextRows": btc_context_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     FORMATION_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "confirmed": new_confirmed_state}, indent=2, ensure_ascii=False), encoding="utf-8")
