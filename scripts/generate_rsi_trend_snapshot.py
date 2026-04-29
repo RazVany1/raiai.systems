@@ -176,6 +176,14 @@ def compute_pl_percent(entry_price: float | None, current_price: float | None, s
     return ((current_price - entry_price) / entry_price) * 100.0
 
 
+def partial_runner_stop_hit(side: str | None, current_price: float | None, runner_stop_price: float | None) -> bool:
+    if current_price is None or runner_stop_price is None:
+        return False
+    if side == "SHORT":
+        return current_price >= runner_stop_price
+    return current_price <= runner_stop_price
+
+
 def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3) -> dict:
     klines_4h = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
     _, highs_4h, lows_4h, closes_4h = layer.extract_ohlc(klines_4h)
@@ -938,7 +946,10 @@ def main():
             handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
             closed_at = existing.get("closedAt")
             status = existing.get("status", "open")
-            if not status.startswith("closed"):
+            if status == "partial_closed_runner" and partial_runner_stop_hit(side, entry_price, existing.get("runnerStopPrice")):
+                status = "closed_runner_stop"
+                closed_at = closed_at or updated_at
+            elif not status.startswith("closed") and status != "partial_closed_runner":
                 status = "open"
             current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
             previous_max_pl = existing.get("maxPlPercent")
@@ -962,6 +973,11 @@ def main():
                 "entryState": existing.get("entryState", state),
                 "status": status,
                 "closedAt": closed_at,
+                "remainingSizePercent": existing.get("remainingSizePercent"),
+                "partialClosedAt": existing.get("partialClosedAt"),
+                "partialClosePrice": existing.get("partialClosePrice"),
+                "partialClosePlPercent": existing.get("partialClosePlPercent"),
+                "runnerStopPrice": existing.get("runnerStopPrice"),
                 "closePrice": existing.get("closePrice"),
                 "closePlPercent": existing.get("closePlPercent"),
                 "maxPlPercent": max_pl,
@@ -983,6 +999,11 @@ def main():
                 "currentPrice": entry_price,
                 "status": "open",
                 "closedAt": None,
+                "remainingSizePercent": 100.0,
+                "partialClosedAt": None,
+                "partialClosePrice": None,
+                "partialClosePlPercent": None,
+                "runnerStopPrice": None,
                 "closePrice": None,
                 "closePlPercent": None,
                 "maxPlPercent": 0.0,
@@ -1016,12 +1037,17 @@ def main():
         if invalidated:
             status = "closed_invalidated"
             closed_at = closed_at or updated_at
+        elif status == "partial_closed_runner" and partial_runner_stop_hit(side, current_price, existing.get("runnerStopPrice")):
+            status = "closed_runner_stop"
+            closed_at = closed_at or updated_at
         elif formation and formation.get("state") in {"watch", "late"}:
             status = "weakened"
         elif formation and formation.get("state") in {"forming", "confirmed"}:
-            status = "open"
+            if status != "partial_closed_runner":
+                status = "open"
         elif trend:
-            status = "monitoring"
+            if status != "partial_closed_runner":
+                status = "monitoring"
 
         current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
         close_price = existing.get("closePrice")
@@ -1051,12 +1077,17 @@ def main():
             "invalidationLevel": invalidation_level,
             "status": status,
             "closedAt": closed_at,
+            "remainingSizePercent": existing.get("remainingSizePercent"),
+            "partialClosedAt": existing.get("partialClosedAt"),
+            "partialClosePrice": existing.get("partialClosePrice"),
+            "partialClosePlPercent": existing.get("partialClosePlPercent"),
+            "runnerStopPrice": existing.get("runnerStopPrice"),
             "closePrice": close_price,
             "closePlPercent": close_pl_percent,
             "maxPlPercent": max_pl,
             "minPlPercent": min_pl,
         })
-    status_order = {"open": 0, "weakened": 1, "monitoring": 2, "closed_invalidated": 3}
+    status_order = {"open": 0, "partial_closed_runner": 1, "weakened": 2, "monitoring": 3, "closed_runner_stop": 4, "closed_invalidated": 5}
     paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
 
     history_data = load_json(PAPER_POSITIONS_HISTORY_PATH, {"positions": []})

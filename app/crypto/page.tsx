@@ -21,6 +21,11 @@ type OpenPaperPosition = {
   closedAt?: string | null;
   closePrice?: number | null;
   closePlPercent?: number | null;
+  remainingSizePercent?: number | null;
+  partialClosedAt?: string | null;
+  partialClosePrice?: number | null;
+  partialClosePlPercent?: number | null;
+  runnerStopPrice?: number | null;
 };
 
 type InterestRow = {
@@ -92,6 +97,11 @@ function formatPercent(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
+}
+
+function formatSizePercent(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${value.toFixed(0)}%`;
 }
 
 function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
@@ -259,10 +269,12 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Worst P/L</th>
                   <th className="px-4 py-3 text-left">Entry at</th>
                   <th className="px-4 py-3 text-left">Entry state</th>
-                  <th className="px-4 py-3 text-left">Trend</th>
                   <th className="px-4 py-3 text-left">Invalidation</th>
-                  <th className="px-4 py-3 text-left">Formation</th>
                   <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Remaining</th>
+                  <th className="px-4 py-3 text-left">Partial close</th>
+                  <th className="px-4 py-3 text-left">Partial P/L</th>
+                  <th className="px-4 py-3 text-left">Runner SL</th>
                   <th className="px-4 py-3 text-left">Close price</th>
                   <th className="px-4 py-3 text-left">Close P/L</th>
                   <th className="px-4 py-3 text-left">Closed at</th>
@@ -271,7 +283,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {orderedPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={16} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
+                    <td colSpan={20} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
                   </tr>
                 ) : (
                   orderedPaperPositions.map((row) => (
@@ -291,10 +303,12 @@ export default function CryptoDashboardPage() {
                       <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
                       <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.entryState}</td>
-                      <td className="px-4 py-3">{row.trendDirection}</td>
                       <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
-                      <td className="px-4 py-3">{row.formationType}</td>
                       <td className="px-4 py-3">{row.status}</td>
+                      <td className="px-4 py-3">{formatSizePercent(row.remainingSizePercent)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.partialClosePrice)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.partialClosePlPercent)}`}>{formatPercent(row.partialClosePlPercent)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
                       <td className="px-4 py-3">{formatPrice(row.closePrice)}</td>
                       <td className={`px-4 py-3 ${percentTextClass(row.closePlPercent)}`}>{formatPercent(row.closePlPercent)}</td>
                       <td className="px-4 py-3">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</td>
