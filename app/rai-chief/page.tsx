@@ -40,6 +40,14 @@ type BoardData = {
   doctrine: Record<string, boolean>;
   projects: ProjectRow[];
   ranking: RankingRow[];
+  executive_brief?: {
+    conclusion: string;
+    primary_focus?: string;
+    secondary_focus?: string;
+    main_blocker?: string;
+    next_action?: string;
+    alignment_status?: string;
+  };
   executive_board: {
     ecosystem_status: {
       active: string[];
@@ -96,6 +104,17 @@ export default function RaiChiefPage() {
         <h1 className="text-4xl font-bold text-cyan-300">RAI Chief Executive Board</h1>
         <p className="mt-2 text-slate-300">Stratul executiv al doctrinei RAI: prioritati, blocaje, directie.</p>
       </div>
+
+      <section className={`${shellClass} mb-5`}>
+        <h2 className="text-xl font-semibold text-cyan-200">Executive Brief</h2>
+        <p className="mt-3 text-slate-100">{data.executive_brief?.conclusion || "Fara brief executiv."}</p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+          <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-3"><div className="text-slate-400">Primary focus</div><div className="mt-1 text-slate-100">{data.executive_brief?.primary_focus || "-"}</div></div>
+          <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-3"><div className="text-slate-400">Secondary focus</div><div className="mt-1 text-slate-100">{data.executive_brief?.secondary_focus || "-"}</div></div>
+          <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-3"><div className="text-slate-400">Main blocker</div><div className="mt-1 text-slate-100">{data.executive_brief?.main_blocker || "-"}</div></div>
+          <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-3"><div className="text-slate-400">Next action</div><div className="mt-1 text-slate-100">{data.executive_brief?.next_action || "-"}</div></div>
+        </div>
+      </section>
 
       <section className={`${shellClass} mb-5`}>
         <h2 className="text-xl font-semibold text-cyan-200">Doctrine</h2>
