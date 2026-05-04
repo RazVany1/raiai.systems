@@ -34,12 +34,22 @@ type ProjectRow = {
   urmator_pas: string;
 };
 
+type HistoryRow = {
+  generated_at: string;
+  top_priority?: string;
+  next_action?: string;
+  main_blocker?: string;
+  alignment_status?: string;
+  conclusion?: string;
+};
+
 type BoardData = {
   version: string;
   generated_at: string;
   doctrine: Record<string, boolean>;
   projects: ProjectRow[];
   ranking: RankingRow[];
+  decision_history?: HistoryRow[];
   executive_brief?: {
     conclusion: string;
     primary_focus?: string;
@@ -182,6 +192,24 @@ export default function RaiChiefPage() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section className={`${shellClass} mb-5 overflow-x-auto`}>
+        <h2 className="text-xl font-semibold text-cyan-200">Decision History</h2>
+        {data.decision_history && data.decision_history.length > 0 ? (
+          <table className="mt-3 min-w-full border-collapse text-sm">
+            <thead><tr className="border-b border-slate-700 text-slate-300"><th className="px-3 py-2 text-left">Time</th><th className="px-3 py-2 text-left">Top priority</th><th className="px-3 py-2 text-left">Next action</th><th className="px-3 py-2 text-left">Main blocker</th><th className="px-3 py-2 text-left">Alignment</th></tr></thead>
+            <tbody>
+              {data.decision_history.slice().reverse().map((row, index) => (
+                <tr key={`${row.generated_at}-${index}`} className="border-b border-slate-800 text-slate-100">
+                  <td className="px-3 py-2">{row.generated_at}</td><td className="px-3 py-2">{row.top_priority || "-"}</td><td className="px-3 py-2">{row.next_action || "-"}</td><td className="px-3 py-2">{row.main_blocker || "-"}</td><td className={`px-3 py-2 ${badgeClass(row.alignment_status)}`}>{row.alignment_status || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="mt-3 text-slate-400">Nu exista inca istoric de decizie.</p>
+        )}
       </section>
 
       <section className={`${shellClass} overflow-x-auto`}>

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 LOCAL_STATUS = Path(r"D:\RAI\rai_systems\status\rai_chief_runtime_v0_2_results.json")
+LOCAL_HISTORY = Path(r"D:\RAI\rai_systems\memory\rai_chief_decision_history_v0_1.json")
 PUBLIC_OUTPUT = Path(r"C:\Users\R\raiai.systems\public\data\rai-chief-board.json")
 
 
@@ -19,6 +20,7 @@ def load_json(path: Path, default: Any):
 
 def main() -> None:
     data = load_json(LOCAL_STATUS, {})
+    data["decision_history"] = load_json(LOCAL_HISTORY, [])
     PUBLIC_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     PUBLIC_OUTPUT.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     print(str(PUBLIC_OUTPUT))
