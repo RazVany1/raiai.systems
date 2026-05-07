@@ -1,41 +1,39 @@
 {
   "strategy": "DiverT Strategy",
-  "updatedAt": "2026-05-07T03:00:35.914118+00:00",
+  "updatedAt": "2026-05-07T04:00:42.495873+00:00",
   "lastScan": {
     "status": "success",
-    "newSignals": 1,
-    "nextScanAt": "2026-05-07T03:30:35.914118+00:00"
+    "newSignals": 0,
+    "nextScanAt": "2026-05-07T04:30:42.495873+00:00"
   },
   "rows": [
     {
       "symbol": "BTCUSDT",
-      "signal": "NEAR_SETUP",
-      "side": "SELL",
-      "quality": "WATCH",
-      "invalidation": 82850.0,
-      "scanPrice": 81057.0,
+      "signal": "ERROR",
+      "side": "NONE",
+      "quality": "UNKNOWN",
+      "invalidation": null,
+      "scanPrice": 80796.0,
       "sourceVenue": "hyper",
       "notes": [
-        "Sell setup almost valid",
-        "RSI LH exista, dar high-ul valid nu este inca in banda 68-72",
-        "Aproape de confirmare",
-        "price_now=81057.0"
+        "Eroare la generare: HTTP Error 500: Internal Server Error",
+        "price_now=80796.0"
       ],
-      "patternContext": "neutral",
-      "entryStructure": "sell_divert_near_setup_v0_3",
-      "risk": "medium_high",
+      "patternContext": "unknown",
+      "entryStructure": "error",
+      "risk": "unknown",
       "timeframe": "4h",
       "execution": {
-        "status": "near",
-        "entry": "wait for RSI threshold confirmation",
-        "invalidation": 82850.0,
-        "exitTrigger": "no entry yet",
+        "status": "none",
+        "entry": "no action",
+        "invalidation": null,
+        "exitTrigger": "none",
         "closeRule": "none"
       },
-      "setupKey": "sell:274:295:281:291",
-      "setupIndex": 295,
-      "setupTimestamp": "2026-05-06T08:00:00+00:00",
-      "setupState": "near"
+      "setupKey": null,
+      "setupIndex": null,
+      "setupTimestamp": null,
+      "setupState": "idle"
     },
     {
       "symbol": "ETHUSDT",
@@ -43,11 +41,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 2320.2,
+      "scanPrice": 2319.9,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=2320.2"
+        "price_now=2319.9"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -71,11 +69,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 88.06,
+      "scanPrice": 87.694,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=88.06"
+        "price_now=87.694"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -99,11 +97,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 1.4107,
+      "scanPrice": 1.4041,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.4107"
+        "price_now=1.4041"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -127,11 +125,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 92.759,
+      "scanPrice": 92.1,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=92.759"
+        "price_now=92.1"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -155,11 +153,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 408.11,
+      "scanPrice": 408.82,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=408.11"
+        "price_now=408.82"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -183,13 +181,13 @@
       "side": "SELL",
       "quality": "WATCH",
       "invalidation": 0.11383,
-      "scanPrice": 0.11047,
+      "scanPrice": 0.11022,
       "sourceVenue": "hyper",
       "notes": [
         "Sell setup almost valid",
         "RSI LH exista, dar high-ul valid nu este inca in banda 68-72",
         "Aproape de confirmare",
-        "price_now=0.11047"
+        "price_now=0.11022"
       ],
       "patternContext": "neutral",
       "entryStructure": "sell_divert_near_setup_v0_3",
@@ -202,8 +200,8 @@
         "exitTrigger": "no entry yet",
         "closeRule": "none"
       },
-      "setupKey": "sell:253:281:253:281",
-      "setupIndex": 281,
+      "setupKey": "sell:252:280:252:280",
+      "setupIndex": 280,
       "setupTimestamp": "2026-05-04T00:00:00+00:00",
       "setupState": "near"
     },
@@ -213,11 +211,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 643.6,
+      "scanPrice": 642.37,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=643.6"
+        "price_now=642.37"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -241,11 +239,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 306.18,
+      "scanPrice": 306.54,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=306.18"
+        "price_now=306.54"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -269,11 +267,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.9693,
+      "scanPrice": 0.9682,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.9693"
+        "price_now=0.9682"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -297,11 +295,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.12329,
+      "scanPrice": 0.12305,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.12329"
+        "price_now=0.12305"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -325,12 +323,12 @@
       "side": "NONE",
       "quality": "EXPIRED",
       "invalidation": null,
-      "scanPrice": 1.4527,
+      "scanPrice": 1.4429,
       "sourceVenue": "hyper",
       "notes": [
         "Buy setup expirat",
         "Setup mai vechi de 30 lumanari 4H",
-        "price_now=1.4527"
+        "price_now=1.4429"
       ],
       "patternContext": "neutral",
       "entryStructure": "expired_buy_divert_v0_3",
@@ -343,8 +341,8 @@
         "exitTrigger": "none",
         "closeRule": "none"
       },
-      "setupKey": "buy:247:255:243:255",
-      "setupIndex": 255,
+      "setupKey": "buy:246:254:242:254",
+      "setupIndex": 254,
       "setupTimestamp": "2026-04-29T16:00:00+00:00",
       "setupState": "expired"
     },
@@ -354,11 +352,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 9.4953,
+      "scanPrice": 9.462,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=9.4953"
+        "price_now=9.462"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -382,11 +380,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 9.8939,
+      "scanPrice": 9.8606,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=9.8939"
+        "price_now=9.8606"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -410,11 +408,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.26469,
+      "scanPrice": 0.2637,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.26469"
+        "price_now=0.2637"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -438,11 +436,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 1.4874,
+      "scanPrice": 1.4884,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.4874"
+        "price_now=1.4884"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -466,11 +464,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 464.2,
+      "scanPrice": 461.29,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=464.2"
+        "price_now=461.29"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -494,11 +492,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 2.6656,
+      "scanPrice": 2.6607,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=2.6656"
+        "price_now=2.6607"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -522,11 +520,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.34543,
+      "scanPrice": 0.34462,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.34543"
+        "price_now=0.34462"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -550,11 +548,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 3.4276,
+      "scanPrice": 3.4001,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=3.4276"
+        "price_now=3.4001"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -578,11 +576,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.24244,
+      "scanPrice": 0.24194,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.24244"
+        "price_now=0.24194"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -606,11 +604,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.25069,
+      "scanPrice": 0.24905,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.25069"
+        "price_now=0.24905"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -634,11 +632,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 56.362,
+      "scanPrice": 56.172,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=56.362"
+        "price_now=56.172"
       ],
       "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -662,11 +660,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.1948,
+      "scanPrice": 0.19417,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.1948"
+        "price_now=0.19417"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -690,11 +688,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.21715,
+      "scanPrice": 0.21257,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.21715"
+        "price_now=0.21257"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -714,34 +712,31 @@
     },
     {
       "symbol": "RUNEUSDT",
-      "signal": "WATCH",
-      "side": "SELL",
-      "quality": "MEDIUM",
-      "invalidation": 0.538,
-      "scanPrice": 0.54722,
+      "signal": "NO",
+      "side": "NONE",
+      "quality": "FRAGILE",
+      "invalidation": null,
+      "scanPrice": 0.54593,
       "sourceVenue": "hyper",
       "notes": [
-        "Sell DiverT setup valid",
-        "Prima structura valida in banda 68-72 confirmata",
-        "Invalidarea defensiva este high-ul setupului",
-        "price_now=0.54722",
-        "same_side_blocked_48h"
+        "Nu exista inca o structura DiverT valida pe buy sau sell",
+        "price_now=0.54593"
       ],
       "patternContext": "positive",
-      "entryStructure": "sell_divert_v0_3",
-      "risk": "medium_high",
+      "entryStructure": "no_valid_divert_v0_3_signal",
+      "risk": "high",
       "timeframe": "4h",
       "execution": {
-        "status": "cooldown_active",
-        "entry": "same-side setup blocked during 48h cooldown",
-        "invalidation": 0.538,
-        "exitTrigger": "wait for cooldown expiry or new structure",
+        "status": "none",
+        "entry": "no action",
+        "invalidation": null,
+        "exitTrigger": "none",
         "closeRule": "none"
       },
-      "setupKey": "sell:239:282:239:281",
-      "setupIndex": 282,
-      "setupTimestamp": "2026-05-04T04:00:00+00:00",
-      "setupState": "cooldown"
+      "setupKey": null,
+      "setupIndex": null,
+      "setupTimestamp": null,
+      "setupState": "idle"
     },
     {
       "symbol": "AEROUSDT",
@@ -749,11 +744,11 @@
       "side": "NONE",
       "quality": "UNKNOWN",
       "invalidation": null,
-      "scanPrice": 0.45135,
+      "scanPrice": 0.4444,
       "sourceVenue": "hyper",
       "notes": [
         "Eroare la generare: HTTP Error 400: Bad Request",
-        "price_now=0.45135"
+        "price_now=0.4444"
       ],
       "patternContext": "unknown",
       "entryStructure": "error",
@@ -777,13 +772,13 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 1.0024,
+      "scanPrice": 0.9986,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.0024"
+        "price_now=0.9986"
       ],
-      "patternContext": "neutral",
+      "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
       "risk": "high",
       "timeframe": "4h",
@@ -805,11 +800,11 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 1.2941,
+      "scanPrice": 1.2902,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=1.2941"
+        "price_now=1.2902"
       ],
       "patternContext": "positive",
       "entryStructure": "no_valid_divert_v0_3_signal",
@@ -833,13 +828,13 @@
       "side": "NONE",
       "quality": "FRAGILE",
       "invalidation": null,
-      "scanPrice": 0.090066,
+      "scanPrice": 0.089782,
       "sourceVenue": "hyper",
       "notes": [
         "Nu exista inca o structura DiverT valida pe buy sau sell",
-        "price_now=0.090066"
+        "price_now=0.089782"
       ],
-      "patternContext": "positive",
+      "patternContext": "neutral",
       "entryStructure": "no_valid_divert_v0_3_signal",
       "risk": "high",
       "timeframe": "4h",
