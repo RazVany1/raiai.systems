@@ -215,6 +215,14 @@ export default function CryptoDashboardPage() {
     });
   }, [openPaperPositions]);
 
+  const activePaperPositions = useMemo(() => {
+    return orderedPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
+  }, [orderedPaperPositions]);
+
+  const closedPaperPositions = useMemo(() => {
+    return orderedPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
+  }, [orderedPaperPositions]);
+
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
     for (const row of openPaperPositions) {
@@ -276,8 +284,8 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Paper Positions</h2>
-            <span className="text-[10px] text-slate-400">learning mode</span>
+            <h2 className="text-base font-semibold text-white">Open Paper Positions</h2>
+            <span className="text-[10px] text-slate-400">{activePaperPositions.length} active</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
@@ -298,18 +306,15 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Partial close</th>
                   <th className="px-4 py-3 text-left">Partial P/L</th>
                   <th className="px-4 py-3 text-left">Runner SL</th>
-                  <th className="px-4 py-3 text-left">Close price</th>
-                  <th className="px-4 py-3 text-left">Close P/L</th>
-                  <th className="px-4 py-3 text-left">Closed at</th>
                 </tr>
               </thead>
               <tbody>
-                {orderedPaperPositions.length === 0 ? (
+                {activePaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={20} className="px-4 py-4 text-slate-400">No paper positions right now.</td>
+                    <td colSpan={15} className="px-4 py-4 text-slate-400">No open paper positions right now.</td>
                   </tr>
                 ) : (
-                  orderedPaperPositions.map((row) => (
+                  activePaperPositions.map((row) => (
                     <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
                       <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
                       <td className="px-4 py-3">{row.side}</td>
@@ -327,6 +332,60 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.entryState}</td>
                       <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
+                      <td className="px-4 py-3">{row.status}</td>
+                      <td className="px-4 py-3">{formatSizePercent(row.remainingSizePercent)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.partialClosePrice)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.partialClosePlPercent)}`}>{formatPercent(row.partialClosePlPercent)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Closed Paper Positions</h2>
+            <span className="text-[10px] text-slate-400">{closedPaperPositions.length} closed</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Direction</th>
+                  <th className="px-4 py-3 text-left">Entry price</th>
+                  <th className="px-4 py-3 text-left">Current price</th>
+                  <th className="px-4 py-3 text-left">Best P/L</th>
+                  <th className="px-4 py-3 text-left">Worst P/L</th>
+                  <th className="px-4 py-3 text-left">Entry at</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Remaining</th>
+                  <th className="px-4 py-3 text-left">Partial close</th>
+                  <th className="px-4 py-3 text-left">Partial P/L</th>
+                  <th className="px-4 py-3 text-left">Runner SL</th>
+                  <th className="px-4 py-3 text-left">Close price</th>
+                  <th className="px-4 py-3 text-left">Close P/L</th>
+                  <th className="px-4 py-3 text-left">Closed at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {closedPaperPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={15} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
+                  </tr>
+                ) : (
+                  closedPaperPositions.map((row) => (
+                    <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
+                      <td className="px-4 py-3">{row.side}</td>
+                      <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
+                      <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
+                      <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
                       <td className="px-4 py-3">{row.status}</td>
                       <td className="px-4 py-3">{formatSizePercent(row.remainingSizePercent)}</td>
                       <td className="px-4 py-3">{formatPrice(row.partialClosePrice)}</td>
