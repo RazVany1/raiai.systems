@@ -190,12 +190,60 @@ def protected_stop_price(entry_price: float | None, side: str | None, mode: str 
         return None
     if mode == "breakeven":
         return float(entry_price)
+    if mode == "plus_2_0":
+        return float(entry_price) * (0.98 if side == "SHORT" else 1.02)
+    if mode == "plus_3_0":
+        return float(entry_price) * (0.97 if side == "SHORT" else 1.03)
     if side == "SHORT":
         return float(entry_price) * 0.995
     return float(entry_price) * 1.005
 
 
-def apply_exit_management(existing: dict, side: str | None, current_price: float | None, formation: dict | None, trend: dict | None, updated_at: str) -> dict:
+def compute_exit_signals(symbol: str, side: str | None, layer: RAICryptoSignalOutputLayerV3) -> dict:
+    signals: dict[str, object] = {}
+    for tf in ["1h", "4h", "1d"]:
+        try:
+            klines = layer.fetch_binance_klines(symbol=symbol, interval=tf, limit=300)
+            _, highs, lows, closes = layer.extract_ohlc(klines)
+            rsi = layer.compute_rsi(closes)
+            ema20_values = ema(closes, 20)
+            ema50_values = ema(closes, 50)
+            current_index = len(closes) - 1
+            buy_setup = layer.find_latest_buy_setup(layer.find_local_lows(lows), layer.find_local_lows(rsi), highs, current_index)
+            sell_setup = layer.find_latest_sell_setup(layer.find_local_highs(highs), layer.find_local_highs(rsi), lows, current_index)
+            last_rsi = rsi[-1] if rsi and rsi[-1] is not None else None
+            prev_rsi = rsi[-2] if len(rsi) > 1 and rsi[-2] is not None else None
+            prev2_rsi = rsi[-3] if len(rsi) > 2 and rsi[-3] is not None else None
+            signals[tf] = {
+                "price": closes[-1],
+                "rsi": last_rsi,
+                "ema20_extension_pct": ((closes[-1] - ema20_values[-1]) / ema20_values[-1]) * 100 if ema20_values[-1] else None,
+                "ema50_extension_pct": ((closes[-1] - ema50_values[-1]) / ema50_values[-1]) * 100 if ema50_values[-1] else None,
+                "momentum_rollover": bool(last_rsi is not None and prev_rsi is not None and prev2_rsi is not None and last_rsi < prev_rsi < prev2_rsi),
+                "momentum_accelerating": bool(last_rsi is not None and prev_rsi is not None and prev2_rsi is not None and last_rsi > prev_rsi > prev2_rsi),
+                "buy_setup": bool(buy_setup),
+                "buy_confirmed": bool(buy_setup and buy_setup[4]),
+                "sell_setup": bool(sell_setup),
+                "sell_confirmed": bool(sell_setup and sell_setup[4]),
+                "sell_near": bool(sell_setup and not sell_setup[4]),
+            }
+        except Exception:
+            signals[tf] = {}
+
+    tf1 = signals.get("1h", {}) if isinstance(signals.get("1h"), dict) else {}
+    tf4 = signals.get("4h", {}) if isinstance(signals.get("4h"), dict) else {}
+    tf1_sell_warning = bool(tf1.get("sell_near") or tf1.get("sell_confirmed")) if side == "LONG" else bool(tf1.get("buy_setup"))
+    tf4_extreme = bool((tf4.get("rsi") or 0) >= 72 and (tf4.get("ema20_extension_pct") or 0) >= 10) if side == "LONG" else bool((tf4.get("rsi") or 100) <= 28 and (tf4.get("ema20_extension_pct") or 0) <= -10)
+    signals["summary"] = {
+        "tf1_sell_warning": tf1_sell_warning,
+        "tf4_extreme_extension": tf4_extreme,
+        "mtf_profit_protect": tf1_sell_warning and tf4_extreme,
+        "mtf_full_exit": bool(tf1.get("sell_confirmed") and tf1.get("momentum_rollover") and tf4.get("momentum_rollover")) if side == "LONG" else False,
+    }
+    return signals
+
+
+def apply_exit_management(existing: dict, side: str | None, current_price: float | None, formation: dict | None, trend: dict | None, updated_at: str, exit_signals: dict | None = None) -> dict:
     status = existing.get("status", "open")
     closed_at = existing.get("closedAt")
     remaining_size = existing.get("remainingSizePercent")
@@ -221,9 +269,27 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
     trade_permission = trend.get("tradePermission") if isinstance(trend, dict) else existing.get("tradePermission")
 
     weakness = formation_state in {"watch", "late"} or trade_permission == "NO TRADE"
-    top_exhaustion = bool(isinstance(current_pl, (int, float)) and max_pl >= 5.0 and current_pl >= 2.0 and pl_drawdown >= 1.5 and weakness)
-    partial_candidate = bool(isinstance(current_pl, (int, float)) and max_pl >= 5.0 and current_pl > 0 and pl_drawdown >= 1.0 and weakness)
-    breakeven_candidate = bool(isinstance(current_pl, (int, float)) and max_pl >= 1.0 and max_pl < 5.0 and current_pl > 0 and pl_drawdown >= 0.5 and weakness)
+    summary = exit_signals.get("summary", {}) if isinstance(exit_signals, dict) else {}
+    mtf_profit_protect = bool(summary.get("mtf_profit_protect"))
+    mtf_full_exit = bool(summary.get("mtf_full_exit"))
+
+    top_exhaustion = bool(
+        isinstance(current_pl, (int, float))
+        and max_pl >= 5.0
+        and current_pl >= 2.0
+        and ((pl_drawdown >= 1.5 and weakness) or (mtf_full_exit and max_pl >= 8.0))
+    )
+    partial_candidate = bool(
+        isinstance(current_pl, (int, float))
+        and max_pl >= 5.0
+        and current_pl > 0
+        and ((pl_drawdown >= 1.0 and weakness) or (mtf_profit_protect and max_pl >= 8.0 and current_pl >= 5.0))
+    )
+    breakeven_candidate = bool(
+        isinstance(current_pl, (int, float))
+        and current_pl > 0
+        and (((max_pl >= 1.0 and max_pl < 5.0 and pl_drawdown >= 0.5 and weakness)) or (mtf_profit_protect and max_pl >= 3.0))
+    )
     cut_candidate = bool(isinstance(current_pl, (int, float)) and max_pl <= 1.0 and current_pl <= -1.5 and weakness)
 
     if status in {"partial_closed_runner", "protected_open"} and partial_runner_stop_hit(side, current_price, runner_stop_price):
@@ -243,11 +309,11 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
             partial_closed_at = partial_closed_at or updated_at
             partial_close_price = current_price
             partial_close_pl_percent = current_pl
-            runner_stop_price = protected_stop_price(entry_price, side, "plus_0_5")
+            runner_stop_price = protected_stop_price(entry_price, side, "plus_3_0" if mtf_profit_protect and max_pl >= 10.0 else "plus_0_5")
             remaining_size = 50.0
         elif breakeven_candidate and remaining_size >= 100.0 and runner_stop_price is None:
             status = "protected_open"
-            runner_stop_price = protected_stop_price(entry_price, side, "breakeven")
+            runner_stop_price = protected_stop_price(entry_price, side, "plus_2_0" if mtf_profit_protect and max_pl >= 5.0 else "breakeven")
         elif cut_candidate:
             status = "closed_cut"
             closed_at = closed_at or updated_at
@@ -1032,6 +1098,7 @@ def main():
     formation_map = {(row.get("symbol"), row.get("side")): row for row in formation_rows if isinstance(row, dict)}
     paper_positions = []
     handled_entry_keys = set()
+    exit_signal_cache = {}
 
     for row in formation_rows:
         symbol = row.get("symbol")
@@ -1062,6 +1129,9 @@ def main():
 
         if existing:
             handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
+            signal_key = (symbol, side)
+            if signal_key not in exit_signal_cache:
+                exit_signal_cache[signal_key] = compute_exit_signals(symbol, side, layer)
             current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
             previous_max_pl = existing.get("maxPlPercent")
             previous_min_pl = existing.get("minPlPercent")
@@ -1074,7 +1144,8 @@ def main():
             if isinstance(current_pl, (int, float)):
                 max_pl = max(max_pl, current_pl)
                 min_pl = min(min_pl, current_pl)
-            exit_state = apply_exit_management(existing, side, entry_price, row, trend, updated_at)
+            exit_signals = exit_signal_cache.get(signal_key, {})
+            exit_state = apply_exit_management(existing, side, entry_price, row, trend, updated_at, exit_signals)
             paper_positions.append({
                 **existing,
                 "lastSeenAt": updated_at,
@@ -1084,6 +1155,7 @@ def main():
                 "invalidationLevel": trend.get("invalidationLevel"),
                 "entryState": existing.get("entryState", state),
                 **exit_state,
+                "exitSignals": exit_signals,
                 "maxPlPercent": max_pl,
                 "minPlPercent": min_pl,
             })
@@ -1150,6 +1222,9 @@ def main():
             if status not in {"partial_closed_runner", "protected_open"}:
                 status = "monitoring"
 
+        signal_key = (symbol, side)
+        if signal_key not in exit_signal_cache:
+            exit_signal_cache[signal_key] = compute_exit_signals(symbol, side, layer)
         current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
         close_price = existing.get("closePrice")
         close_pl_percent = existing.get("closePlPercent")
@@ -1169,13 +1244,14 @@ def main():
             max_pl = max(max_pl, current_pl)
             min_pl = min(min_pl, current_pl)
 
+        exit_signals = exit_signal_cache.get(signal_key, {})
         exit_state = apply_exit_management({
             **existing,
             "status": status,
             "closedAt": closed_at,
             "closePrice": close_price,
             "closePlPercent": close_pl_percent,
-        }, side, current_price, formation, trend, updated_at)
+        }, side, current_price, formation, trend, updated_at, exit_signals)
 
         paper_positions.append({
             **existing,
@@ -1185,6 +1261,7 @@ def main():
             "tradePermission": trend.get("tradePermission") if trend else existing.get("tradePermission"),
             "invalidationLevel": invalidation_level,
             **exit_state,
+            "exitSignals": exit_signals,
             "maxPlPercent": max_pl,
             "minPlPercent": min_pl,
         })
