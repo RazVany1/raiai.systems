@@ -128,6 +128,53 @@ function formatPL(entryPrice?: number | null, currentPrice?: number | null, side
   return formatPercent(raw);
 }
 
+function formatCompactDate(value?: string | null) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  const date = d.toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${date} ${time}`;
+}
+
+function shortSide(side?: string | null) {
+  if (!side) return "-";
+  return side === "SHORT" ? "S" : side === "LONG" ? "L" : side.charAt(0).toUpperCase();
+}
+
+function shortEntryState(state?: string | null) {
+  if (!state) return "-";
+  return state.charAt(0).toUpperCase();
+}
+
+function shortStatus(status?: string | null) {
+  if (!status) return "-";
+  const map: Record<string, string> = {
+    open: "OPN",
+    monitoring: "MON",
+    weakened: "WKN",
+    closed_cut: "CUT",
+    closed_full_exit: "FULL",
+    partial_closed_runner: "PART",
+    protected_open: "PROT",
+    closed_invalidated: "INV",
+    closed_runner_stop: "RSL",
+  };
+  return map[status] || status.slice(0, 4).toUpperCase();
+}
+
+function formatPartialCell(price?: number | null, pl?: number | null) {
+  if ((price == null || !Number.isFinite(price)) && (pl == null || !Number.isFinite(pl))) return "-";
+  const parts = [];
+  if (price != null && Number.isFinite(price)) parts.push(formatPrice(price));
+  if (pl != null && Number.isFinite(pl)) parts.push(formatPercent(pl));
+  return parts.join(" · ");
+}
+
+function formatExitCell(price?: number | null, pl?: number | null) {
+  return formatPartialCell(price, pl);
+}
+
 function percentTextClass(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "text-slate-300";
   if (value > 0) return "text-emerald-300";
@@ -288,55 +335,53 @@ export default function CryptoDashboardPage() {
             <span className="text-[10px] text-slate-400">{activePaperPositions.length} active</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+            <table className="min-w-full text-[11px] text-slate-300">
+              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Direction</th>
-                  <th className="px-4 py-3 text-left">Entry price</th>
-                  <th className="px-4 py-3 text-left">Current price</th>
-                  <th className="px-4 py-3 text-left">P/L</th>
-                  <th className="px-4 py-3 text-left">Best P/L</th>
-                  <th className="px-4 py-3 text-left">Worst P/L</th>
-                  <th className="px-4 py-3 text-left">Entry at</th>
-                  <th className="px-4 py-3 text-left">Entry state</th>
-                  <th className="px-4 py-3 text-left">Invalidation</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Remaining</th>
-                  <th className="px-4 py-3 text-left">Partial close</th>
-                  <th className="px-4 py-3 text-left">Partial P/L</th>
-                  <th className="px-4 py-3 text-left">Runner SL</th>
+                  <th className="px-2 py-2 text-left">Coin</th>
+                  <th className="px-2 py-2 text-left">Dir</th>
+                  <th className="px-2 py-2 text-left">Ent</th>
+                  <th className="px-2 py-2 text-left">Now</th>
+                  <th className="px-2 py-2 text-left">P/L</th>
+                  <th className="px-2 py-2 text-left">Best</th>
+                  <th className="px-2 py-2 text-left">Worst</th>
+                  <th className="px-2 py-2 text-left">At</th>
+                  <th className="px-2 py-2 text-left">E</th>
+                  <th className="px-2 py-2 text-left">Inv</th>
+                  <th className="px-2 py-2 text-left">St</th>
+                  <th className="px-2 py-2 text-left">Rem</th>
+                  <th className="px-2 py-2 text-left">Part</th>
+                  <th className="px-2 py-2 text-left">rSL</th>
                 </tr>
               </thead>
               <tbody>
                 {activePaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={15} className="px-4 py-4 text-slate-400">No open paper positions right now.</td>
+                    <td colSpan={14} className="px-2 py-3 text-slate-400">No open paper positions right now.</td>
                   </tr>
                 ) : (
                   activePaperPositions.map((row) => (
                     <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
-                      <td className="px-4 py-3">{row.side}</td>
-                      <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(
+                      <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
+                      <td className="px-2 py-2">{shortSide(row.side)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
+                      <td className={`px-2 py-2 ${percentTextClass(
                         row.entryPrice != null && row.currentPrice != null && Number.isFinite(row.entryPrice) && Number.isFinite(row.currentPrice) && row.entryPrice !== 0
                           ? (row.side === "SHORT"
                             ? ((row.entryPrice - row.currentPrice) / row.entryPrice) * 100
                             : ((row.currentPrice - row.entryPrice) / row.entryPrice) * 100)
                           : null
                       )}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
-                      <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
-                      <td className="px-4 py-3">{row.entryState}</td>
-                      <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
-                      <td className="px-4 py-3">{row.status}</td>
-                      <td className="px-4 py-3">{formatSizePercent(row.remainingSizePercent)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.partialClosePrice)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.partialClosePlPercent)}`}>{formatPercent(row.partialClosePlPercent)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                      <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
+                      <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
+                      <td className="px-2 py-2">{shortEntryState(row.entryState)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.invalidationLevel)}</td>
+                      <td className="px-2 py-2">{shortStatus(row.status)}</td>
+                      <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
                     </tr>
                   ))
                 )}
@@ -351,49 +396,45 @@ export default function CryptoDashboardPage() {
             <span className="text-[10px] text-slate-400">{closedPaperPositions.length} closed</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+            <table className="min-w-full text-[11px] text-slate-300">
+              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Direction</th>
-                  <th className="px-4 py-3 text-left">Entry price</th>
-                  <th className="px-4 py-3 text-left">Current price</th>
-                  <th className="px-4 py-3 text-left">Best P/L</th>
-                  <th className="px-4 py-3 text-left">Worst P/L</th>
-                  <th className="px-4 py-3 text-left">Entry at</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Remaining</th>
-                  <th className="px-4 py-3 text-left">Partial close</th>
-                  <th className="px-4 py-3 text-left">Partial P/L</th>
-                  <th className="px-4 py-3 text-left">Runner SL</th>
-                  <th className="px-4 py-3 text-left">Close price</th>
-                  <th className="px-4 py-3 text-left">Close P/L</th>
-                  <th className="px-4 py-3 text-left">Closed at</th>
+                  <th className="px-2 py-2 text-left">Coin</th>
+                  <th className="px-2 py-2 text-left">Dir</th>
+                  <th className="px-2 py-2 text-left">Ent</th>
+                  <th className="px-2 py-2 text-left">Now</th>
+                  <th className="px-2 py-2 text-left">Best</th>
+                  <th className="px-2 py-2 text-left">Worst</th>
+                  <th className="px-2 py-2 text-left">At</th>
+                  <th className="px-2 py-2 text-left">St</th>
+                  <th className="px-2 py-2 text-left">Rem</th>
+                  <th className="px-2 py-2 text-left">Part</th>
+                  <th className="px-2 py-2 text-left">rSL</th>
+                  <th className="px-2 py-2 text-left">Exit</th>
+                  <th className="px-2 py-2 text-left">Closed</th>
                 </tr>
               </thead>
               <tbody>
                 {closedPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={15} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
+                    <td colSpan={13} className="px-2 py-3 text-slate-400">No closed paper positions yet.</td>
                   </tr>
                 ) : (
                   closedPaperPositions.map((row) => (
                     <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
-                      <td className="px-4 py-3">{row.side}</td>
-                      <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
-                      <td className="px-4 py-3">{new Date(row.entryAt).toLocaleString()}</td>
-                      <td className="px-4 py-3">{row.status}</td>
-                      <td className="px-4 py-3">{formatSizePercent(row.remainingSizePercent)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.partialClosePrice)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.partialClosePlPercent)}`}>{formatPercent(row.partialClosePlPercent)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.closePrice)}</td>
-                      <td className={`px-4 py-3 ${percentTextClass(row.closePlPercent)}`}>{formatPercent(row.closePlPercent)}</td>
-                      <td className="px-4 py-3">{row.closedAt ? new Date(row.closedAt).toLocaleString() : "-"}</td>
+                      <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
+                      <td className="px-2 py-2">{shortSide(row.side)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
+                      <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
+                      <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
+                      <td className="px-2 py-2">{shortStatus(row.status)}</td>
+                      <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
+                      <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{row.closedAt ? formatCompactDate(row.closedAt) : "-"}</td>
                     </tr>
                   ))
                 )}
