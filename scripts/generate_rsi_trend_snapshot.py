@@ -1099,6 +1099,19 @@ def main():
 
     trend_map = {row["symbol"]: row for row in trend_rows if isinstance(row, dict)}
     formation_map = {(row.get("symbol"), row.get("side")): row for row in formation_rows if isinstance(row, dict)}
+    btc_trend = trend_map.get("BTCUSDT") if isinstance(trend_map.get("BTCUSDT"), dict) else {}
+    btc_long_blocked = bool(
+        not btc_trend
+        or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BEARISH", "STRONG BEARISH"}
+        or btc_trend.get("tradePermission") != "LONG ONLY"
+        or btc_trend.get("marketStructure") == "bearish LH/LL"
+    )
+    btc_short_blocked = bool(
+        not btc_trend
+        or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BULLISH", "STRONG BULLISH"}
+        or btc_trend.get("tradePermission") != "SHORT ONLY"
+        or btc_trend.get("marketStructure") == "bullish HH/HL"
+    )
     paper_positions = []
     handled_entry_keys = set()
     exit_signal_cache = {}
@@ -1110,11 +1123,23 @@ def main():
         trend = trend_map.get(symbol)
         if not trend:
             continue
-        allowed = (
-            side == "LONG" and trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"} and trend.get("tradePermission") == "LONG ONLY"
-        ) or (
-            side == "SHORT" and trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"} and trend.get("tradePermission") == "SHORT ONLY"
+        long_allowed = (
+            trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"}
+            and trend.get("tradePermission") == "LONG ONLY"
+            and trend.get("marketStructure") == "bullish HH/HL"
+            and trend.get("emaDirection4h") == "bullish"
+            and trend.get("dailyBias") == "bullish"
+            and not btc_long_blocked
         )
+        short_allowed = (
+            trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"}
+            and trend.get("tradePermission") == "SHORT ONLY"
+            and trend.get("marketStructure") == "bearish LH/LL"
+            and trend.get("emaDirection4h") == "bearish"
+            and trend.get("dailyBias") == "bearish"
+            and not btc_short_blocked
+        )
+        allowed = (side == "LONG" and long_allowed) or (side == "SHORT" and short_allowed)
         if state not in {"forming", "confirmed"} or not allowed:
             continue
 
