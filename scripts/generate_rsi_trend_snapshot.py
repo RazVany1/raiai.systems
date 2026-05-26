@@ -23,7 +23,11 @@ SYMBOLS = [
     "HYPEUSDT", "ENAUSDT", "XLMUSDT", "APEUSDT", "LDOUSDT", "FETUSDT", "ORDIUSDT", "MORPHOUSDT", "ALGOUSDT", "ICPUSDT",
     "STXUSDT", "CFXUSDT", "GMXUSDT", "SNXUSDT", "COMPUSDT", "KASUSDT", "BLURUSDT", "MINAUSDT", "PYTHUSDT", "SUSHIUSDT",
     "IMXUSDT", "GALAUSDT", "CAKEUSDT", "ENSUSDT", "CELOUSDT", "IOTAUSDT", "SANDUSDT", "TRBUSDT", "GMTUSDT", "ARUSDT",
-    "STRKUSDT", "ZKUSDT", "NEOUSDT", "ZECUSDT", "DASHUSDT",
+    "STRKUSDT", "ZKUSDT", "NEOUSDT", "ZECUSDT", "DASHUSDT", "ASTERUSDT", "GUAUSDT", "CLUSDT", "ZESTUSDT", "SKYAIUSDT",
+    "WLFIUSDT", "INUSDT", "GENIUSUSDT", "LITUSDT", "ESPORTSUSDT", "PLAYUSDT", "MUUSDT", "LABUSDT", "ASTEROIDUSDT", "PHAUSDT",
+    "DEXEUSDT", "SNDKUSDT", "BSBUSDT", "CRCLUSDT", "OPGUSDT", "BEATUSDT", "SIRENUSDT", "RENDERUSDT", "1000PEPEUSDT", "PENGUUSDT",
+    "ENSOUSDT", "CHIPUSDT", "HANAUSDT", "HEMIUSDT", "GRASSUSDT", "BLUAIUSDT", "VIRTUALUSDT", "PUMPUSDT", "KITEUSDT", "MONUSDT",
+    "BLESSUSDT", "SAHARAUSDT", "AIGENSYNUSDT", "USELESSUSDT", "PROVEUSDT", "GWEIUSDT", "ZORAUSDT", "TRIAUSDT", "HOMEUSDT", "FIDAUSDT",
 ]
 
 OUTPUT_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
@@ -32,6 +36,7 @@ PAPER_POSITIONS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-p
 PAPER_POSITIONS_HISTORY_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-entry-positions-history.json")
 PAPER_POSITION_SNAPSHOTS_PATH = Path(r"C:\Users\R\raiai.systems\public\data\paper-position-snapshots.json")
 RSI_INTEREST_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-state.json")
+PAPER_POSITIONS_ENABLED = False
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -1086,81 +1091,184 @@ def main():
 
     formation_rows.sort(key=lambda row: (0 if row["state"] == "confirmed" else 1 if row["state"] == "forming" else 2, row["symbol"], row["side"]))
 
-    existing_positions = load_json(PAPER_POSITIONS_PATH, {"positions": []})
-    existing_by_pair = {}
-    existing_by_entry = {}
-    if isinstance(existing_positions, dict):
-        for pos in existing_positions.get("positions", []):
-            if isinstance(pos, dict):
-                entry_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
-                pair_key = (pos.get("symbol"), pos.get("side"))
-                existing_by_entry[entry_key] = pos
-                existing_by_pair.setdefault(pair_key, []).append(pos)
-
     trend_map = {row["symbol"]: row for row in trend_rows if isinstance(row, dict)}
     formation_map = {(row.get("symbol"), row.get("side")): row for row in formation_rows if isinstance(row, dict)}
-    btc_trend = trend_map.get("BTCUSDT") if isinstance(trend_map.get("BTCUSDT"), dict) else {}
-    btc_long_blocked = bool(
-        not btc_trend
-        or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BEARISH", "STRONG BEARISH"}
-        or btc_trend.get("tradePermission") != "LONG ONLY"
-        or btc_trend.get("marketStructure") == "bearish LH/LL"
-    )
-    btc_short_blocked = bool(
-        not btc_trend
-        or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BULLISH", "STRONG BULLISH"}
-        or btc_trend.get("tradePermission") != "SHORT ONLY"
-        or btc_trend.get("marketStructure") == "bullish HH/HL"
-    )
-    paper_positions = []
-    handled_entry_keys = set()
-    exit_signal_cache = {}
+    history_data = load_json(PAPER_POSITIONS_HISTORY_PATH, {"positions": []})
+    history_positions = history_data.get("positions", []) if isinstance(history_data, dict) and isinstance(history_data.get("positions"), list) else []
 
-    for row in formation_rows:
-        symbol = row.get("symbol")
-        side = row.get("side")
-        state = row.get("state")
-        trend = trend_map.get(symbol)
-        if not trend:
-            continue
-        long_allowed = (
-            trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"}
-            and trend.get("tradePermission") == "LONG ONLY"
-            and trend.get("marketStructure") == "bullish HH/HL"
-            and trend.get("emaDirection4h") == "bullish"
-            and trend.get("dailyBias") == "bullish"
-            and not btc_long_blocked
+    if PAPER_POSITIONS_ENABLED:
+        existing_positions = load_json(PAPER_POSITIONS_PATH, {"positions": []})
+        existing_by_pair = {}
+        existing_by_entry = {}
+        if isinstance(existing_positions, dict):
+            for pos in existing_positions.get("positions", []):
+                if isinstance(pos, dict):
+                    entry_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
+                    pair_key = (pos.get("symbol"), pos.get("side"))
+                    existing_by_entry[entry_key] = pos
+                    existing_by_pair.setdefault(pair_key, []).append(pos)
+
+        btc_trend = trend_map.get("BTCUSDT") if isinstance(trend_map.get("BTCUSDT"), dict) else {}
+        btc_long_blocked = bool(
+            not btc_trend
+            or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BEARISH", "STRONG BEARISH"}
+            or btc_trend.get("tradePermission") != "LONG ONLY"
+            or btc_trend.get("marketStructure") == "bearish LH/LL"
         )
-        short_allowed = (
-            trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"}
-            and trend.get("tradePermission") == "SHORT ONLY"
-            and trend.get("marketStructure") == "bearish LH/LL"
-            and trend.get("emaDirection4h") == "bearish"
-            and trend.get("dailyBias") == "bearish"
-            and not btc_short_blocked
+        btc_short_blocked = bool(
+            not btc_trend
+            or btc_trend.get("finalMarketDirection") in {"UNCLEAR", "SIDEWAYS", "MODERATE BULLISH", "STRONG BULLISH"}
+            or btc_trend.get("tradePermission") != "SHORT ONLY"
+            or btc_trend.get("marketStructure") == "bullish HH/HL"
         )
-        allowed = (side == "LONG" and long_allowed) or (side == "SHORT" and short_allowed)
-        if state not in {"forming", "confirmed"} or not allowed:
-            continue
+        paper_positions = []
+        handled_entry_keys = set()
+        exit_signal_cache = {}
 
-        pair_key = (symbol, side)
-        entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
-        entry_price = row.get("price")
-        existing_candidates = existing_by_pair.get(pair_key, [])
-        existing = None
-        for candidate in existing_candidates:
-            if candidate.get("closedAt") is None and candidate.get("status") != "closed_invalidated":
-                existing = candidate
-                break
-        if existing is None and existing_candidates:
-            existing = existing_candidates[0]
+        for row in formation_rows:
+            symbol = row.get("symbol")
+            side = row.get("side")
+            state = row.get("state")
+            trend = trend_map.get(symbol)
+            if not trend:
+                continue
+            long_allowed = (
+                trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"}
+                and trend.get("tradePermission") == "LONG ONLY"
+                and trend.get("marketStructure") == "bullish HH/HL"
+                and trend.get("emaDirection4h") == "bullish"
+                and trend.get("dailyBias") == "bullish"
+                and not btc_long_blocked
+            )
+            short_allowed = (
+                trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"}
+                and trend.get("tradePermission") == "SHORT ONLY"
+                and trend.get("marketStructure") == "bearish LH/LL"
+                and trend.get("emaDirection4h") == "bearish"
+                and trend.get("dailyBias") == "bearish"
+                and not btc_short_blocked
+            )
+            allowed = (side == "LONG" and long_allowed) or (side == "SHORT" and short_allowed)
+            if state not in {"forming", "confirmed"} or not allowed:
+                continue
 
-        if existing:
-            handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
+            pair_key = (symbol, side)
+            entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
+            entry_price = row.get("price")
+            existing_candidates = existing_by_pair.get(pair_key, [])
+            existing = None
+            for candidate in existing_candidates:
+                if candidate.get("closedAt") is None and candidate.get("status") != "closed_invalidated":
+                    existing = candidate
+                    break
+            if existing is None and existing_candidates:
+                existing = existing_candidates[0]
+
+            if existing:
+                handled_entry_keys.add((existing.get("symbol"), existing.get("side"), existing.get("entryAt")))
+                signal_key = (symbol, side)
+                if signal_key not in exit_signal_cache:
+                    exit_signal_cache[signal_key] = compute_exit_signals(symbol, side, layer)
+                current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
+                previous_max_pl = existing.get("maxPlPercent")
+                previous_min_pl = existing.get("minPlPercent")
+                max_pl = 0.0
+                min_pl = 0.0
+                if isinstance(previous_max_pl, (int, float)):
+                    max_pl = max(0.0, previous_max_pl)
+                if isinstance(previous_min_pl, (int, float)):
+                    min_pl = min(0.0, previous_min_pl)
+                if isinstance(current_pl, (int, float)):
+                    max_pl = max(max_pl, current_pl)
+                    min_pl = min(min_pl, current_pl)
+                exit_signals = exit_signal_cache.get(signal_key, {})
+                exit_state = apply_exit_management(existing, side, entry_price, row, trend, updated_at, exit_signals)
+                paper_positions.append({
+                    **existing,
+                    "lastSeenAt": updated_at,
+                    "currentPrice": entry_price,
+                    "trendDirection": trend.get("finalMarketDirection"),
+                    "tradePermission": trend.get("tradePermission"),
+                    "invalidationLevel": trend.get("invalidationLevel"),
+                    "entryState": existing.get("entryState", state),
+                    **exit_state,
+                    "exitSignals": exit_signals,
+                    "maxPlPercent": max_pl,
+                    "minPlPercent": min_pl,
+                })
+            else:
+                paper_positions.append({
+                    "symbol": symbol,
+                    "side": side,
+                    "entryPrice": entry_price,
+                    "entryAt": entry_time,
+                    "entryState": state,
+                    "trendDirection": trend.get("finalMarketDirection"),
+                    "tradePermission": trend.get("tradePermission"),
+                    "invalidationLevel": trend.get("invalidationLevel"),
+                    "formationType": row.get("formationType"),
+                    "detectedAt": row.get("detectedAt"),
+                    "lastSeenAt": updated_at,
+                    "currentPrice": entry_price,
+                    "status": "open",
+                    "closedAt": None,
+                    "remainingSizePercent": 100.0,
+                    "partialClosedAt": None,
+                    "partialClosePrice": None,
+                    "partialClosePlPercent": None,
+                    "runnerStopPrice": None,
+                    "closePrice": None,
+                    "closePlPercent": None,
+                    "maxPlPercent": 0.0,
+                    "minPlPercent": 0.0,
+                })
+                handled_entry_keys.add((symbol, side, entry_time))
+
+        for key, existing in existing_by_entry.items():
+            if key in handled_entry_keys:
+                continue
+            symbol, side, _entry_at = key
+            trend = trend_map.get(symbol)
+            formation = formation_map.get((symbol, side))
+            current_price = trend.get("price") if trend else existing.get("currentPrice")
+            invalidation_level = existing.get("invalidationLevel")
+            if trend and trend.get("invalidationLevel") is not None:
+                invalidation_level = trend.get("invalidationLevel")
+
+            status = existing.get("status", "open")
+            closed_at = existing.get("closedAt")
+
+            invalidated = False
+            if current_price is not None and invalidation_level is not None:
+                if side == "LONG" and current_price <= invalidation_level:
+                    invalidated = True
+                if side == "SHORT" and current_price >= invalidation_level:
+                    invalidated = True
+            if formation and formation.get("state") == "invalidated":
+                invalidated = True
+
+            if invalidated:
+                status = "closed_invalidated"
+                closed_at = closed_at or updated_at
+            elif formation and formation.get("state") in {"watch", "late"}:
+                status = "weakened"
+            elif formation and formation.get("state") in {"forming", "confirmed"}:
+                if status not in {"partial_closed_runner", "protected_open"}:
+                    status = "open"
+            elif trend:
+                if status not in {"partial_closed_runner", "protected_open"}:
+                    status = "monitoring"
+
             signal_key = (symbol, side)
             if signal_key not in exit_signal_cache:
                 exit_signal_cache[signal_key] = compute_exit_signals(symbol, side, layer)
-            current_pl = compute_pl_percent(existing.get("entryPrice"), entry_price, side)
+            current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
+            close_price = existing.get("closePrice")
+            close_pl_percent = existing.get("closePlPercent")
+            if status.startswith("closed") and close_price is None:
+                close_price = current_price
+            if status.startswith("closed") and close_pl_percent is None:
+                close_pl_percent = current_pl
             previous_max_pl = existing.get("maxPlPercent")
             previous_min_pl = existing.get("minPlPercent")
             max_pl = 0.0
@@ -1172,152 +1280,53 @@ def main():
             if isinstance(current_pl, (int, float)):
                 max_pl = max(max_pl, current_pl)
                 min_pl = min(min_pl, current_pl)
+
             exit_signals = exit_signal_cache.get(signal_key, {})
-            exit_state = apply_exit_management(existing, side, entry_price, row, trend, updated_at, exit_signals)
+            exit_state = apply_exit_management({
+                **existing,
+                "status": status,
+                "closedAt": closed_at,
+                "closePrice": close_price,
+                "closePlPercent": close_pl_percent,
+            }, side, current_price, formation, trend, updated_at, exit_signals)
+
             paper_positions.append({
                 **existing,
+                "currentPrice": current_price,
                 "lastSeenAt": updated_at,
-                "currentPrice": entry_price,
-                "trendDirection": trend.get("finalMarketDirection"),
-                "tradePermission": trend.get("tradePermission"),
-                "invalidationLevel": trend.get("invalidationLevel"),
-                "entryState": existing.get("entryState", state),
+                "trendDirection": trend.get("finalMarketDirection") if trend else existing.get("trendDirection"),
+                "tradePermission": trend.get("tradePermission") if trend else existing.get("tradePermission"),
+                "invalidationLevel": invalidation_level,
                 **exit_state,
                 "exitSignals": exit_signals,
                 "maxPlPercent": max_pl,
                 "minPlPercent": min_pl,
             })
-        else:
-            paper_positions.append({
-                "symbol": symbol,
-                "side": side,
-                "entryPrice": entry_price,
-                "entryAt": entry_time,
-                "entryState": state,
-                "trendDirection": trend.get("finalMarketDirection"),
-                "tradePermission": trend.get("tradePermission"),
-                "invalidationLevel": trend.get("invalidationLevel"),
-                "formationType": row.get("formationType"),
-                "detectedAt": row.get("detectedAt"),
+        status_order = {"open": 0, "protected_open": 1, "partial_closed_runner": 2, "weakened": 3, "monitoring": 4, "closed_runner_stop": 5, "closed_full_exit": 6, "closed_cut": 7, "closed_invalidated": 8}
+        paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
+
+        history_map = {}
+        for pos in history_positions:
+            if isinstance(pos, dict):
+                history_map[(pos.get("symbol"), pos.get("side"), pos.get("entryAt"))] = pos
+
+        for pos in paper_positions:
+            hist_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
+            previous = history_map.get(hist_key, {})
+            history_map[hist_key] = {
+                **previous,
+                **pos,
+                "firstSeenAt": previous.get("firstSeenAt", updated_at),
                 "lastSeenAt": updated_at,
-                "currentPrice": entry_price,
-                "status": "open",
-                "closedAt": None,
-                "remainingSizePercent": 100.0,
-                "partialClosedAt": None,
-                "partialClosePrice": None,
-                "partialClosePlPercent": None,
-                "runnerStopPrice": None,
-                "closePrice": None,
-                "closePlPercent": None,
-                "maxPlPercent": 0.0,
-                "minPlPercent": 0.0,
-            })
-            handled_entry_keys.add((symbol, side, entry_time))
+            }
 
-    for key, existing in existing_by_entry.items():
-        if key in handled_entry_keys:
-            continue
-        symbol, side, _entry_at = key
-        trend = trend_map.get(symbol)
-        formation = formation_map.get((symbol, side))
-        current_price = trend.get("price") if trend else existing.get("currentPrice")
-        invalidation_level = existing.get("invalidationLevel")
-        if trend and trend.get("invalidationLevel") is not None:
-            invalidation_level = trend.get("invalidationLevel")
-
-        status = existing.get("status", "open")
-        closed_at = existing.get("closedAt")
-
-        invalidated = False
-        if current_price is not None and invalidation_level is not None:
-            if side == "LONG" and current_price <= invalidation_level:
-                invalidated = True
-            if side == "SHORT" and current_price >= invalidation_level:
-                invalidated = True
-        if formation and formation.get("state") == "invalidated":
-            invalidated = True
-
-        if invalidated:
-            status = "closed_invalidated"
-            closed_at = closed_at or updated_at
-        elif formation and formation.get("state") in {"watch", "late"}:
-            status = "weakened"
-        elif formation and formation.get("state") in {"forming", "confirmed"}:
-            if status not in {"partial_closed_runner", "protected_open"}:
-                status = "open"
-        elif trend:
-            if status not in {"partial_closed_runner", "protected_open"}:
-                status = "monitoring"
-
-        signal_key = (symbol, side)
-        if signal_key not in exit_signal_cache:
-            exit_signal_cache[signal_key] = compute_exit_signals(symbol, side, layer)
-        current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
-        close_price = existing.get("closePrice")
-        close_pl_percent = existing.get("closePlPercent")
-        if status.startswith("closed") and close_price is None:
-            close_price = current_price
-        if status.startswith("closed") and close_pl_percent is None:
-            close_pl_percent = current_pl
-        previous_max_pl = existing.get("maxPlPercent")
-        previous_min_pl = existing.get("minPlPercent")
-        max_pl = 0.0
-        min_pl = 0.0
-        if isinstance(previous_max_pl, (int, float)):
-            max_pl = max(0.0, previous_max_pl)
-        if isinstance(previous_min_pl, (int, float)):
-            min_pl = min(0.0, previous_min_pl)
-        if isinstance(current_pl, (int, float)):
-            max_pl = max(max_pl, current_pl)
-            min_pl = min(min_pl, current_pl)
-
-        exit_signals = exit_signal_cache.get(signal_key, {})
-        exit_state = apply_exit_management({
-            **existing,
-            "status": status,
-            "closedAt": closed_at,
-            "closePrice": close_price,
-            "closePlPercent": close_pl_percent,
-        }, side, current_price, formation, trend, updated_at, exit_signals)
-
-        paper_positions.append({
-            **existing,
-            "currentPrice": current_price,
-            "lastSeenAt": updated_at,
-            "trendDirection": trend.get("finalMarketDirection") if trend else existing.get("trendDirection"),
-            "tradePermission": trend.get("tradePermission") if trend else existing.get("tradePermission"),
-            "invalidationLevel": invalidation_level,
-            **exit_state,
-            "exitSignals": exit_signals,
-            "maxPlPercent": max_pl,
-            "minPlPercent": min_pl,
-        })
-    status_order = {"open": 0, "protected_open": 1, "partial_closed_runner": 2, "weakened": 3, "monitoring": 4, "closed_runner_stop": 5, "closed_full_exit": 6, "closed_cut": 7, "closed_invalidated": 8}
-    paper_positions.sort(key=lambda row: (status_order.get(row.get("status", "monitoring"), 9), row.get("symbol", ""), row.get("entryAt", "")), reverse=False)
-
-    history_data = load_json(PAPER_POSITIONS_HISTORY_PATH, {"positions": []})
-    history_list = history_data.get("positions", []) if isinstance(history_data, dict) and isinstance(history_data.get("positions"), list) else []
-    history_map = {}
-    for pos in history_list:
-        if isinstance(pos, dict):
-            history_map[(pos.get("symbol"), pos.get("side"), pos.get("entryAt"))] = pos
-
-    for pos in paper_positions:
-        hist_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
-        previous = history_map.get(hist_key, {})
-        history_map[hist_key] = {
-            **previous,
-            **pos,
-            "firstSeenAt": previous.get("firstSeenAt", updated_at),
-            "lastSeenAt": updated_at,
-        }
-
-    history_positions = sorted(
-        history_map.values(),
-        key=lambda row: (row.get("entryAt", ""), row.get("symbol", ""), row.get("side", "")),
-        reverse=True,
-    )
+        history_positions = sorted(
+            history_map.values(),
+            key=lambda row: (row.get("entryAt", ""), row.get("symbol", ""), row.get("side", "")),
+            reverse=True,
+        )
+    else:
+        paper_positions = []
 
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
@@ -1396,7 +1405,8 @@ def main():
     PAPER_POSITIONS_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": paper_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     PAPER_POSITIONS_HISTORY_PATH.write_text(json.dumps({"updatedAt": updated_at, "positions": history_positions}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
-    append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
+    if PAPER_POSITIONS_ENABLED:
+        append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)
 
 
