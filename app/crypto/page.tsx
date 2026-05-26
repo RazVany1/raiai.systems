@@ -331,6 +331,47 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">RSI Interest Zones</h2>
+            <span className="text-[10px] text-slate-400">4H only</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">RSI</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
+                  <th className="px-4 py-3 text-left">Detected at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interestRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI interest zones right now.</td>
+                  </tr>
+                ) : (
+                  interestRows.map((row) => (
+                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
+                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">Open Paper Positions</h2>
             <span className="text-[10px] text-slate-400">{activePaperPositions.length} active</span>
           </div>
@@ -502,47 +543,6 @@ export default function CryptoDashboardPage() {
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Range</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{trendSummary.range}</p>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">RSI Interest Zones</h2>
-            <span className="text-[10px] text-slate-400">4H only</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Detected at</th>
-                </tr>
-              </thead>
-              <tbody>
-                {interestRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI interest zones right now.</td>
-                  </tr>
-                ) : (
-                  interestRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
-                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
           </div>
         </section>
 
