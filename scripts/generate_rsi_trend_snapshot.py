@@ -659,25 +659,27 @@ def detect_trend(closes: list[float], highs: list[float], lows: list[float]) -> 
     }
 
 
-def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str) -> dict:
+def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, lookback_bars: int = 24) -> dict:
     current_index = len(rsi) - 1
     if current_index <= 0:
         return {"anchorRsi": None, "anchorTime": None}
 
+    start_index = max(0, current_index - lookback_bars)
+
     if zone == "upper_interest":
-        threshold = 80
-        for i in range(current_index - 1, -1, -1):
+        threshold = 77
+        for i in range(current_index - 1, start_index - 1, -1):
             value = rsi[i]
-            if value is not None and value >= threshold:
+            if value is not None and value > threshold:
                 return {
                     "anchorRsi": round(float(value), 2),
                     "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
                 }
     elif zone == "lower_interest":
-        threshold = 20
-        for i in range(current_index - 1, -1, -1):
+        threshold = 23
+        for i in range(current_index - 1, start_index - 1, -1):
             value = rsi[i]
-            if value is not None and value <= threshold:
+            if value is not None and value < threshold:
                 return {
                     "anchorRsi": round(float(value), 2),
                     "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
@@ -979,7 +981,11 @@ def main():
                 zone = "upper_interest"
 
             if zone:
-                anchor = find_prior_rsi_anchor(rsi, klines, zone)
+                anchor = find_prior_rsi_anchor(rsi, klines, zone, lookback_bars=24)
+                if zone in {"upper_interest", "lower_interest"} and anchor["anchorRsi"] is None:
+                    zone = None
+
+            if zone:
                 interest_rows.append({
                     "symbol": symbol,
                     "rsi": round(float(last_rsi), 2),
