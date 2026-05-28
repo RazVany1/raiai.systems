@@ -662,7 +662,7 @@ def detect_trend(closes: list[float], highs: list[float], lows: list[float]) -> 
     }
 
 
-def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, lookback_bars: int = 24) -> dict:
+def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, lookback_bars: int = 50) -> dict:
     current_index = len(rsi) - 1
     if current_index <= 0:
         return {"anchorRsi": None, "anchorTime": None}
@@ -984,7 +984,7 @@ def main():
                 zone = "upper_interest"
 
             if zone:
-                anchor = find_prior_rsi_anchor(rsi, klines, zone, lookback_bars=24)
+                anchor = find_prior_rsi_anchor(rsi, klines, zone, lookback_bars=50)
                 if zone in {"upper_interest", "lower_interest"} and anchor["anchorRsi"] is None:
                     zone = None
 
