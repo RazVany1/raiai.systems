@@ -1,5 +1,9 @@
 ﻿import json
 from datetime import datetime, timezone, timedelta
+
+RSI_LOOKBACK_BARS = 50
+RSI_BAR_HOURS = 4
+RSI_LOOKBACK_WINDOW = timedelta(hours=RSI_LOOKBACK_BARS * RSI_BAR_HOURS)
 from pathlib import Path
 import sys
 from urllib.request import urlopen
@@ -662,7 +666,7 @@ def detect_trend(closes: list[float], highs: list[float], lows: list[float]) -> 
     }
 
 
-def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, lookback_bars: int = 50) -> dict:
+def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, lookback_bars: int = RSI_LOOKBACK_BARS) -> dict:
     current_index = len(rsi) - 1
     if current_index <= 0:
         return {"anchorRsi": None, "anchorTime": None}
@@ -984,7 +988,7 @@ def main():
                 zone = "upper_interest"
 
             if zone:
-                anchor = find_prior_rsi_anchor(rsi, klines, zone, lookback_bars=50)
+                anchor = find_prior_rsi_anchor(rsi, klines, zone, lookback_bars=RSI_LOOKBACK_BARS)
                 if zone in {"upper_interest", "lower_interest"} and anchor["anchorRsi"] is None:
                     zone = None
 
@@ -1051,6 +1055,19 @@ def main():
             first_detected_dt = datetime.fromisoformat(first_detected_at)
         except Exception:
             continue
+
+        anchor_time = saved.get("anchorTime")
+        zone = saved.get("zone")
+        if zone in {"upper_interest", "lower_interest"}:
+            if not anchor_time:
+                continue
+            try:
+                anchor_dt = datetime.fromisoformat(anchor_time)
+            except Exception:
+                continue
+            if (now_dt - anchor_dt) > RSI_LOOKBACK_WINDOW:
+                continue
+
         if (now_dt - first_detected_dt) <= timedelta(hours=24):
             retained_interest_map[key] = {
                 **saved,
