@@ -1,8 +1,12 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import urllib.request
+
+RSI_LOOKBACK_BARS = 50
+RSI_BAR_HOURS = 4
+RSI_LOOKBACK_WINDOW = timedelta(hours=RSI_LOOKBACK_BARS * RSI_BAR_HOURS)
 
 DASHBOARD_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-trend-dashboard.json")
 STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-zone-alert-state.json")
@@ -51,10 +55,25 @@ def main():
     sent_keys = set(delivered.get("sent", [])) if isinstance(delivered.get("sent", []), list) else set()
 
     for row in current_rows:
+        if not row.get("currentlyInZone"):
+            continue
+
         symbol = row.get("symbol")
         zone = row.get("zone")
         detected_at = row.get("detectedAt")
         rsi = row.get("rsi")
+        anchor_time = row.get("anchorTime")
+
+        if zone in {"upper_interest", "lower_interest"}:
+            if not anchor_time:
+                continue
+            try:
+                anchor_dt = datetime.fromisoformat(anchor_time)
+            except Exception:
+                continue
+            if (datetime.now(timezone.utc) - anchor_dt) > RSI_LOOKBACK_WINDOW:
+                continue
+
         key = f"{symbol}:{zone}"
         current_active[key] = {
             "symbol": symbol,
