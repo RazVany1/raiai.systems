@@ -336,11 +336,13 @@ export default function CryptoDashboardPage() {
       rsi: number;
       price: number | null;
       detectedAt: string;
+      firstDetectedAt: string;
       v0: boolean;
       v1: boolean;
       v2: boolean;
       previousRsi?: number | null;
       anchorRsi?: number | null;
+      serialNumber?: number;
     }>();
 
     const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
@@ -352,6 +354,7 @@ export default function CryptoDashboardPage() {
         rsi: row.rsi,
         price: row.price,
         detectedAt: row.detectedAt,
+        firstDetectedAt: row.firstDetectedAt || row.detectedAt,
         v0: false,
         v1: false,
         v2: false,
@@ -363,6 +366,10 @@ export default function CryptoDashboardPage() {
       next.rsi = row.rsi;
       next.price = row.price;
       next.detectedAt = row.detectedAt;
+      const incomingFirstDetectedAt = row.firstDetectedAt || row.detectedAt;
+      if (!next.firstDetectedAt || new Date(incomingFirstDetectedAt).getTime() < new Date(next.firstDetectedAt).getTime()) {
+        next.firstDetectedAt = incomingFirstDetectedAt;
+      }
       if (row.previousRsi != null) next.previousRsi = row.previousRsi;
       if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
       rows.set(key, next);
@@ -372,7 +379,21 @@ export default function CryptoDashboardPage() {
     interestRows.forEach((row) => upsert(row, "v1"));
     v2InterestRows.forEach((row) => upsert(row, "v2"));
 
-    return [...rows.values()].sort((a, b) => {
+    const chronological = [...rows.values()].sort((a, b) => {
+      const aTime = new Date(a.firstDetectedAt || a.detectedAt).getTime();
+      const bTime = new Date(b.firstDetectedAt || b.detectedAt).getTime();
+      if (aTime !== bTime) return aTime - bTime;
+      return a.symbol.localeCompare(b.symbol);
+    });
+
+    chronological.forEach((row, index) => {
+      row.serialNumber = index + 1;
+    });
+
+    return chronological.sort((a, b) => {
+      const aTime = new Date(a.firstDetectedAt || a.detectedAt).getTime();
+      const bTime = new Date(b.firstDetectedAt || b.detectedAt).getTime();
+      if (aTime !== bTime) return bTime - aTime;
       const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
       const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
       if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
@@ -408,6 +429,7 @@ export default function CryptoDashboardPage() {
             <table className="min-w-full text-xs text-slate-300">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
+                  <th className="px-4 py-3 text-left">Nr.</th>
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">RSI</th>
                   <th className="px-4 py-3 text-left">Price</th>
@@ -422,11 +444,12 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={10} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
                     <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-400">{row.serialNumber ?? "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
