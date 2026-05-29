@@ -42,6 +42,7 @@ type InterestRow = {
   firstDetectedAt?: string;
   lastSeenAt?: string;
   currentlyInZone?: boolean;
+  serialNumber?: number;
 };
 
 type FormationRow = {
@@ -212,6 +213,7 @@ export default function CryptoDashboardPage() {
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
+  const [serialMap, setSerialMap] = useState<Record<string, number>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
 
@@ -329,14 +331,14 @@ export default function CryptoDashboardPage() {
     });
   }, [trendRows]);
 
-  const versionSummaryRows = useMemo(() => {
+  const versionSummaryBaseRows = useMemo(() => {
     const rows = new Map<string, {
+      key: string;
       symbol: string;
       zone: string;
       rsi: number;
       price: number | null;
       detectedAt: string;
-      firstDetectedAt: string;
       v0: boolean;
       v1: boolean;
       v2: boolean;
@@ -349,27 +351,25 @@ export default function CryptoDashboardPage() {
       const key = `${row.symbol}:${row.zone}`;
       const existing = rows.get(key);
       const next = existing || {
+        key,
         symbol: row.symbol,
         zone: row.zone,
         rsi: row.rsi,
         price: row.price,
         detectedAt: row.detectedAt,
-        firstDetectedAt: row.firstDetectedAt || row.detectedAt,
         v0: false,
         v1: false,
         v2: false,
         previousRsi: row.previousRsi ?? null,
         anchorRsi: row.anchorRsi ?? null,
+        serialNumber: row.serialNumber,
       };
       next[version] = true;
       if (version === "v1" || version === "v2") next.v0 = true;
       next.rsi = row.rsi;
       next.price = row.price;
       next.detectedAt = row.detectedAt;
-      const incomingFirstDetectedAt = row.firstDetectedAt || row.detectedAt;
-      if (!next.firstDetectedAt || new Date(incomingFirstDetectedAt).getTime() < new Date(next.firstDetectedAt).getTime()) {
-        next.firstDetectedAt = incomingFirstDetectedAt;
-      }
+      if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
       if (row.previousRsi != null) next.previousRsi = row.previousRsi;
       if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
       rows.set(key, next);
@@ -379,27 +379,70 @@ export default function CryptoDashboardPage() {
     interestRows.forEach((row) => upsert(row, "v1"));
     v2InterestRows.forEach((row) => upsert(row, "v2"));
 
-    const chronological = [...rows.values()].sort((a, b) => {
-      const aTime = new Date(a.firstDetectedAt || a.detectedAt).getTime();
-      const bTime = new Date(b.firstDetectedAt || b.detectedAt).getTime();
-      if (aTime !== bTime) return aTime - bTime;
-      return a.symbol.localeCompare(b.symbol);
-    });
-
-    chronological.forEach((row, index) => {
-      row.serialNumber = index + 1;
-    });
-
-    return chronological.sort((a, b) => {
-      const aTime = new Date(a.firstDetectedAt || a.detectedAt).getTime();
-      const bTime = new Date(b.firstDetectedAt || b.detectedAt).getTime();
-      if (aTime !== bTime) return bTime - aTime;
-      const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-      const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
-      if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
-      return a.symbol.localeCompare(b.symbol);
-    });
+    return [...rows.values()];
   }, [v0InterestRows, interestRows, v2InterestRows]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("rsi-version-serial-map");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        setSerialMap(parsed as Record<string, number>);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    setSerialMap((prev) => {
+      const next = { ...prev };
+      let maxSerial = Object.values(next).reduce((max, value) => Math.max(max, Number(value) || 0), 0);
+      let changed = false;
+
+      for (const row of versionSummaryBaseRows) {
+        if (typeof row.serialNumber === "number") {
+          if (next[row.key] !== row.serialNumber) {
+            next[row.key] = row.serialNumber;
+            changed = true;
+          }
+          maxSerial = Math.max(maxSerial, row.serialNumber);
+        }
+      }
+
+      for (const row of versionSummaryBaseRows) {
+        if (typeof next[row.key] !== "number") {
+          maxSerial += 1;
+          next[row.key] = maxSerial;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        try {
+          window.localStorage.setItem("rsi-version-serial-map", JSON.stringify(next));
+        } catch {}
+        return next;
+      }
+      return prev;
+    });
+  }, [versionSummaryBaseRows]);
+
+  const versionSummaryRows = useMemo(() => {
+    return versionSummaryBaseRows
+      .map((row) => ({
+        ...row,
+        serialNumber: typeof row.serialNumber === "number" ? row.serialNumber : serialMap[row.key],
+      }))
+      .sort((a, b) => {
+        const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
+        const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
+        if (aSerial !== bSerial) return bSerial - aSerial;
+        const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+        const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+        return a.symbol.localeCompare(b.symbol);
+      });
+  }, [versionSummaryBaseRows, serialMap]);
 
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;

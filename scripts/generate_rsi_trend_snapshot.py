@@ -1105,14 +1105,24 @@ def main():
 
     now_dt = datetime.fromisoformat(updated_at)
 
+    max_v0_serial = 0
+    for saved in saved_v0_interest_rows.values():
+        if isinstance(saved, dict) and isinstance(saved.get("serialNumber"), int):
+            max_v0_serial = max(max_v0_serial, saved.get("serialNumber", 0))
+
     current_v0_interest_map = {}
+    next_v0_serial = max_v0_serial + 1
     for row in v0_interest_rows:
         key = f"{row['symbol']}:{row['zone']}"
         saved = saved_v0_interest_rows.get(key, {}) if isinstance(saved_v0_interest_rows.get(key), dict) else {}
         first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        serial_number = saved.get("serialNumber") if isinstance(saved.get("serialNumber"), int) else next_v0_serial
+        if not isinstance(saved.get("serialNumber"), int):
+            next_v0_serial += 1
         current_v0_interest_map[key] = {
             **saved,
             **row,
+            "serialNumber": serial_number,
             "firstDetectedAt": first_detected_at,
             "lastSeenAt": updated_at,
             "currentlyInZone": True,
@@ -1122,18 +1132,10 @@ def main():
     for key, saved in saved_v0_interest_rows.items():
         if key in retained_v0_interest_map or not isinstance(saved, dict):
             continue
-        first_detected_at = saved.get("firstDetectedAt") or saved.get("detectedAt")
-        if not first_detected_at:
-            continue
-        try:
-            first_detected_dt = datetime.fromisoformat(first_detected_at)
-        except Exception:
-            continue
-        if (now_dt - first_detected_dt) <= timedelta(hours=24):
-            retained_v0_interest_map[key] = {
-                **saved,
-                "currentlyInZone": False,
-            }
+        retained_v0_interest_map[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
 
     current_interest_map = {}
     for row in interest_rows:
@@ -1152,31 +1154,10 @@ def main():
     for key, saved in saved_interest_rows.items():
         if key in retained_interest_map or not isinstance(saved, dict):
             continue
-        first_detected_at = saved.get("firstDetectedAt") or saved.get("detectedAt")
-        if not first_detected_at:
-            continue
-        try:
-            first_detected_dt = datetime.fromisoformat(first_detected_at)
-        except Exception:
-            continue
-
-        anchor_time = saved.get("anchorTime")
-        zone = saved.get("zone")
-        if zone in {"upper_interest", "lower_interest"}:
-            if not anchor_time:
-                continue
-            try:
-                anchor_dt = datetime.fromisoformat(anchor_time)
-            except Exception:
-                continue
-            if (now_dt - anchor_dt) > RSI_LOOKBACK_WINDOW:
-                continue
-
-        if (now_dt - first_detected_dt) <= timedelta(hours=24):
-            retained_interest_map[key] = {
-                **saved,
-                "currentlyInZone": False,
-            }
+        retained_interest_map[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
 
     current_v2_interest_map = {}
     for row in v2_interest_rows:
@@ -1192,6 +1173,13 @@ def main():
         }
 
     retained_v2_interest_map = dict(current_v2_interest_map)
+    for key, saved in saved_v2_interest_rows.items():
+        if key in retained_v2_interest_map or not isinstance(saved, dict):
+            continue
+        retained_v2_interest_map[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
 
     v0_interest_rows = sorted(
         retained_v0_interest_map.values(),
