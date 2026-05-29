@@ -358,6 +358,7 @@ export default function CryptoDashboardPage() {
         anchorRsi: row.anchorRsi ?? null,
       };
       next[version] = true;
+      if (version === "v1" || version === "v2") next.v0 = true;
       next.rsi = row.rsi;
       next.price = row.price;
       next.detectedAt = row.detectedAt;
