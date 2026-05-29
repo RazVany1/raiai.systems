@@ -193,8 +193,8 @@ const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 sh
 
 export default function CryptoDashboardPage() {
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
-  const [v2PaperPositions, setV2PaperPositions] = useState<OpenPaperPosition[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
+  const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
@@ -211,8 +211,8 @@ export default function CryptoDashboardPage() {
         if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
         const data = await res.json();
         setOpenPaperPositions(data.openPaperPositions || []);
-        setV2PaperPositions(data.v2PaperPositions || []);
         setInterestRows(data.interestRows || []);
+        setV2InterestRows(data.v2InterestRows || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
         setBtcContextRows(data.btcContextRows || []);
@@ -221,8 +221,8 @@ export default function CryptoDashboardPage() {
         scheduleNextLoad(data.nextScanAt);
       } catch (error) {
         console.error("crypto dashboard load failed", error);
-        setV2PaperPositions([]);
         setInterestRows([]);
+        setV2InterestRows([]);
         setFormationRows([]);
         setTrendRows([]);
         setBtcContextRows([]);
@@ -273,22 +273,6 @@ export default function CryptoDashboardPage() {
     return orderedPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
   }, [orderedPaperPositions]);
 
-  const orderedV2PaperPositions = useMemo(() => {
-    return [...v2PaperPositions].sort((a, b) => {
-      const aTime = new Date(a.entryAt).getTime();
-      const bTime = new Date(b.entryAt).getTime();
-      return bTime - aTime;
-    });
-  }, [v2PaperPositions]);
-
-  const activeV2PaperPositions = useMemo(() => {
-    return orderedV2PaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
-  }, [orderedV2PaperPositions]);
-
-  const closedV2PaperPositions = useMemo(() => {
-    return orderedV2PaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
-  }, [orderedV2PaperPositions]);
-
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
     for (const row of openPaperPositions) {
@@ -311,29 +295,6 @@ export default function CryptoDashboardPage() {
     }
     return labelMap;
   }, [openPaperPositions]);
-
-  const v2PaperPositionLabels = useMemo(() => {
-    const bySymbol = new Map<string, OpenPaperPosition[]>();
-    for (const row of v2PaperPositions) {
-      const bucket = bySymbol.get(row.symbol) || [];
-      bucket.push(row);
-      bySymbol.set(row.symbol, bucket);
-    }
-
-    const labelMap = new Map<string, string>();
-    for (const [symbol, rows] of bySymbol.entries()) {
-      const ordered = [...rows].sort((a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime());
-      if (ordered.length === 1) {
-        const row = ordered[0];
-        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, row.symbol);
-        continue;
-      }
-      ordered.forEach((row, index) => {
-        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, `${symbol} (${index + 1})`);
-      });
-    }
-    return labelMap;
-  }, [v2PaperPositions]);
 
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
@@ -362,7 +323,7 @@ export default function CryptoDashboardPage() {
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RAI Crypto Dashboard</h1>
-            <p className="text-sm text-slate-300">4H radar: RSI interest zones + HL/LH formation + trend overview</p>
+            <p className="text-sm text-slate-300">4H radar: RSI Interest Zones V1 + V2</p>
           </div>
           <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard simplified</p>
@@ -373,7 +334,7 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">RSI Interest Zones</h2>
+            <h2 className="text-base font-semibold text-white">RSI Interest Zones V1</h2>
             <span className="text-[10px] text-slate-400">4H only</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
@@ -392,7 +353,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {interestRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI interest zones right now.</td>
+                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI Interest Zones V1 right now.</td>
                   </tr>
                 ) : (
                   interestRows.map((row) => (
@@ -414,176 +375,39 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Open Paper Positions</h2>
-            <span className="text-[10px] text-slate-400">{activePaperPositions.length} active</span>
+            <h2 className="text-base font-semibold text-white">RSI Interest Zones V2</h2>
+            <span className="text-[10px] text-slate-400">experimental</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-[11px] text-slate-300">
-              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-2 py-2 text-left">Coin</th>
-                  <th className="px-2 py-2 text-left">Dir</th>
-                  <th className="px-2 py-2 text-left">Ent</th>
-                  <th className="px-2 py-2 text-left">Now</th>
-                  <th className="px-2 py-2 text-left">P/L</th>
-                  <th className="px-2 py-2 text-left">Best</th>
-                  <th className="px-2 py-2 text-left">Worst</th>
-                  <th className="px-2 py-2 text-left">At</th>
-                  <th className="px-2 py-2 text-left">E</th>
-                  <th className="px-2 py-2 text-left">Inv</th>
-                  <th className="px-2 py-2 text-left">St</th>
-                  <th className="px-2 py-2 text-left">Rem</th>
-                  <th className="px-2 py-2 text-left">Part</th>
-                  <th className="px-2 py-2 text-left">rSL</th>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">RSI</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
+                  <th className="px-4 py-3 text-left">Detected at</th>
                 </tr>
               </thead>
               <tbody>
-                {activePaperPositions.length === 0 ? (
+                {v2InterestRows.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-2 py-3 text-slate-400">No open paper positions right now.</td>
+                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI Interest Zones V2 right now.</td>
                   </tr>
                 ) : (
-                  activePaperPositions.map((row) => (
-                    <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                      <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
-                      <td className="px-2 py-2">{shortSide(row.side)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
-                      <td className={`px-2 py-2 ${percentTextClass(
-                        row.entryPrice != null && row.currentPrice != null && Number.isFinite(row.entryPrice) && Number.isFinite(row.currentPrice) && row.entryPrice !== 0
-                          ? (row.side === "SHORT"
-                            ? ((row.entryPrice - row.currentPrice) / row.entryPrice) * 100
-                            : ((row.currentPrice - row.entryPrice) / row.entryPrice) * 100)
-                          : null
-                      )}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                      <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
-                      <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
-                      <td className="px-2 py-2">{shortEntryState(row.entryState)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.invalidationLevel)}</td>
-                      <td className="px-2 py-2">{shortStatus(row.status)}</td>
-                      <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
+                  v2InterestRows.map((row) => (
+                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
+                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
                     </tr>
                   ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Closed Paper Positions</h2>
-            <span className="text-[10px] text-slate-400">{closedPaperPositions.length} closed</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-[11px] text-slate-300">
-              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-2 py-2 text-left">Coin</th>
-                  <th className="px-2 py-2 text-left">Dir</th>
-                  <th className="px-2 py-2 text-left">Ent</th>
-                  <th className="px-2 py-2 text-left">Now</th>
-                  <th className="px-2 py-2 text-left">Best</th>
-                  <th className="px-2 py-2 text-left">Worst</th>
-                  <th className="px-2 py-2 text-left">At</th>
-                  <th className="px-2 py-2 text-left">St</th>
-                  <th className="px-2 py-2 text-left">Rem</th>
-                  <th className="px-2 py-2 text-left">Part</th>
-                  <th className="px-2 py-2 text-left">rSL</th>
-                  <th className="px-2 py-2 text-left">Exit</th>
-                  <th className="px-2 py-2 text-left">Closed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {closedPaperPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-2 py-3 text-slate-400">No closed paper positions yet.</td>
-                  </tr>
-                ) : (
-                  closedPaperPositions.map((row) => (
-                    <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                      <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{paperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
-                      <td className="px-2 py-2">{shortSide(row.side)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
-                      <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
-                      <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
-                      <td className="px-2 py-2">{shortStatus(row.status)}</td>
-                      <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
-                      <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{row.closedAt ? formatCompactDate(row.closedAt) : "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">V2 Paper Positions</h2>
-            <span className="text-[10px] text-slate-400">{activeV2PaperPositions.length} active / {closedV2PaperPositions.length} closed</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-[11px] text-slate-300">
-              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-2 py-2 text-left">Coin</th>
-                  <th className="px-2 py-2 text-left">Dir</th>
-                  <th className="px-2 py-2 text-left">Ent</th>
-                  <th className="px-2 py-2 text-left">Now</th>
-                  <th className="px-2 py-2 text-left">P/L</th>
-                  <th className="px-2 py-2 text-left">Best</th>
-                  <th className="px-2 py-2 text-left">Worst</th>
-                  <th className="px-2 py-2 text-left">At</th>
-                  <th className="px-2 py-2 text-left">E</th>
-                  <th className="px-2 py-2 text-left">Inv</th>
-                  <th className="px-2 py-2 text-left">St</th>
-                  <th className="px-2 py-2 text-left">Rem</th>
-                  <th className="px-2 py-2 text-left">Part</th>
-                  <th className="px-2 py-2 text-left">rSL</th>
-                  <th className="px-2 py-2 text-left">Exit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderedV2PaperPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={15} className="px-2 py-3 text-slate-400">No V2 paper positions yet.</td>
-                  </tr>
-                ) : (
-                  orderedV2PaperPositions.map((row) => {
-                    const livePl = row.entryPrice != null && row.currentPrice != null && Number.isFinite(row.entryPrice) && Number.isFinite(row.currentPrice) && row.entryPrice !== 0
-                      ? (row.side === "SHORT"
-                        ? ((row.entryPrice - row.currentPrice) / row.entryPrice) * 100
-                        : ((row.currentPrice - row.entryPrice) / row.entryPrice) * 100)
-                      : null;
-                    return (
-                      <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
-                        <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{v2PaperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
-                        <td className="px-2 py-2">{shortSide(row.side)}</td>
-                        <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
-                        <td className={`px-2 py-2 ${percentTextClass(livePl ?? row.closePlPercent)}`}>{livePl != null ? formatPercent(livePl) : formatPercent(row.closePlPercent)}</td>
-                        <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
-                        <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
-                        <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
-                        <td className="px-2 py-2">{shortEntryState(row.entryState)}</td>
-                        <td className="px-2 py-2">{formatPrice(row.invalidationLevel)}</td>
-                        <td className="px-2 py-2">{shortStatus(row.status)}</td>
-                        <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
-                        <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
-                        <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
-                        <td className="whitespace-nowrap px-2 py-2">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
-                      </tr>
-                    );
-                  })
                 )}
               </tbody>
             </table>
@@ -652,109 +476,6 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">HL / LH Formation Scanner</h2>
-            <span className="text-[10px] text-slate-400">4H only</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Formation</th>
-                  <th className="px-4 py-3 text-left">Trend</th>
-                  <th className="px-4 py-3 text-left">State</th>
-                  <th className="px-4 py-3 text-left">Major level</th>
-                  <th className="px-4 py-3 text-left">Current level</th>
-                  <th className="px-4 py-3 text-left">Reaction</th>
-                  <th className="px-4 py-3 text-left">EMA zone</th>
-                  <th className="px-4 py-3 text-left">RSI divergence</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Confirmed at</th>
-                  <th className="px-4 py-3 text-left">Detected at</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formationRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No HL/LH formations detected right now.</td>
-                  </tr>
-                ) : (
-                  formationRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.side}-${row.detectedAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.side}</td>
-                      <td className="px-4 py-3">{row.formationType}</td>
-                      <td className="px-4 py-3">{row.trendStatus}</td>
-                      <td className="px-4 py-3">{row.state}</td>
-                      <td className="px-4 py-3">{formatPrice(row.majorLevel)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.currentLevel)}</td>
-                      <td className="px-4 py-3">{row.reaction}</td>
-                      <td className="px-4 py-3">{row.emaZone}</td>
-                      <td className="px-4 py-3">{row.rsiDivergence}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{row.confirmedAt ? new Date(row.confirmedAt).toLocaleString() : "-"}</td>
-                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={shellClass}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Trend Overview</h2>
-            <span className="text-[10px] text-slate-400">4H only</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Direction</th>
-                  <th className="px-4 py-3 text-left">Daily bias</th>
-                  <th className="px-4 py-3 text-left">4H EMA</th>
-                  <th className="px-4 py-3 text-left">Structure</th>
-                  <th className="px-4 py-3 text-left">ADX</th>
-                  <th className="px-4 py-3 text-left">Bull score</th>
-                  <th className="px-4 py-3 text-left">Bear score</th>
-                  <th className="px-4 py-3 text-left">Invalidation</th>
-                  <th className="px-4 py-3 text-left">Context</th>
-                  <th className="px-4 py-3 text-left">Permission</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Last update</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderedTrendRows.map((row) => (
-                  <tr key={`${row.symbol}-${row.lastUpdate}`} className="border-t border-white/10">
-                    <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${trendBadgeClasses(row.finalMarketDirection)}`}>
-                        {row.finalMarketDirection}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{row.dailyBias}</td>
-                    <td className="px-4 py-3">{row.emaDirection4h}</td>
-                    <td className="px-4 py-3">{row.marketStructure}</td>
-                    <td className="px-4 py-3">{row.adxValue != null ? `${row.adxValue.toFixed(2)} (${row.adxTrendStrength})` : row.adxTrendStrength}</td>
-                    <td className="px-4 py-3">{row.bullishScore}</td>
-                    <td className="px-4 py-3">{row.bearishScore}</td>
-                    <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
-                    <td className="px-4 py-3">{row.altContextLabel ? `${row.altContextLabel}${typeof row.altContextScore === "number" ? ` (${row.altContextScore > 0 ? "+" : ""}${row.altContextScore})` : ""}` : "-"}</td>
-                    <td className="px-4 py-3">{row.tradePermission}</td>
-                    <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                    <td className="px-4 py-3">{new Date(row.lastUpdate).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
     </main>
   );
