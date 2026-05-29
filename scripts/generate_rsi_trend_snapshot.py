@@ -697,13 +697,37 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, look
     return {"anchorRsi": None, "anchorTime": None}
 
 
-def detect_v2_zone_entry(last_rsi: float | None, prev_rsi: float | None) -> str | None:
+def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
+    if len(rsi) < 2:
+        return None
+
+    last_rsi = rsi[-1]
+    prev_rsi = rsi[-2]
     if last_rsi is None or prev_rsi is None:
         return None
-    if 28 <= last_rsi <= 32 and prev_rsi < 28 and last_rsi > prev_rsi:
-        return "lower_interest"
-    if 68 <= last_rsi <= 72 and prev_rsi > 72 and last_rsi < prev_rsi:
-        return "upper_interest"
+
+    if 28 <= last_rsi <= 32 and last_rsi > prev_rsi:
+        start = len(rsi) - 1
+        while start > 0:
+            value = rsi[start - 1]
+            if value is None or not (28 <= value <= 32):
+                break
+            start -= 1
+        prior_value = rsi[start - 1] if start > 0 else None
+        if prior_value is not None and prior_value < 28:
+            return "lower_interest"
+
+    if 68 <= last_rsi <= 72 and last_rsi < prev_rsi:
+        start = len(rsi) - 1
+        while start > 0:
+            value = rsi[start - 1]
+            if value is None or not (68 <= value <= 72):
+                break
+            start -= 1
+        prior_value = rsi[start - 1] if start > 0 else None
+        if prior_value is not None and prior_value > 72:
+            return "upper_interest"
+
     return None
 
 
@@ -1021,7 +1045,7 @@ def main():
                     "sourceVenue": "hyper",
                 })
 
-            v2_zone = detect_v2_zone_entry(last_rsi, prev_rsi if isinstance(prev_rsi, (int, float)) else None)
+            v2_zone = detect_v2_zone_entry(rsi)
             if v2_zone:
                 v2_interest_rows.append({
                     "symbol": symbol,
@@ -1119,21 +1143,6 @@ def main():
         }
 
     retained_v2_interest_map = dict(current_v2_interest_map)
-    for key, saved in saved_v2_interest_rows.items():
-        if key in retained_v2_interest_map or not isinstance(saved, dict):
-            continue
-        first_detected_at = saved.get("firstDetectedAt") or saved.get("detectedAt")
-        if not first_detected_at:
-            continue
-        try:
-            first_detected_dt = datetime.fromisoformat(first_detected_at)
-        except Exception:
-            continue
-        if (now_dt - first_detected_dt) <= timedelta(hours=24):
-            retained_v2_interest_map[key] = {
-                **saved,
-                "currentlyInZone": False,
-            }
 
     interest_rows = sorted(
         retained_interest_map.values(),
