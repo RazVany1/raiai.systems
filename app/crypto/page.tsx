@@ -193,6 +193,7 @@ const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 sh
 
 export default function CryptoDashboardPage() {
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
+  const [v2PaperPositions, setV2PaperPositions] = useState<OpenPaperPosition[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
@@ -210,6 +211,7 @@ export default function CryptoDashboardPage() {
         if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
         const data = await res.json();
         setOpenPaperPositions(data.openPaperPositions || []);
+        setV2PaperPositions(data.v2PaperPositions || []);
         setInterestRows(data.interestRows || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
@@ -219,6 +221,7 @@ export default function CryptoDashboardPage() {
         scheduleNextLoad(data.nextScanAt);
       } catch (error) {
         console.error("crypto dashboard load failed", error);
+        setV2PaperPositions([]);
         setInterestRows([]);
         setFormationRows([]);
         setTrendRows([]);
@@ -270,6 +273,22 @@ export default function CryptoDashboardPage() {
     return orderedPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
   }, [orderedPaperPositions]);
 
+  const orderedV2PaperPositions = useMemo(() => {
+    return [...v2PaperPositions].sort((a, b) => {
+      const aTime = new Date(a.entryAt).getTime();
+      const bTime = new Date(b.entryAt).getTime();
+      return bTime - aTime;
+    });
+  }, [v2PaperPositions]);
+
+  const activeV2PaperPositions = useMemo(() => {
+    return orderedV2PaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
+  }, [orderedV2PaperPositions]);
+
+  const closedV2PaperPositions = useMemo(() => {
+    return orderedV2PaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
+  }, [orderedV2PaperPositions]);
+
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
     for (const row of openPaperPositions) {
@@ -292,6 +311,29 @@ export default function CryptoDashboardPage() {
     }
     return labelMap;
   }, [openPaperPositions]);
+
+  const v2PaperPositionLabels = useMemo(() => {
+    const bySymbol = new Map<string, OpenPaperPosition[]>();
+    for (const row of v2PaperPositions) {
+      const bucket = bySymbol.get(row.symbol) || [];
+      bucket.push(row);
+      bySymbol.set(row.symbol, bucket);
+    }
+
+    const labelMap = new Map<string, string>();
+    for (const [symbol, rows] of bySymbol.entries()) {
+      const ordered = [...rows].sort((a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime());
+      if (ordered.length === 1) {
+        const row = ordered[0];
+        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, row.symbol);
+        continue;
+      }
+      ordered.forEach((row, index) => {
+        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, `${symbol} (${index + 1})`);
+      });
+    }
+    return labelMap;
+  }, [v2PaperPositions]);
 
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
@@ -478,6 +520,70 @@ export default function CryptoDashboardPage() {
                       <td className="whitespace-nowrap px-2 py-2">{row.closedAt ? formatCompactDate(row.closedAt) : "-"}</td>
                     </tr>
                   ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">V2 Paper Positions</h2>
+            <span className="text-[10px] text-slate-400">{activeV2PaperPositions.length} active / {closedV2PaperPositions.length} closed</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-[11px] text-slate-300">
+              <thead className="bg-white/5 text-[9px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-2 py-2 text-left">Coin</th>
+                  <th className="px-2 py-2 text-left">Dir</th>
+                  <th className="px-2 py-2 text-left">Ent</th>
+                  <th className="px-2 py-2 text-left">Now</th>
+                  <th className="px-2 py-2 text-left">P/L</th>
+                  <th className="px-2 py-2 text-left">Best</th>
+                  <th className="px-2 py-2 text-left">Worst</th>
+                  <th className="px-2 py-2 text-left">At</th>
+                  <th className="px-2 py-2 text-left">E</th>
+                  <th className="px-2 py-2 text-left">Inv</th>
+                  <th className="px-2 py-2 text-left">St</th>
+                  <th className="px-2 py-2 text-left">Rem</th>
+                  <th className="px-2 py-2 text-left">Part</th>
+                  <th className="px-2 py-2 text-left">rSL</th>
+                  <th className="px-2 py-2 text-left">Exit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderedV2PaperPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={15} className="px-2 py-3 text-slate-400">No V2 paper positions yet.</td>
+                  </tr>
+                ) : (
+                  orderedV2PaperPositions.map((row) => {
+                    const livePl = row.entryPrice != null && row.currentPrice != null && Number.isFinite(row.entryPrice) && Number.isFinite(row.currentPrice) && row.entryPrice !== 0
+                      ? (row.side === "SHORT"
+                        ? ((row.entryPrice - row.currentPrice) / row.entryPrice) * 100
+                        : ((row.currentPrice - row.entryPrice) / row.entryPrice) * 100)
+                      : null;
+                    return (
+                      <tr key={`${row.symbol}-${row.side}-${row.entryAt}`} className="border-t border-white/10">
+                        <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-100">{v2PaperPositionLabels.get(`${row.symbol}-${row.side}-${row.entryAt}`) || row.symbol}</td>
+                        <td className="px-2 py-2">{shortSide(row.side)}</td>
+                        <td className="px-2 py-2">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-2 py-2">{formatPrice(row.currentPrice)}</td>
+                        <td className={`px-2 py-2 ${percentTextClass(livePl ?? row.closePlPercent)}`}>{livePl != null ? formatPercent(livePl) : formatPercent(row.closePlPercent)}</td>
+                        <td className={`px-2 py-2 ${percentTextClass(row.maxPlPercent)}`}>{formatPercent(row.maxPlPercent)}</td>
+                        <td className={`px-2 py-2 ${percentTextClass(row.minPlPercent)}`}>{formatPercent(row.minPlPercent)}</td>
+                        <td className="whitespace-nowrap px-2 py-2">{formatCompactDate(row.entryAt)}</td>
+                        <td className="px-2 py-2">{shortEntryState(row.entryState)}</td>
+                        <td className="px-2 py-2">{formatPrice(row.invalidationLevel)}</td>
+                        <td className="px-2 py-2">{shortStatus(row.status)}</td>
+                        <td className="px-2 py-2">{formatSizePercent(row.remainingSizePercent)}</td>
+                        <td className="whitespace-nowrap px-2 py-2">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
+                        <td className="px-2 py-2">{formatPrice(row.runnerStopPrice)}</td>
+                        <td className="whitespace-nowrap px-2 py-2">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
