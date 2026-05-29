@@ -194,8 +194,9 @@ function trendBadgeClasses(trend: string) {
 }
 
 function versionBadge(active: boolean, label: string) {
+  if (!active) return null;
   return (
-    <span className={`inline-flex min-w-[2.25rem] justify-center rounded-full border px-2 py-1 text-[10px] font-semibold ${active ? "border-sky-300/70 bg-sky-300/20 text-sky-50" : "border-slate-200/15 bg-slate-100/5 text-slate-500"}`}>
+    <span className="inline-flex min-w-[2.25rem] justify-center rounded-full border border-sky-300/70 bg-sky-300/20 px-2 py-1 text-[10px] font-semibold text-sky-50">
       {label}
     </span>
   );
