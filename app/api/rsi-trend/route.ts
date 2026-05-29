@@ -10,6 +10,19 @@ export async function GET() {
   const raw = fs.readFileSync(filePath, "utf-8");
   const data = JSON.parse(raw);
 
+  const v0FilePath = path.join(process.cwd(), "public", "data", "rsi-interest-zones-v0.json");
+  let v0InterestRows: unknown[] = [];
+
+  if (fs.existsSync(v0FilePath)) {
+    try {
+      const v0Raw = fs.readFileSync(v0FilePath, "utf-8");
+      const v0Data = JSON.parse(v0Raw);
+      v0InterestRows = Array.isArray(v0Data?.interestRows) ? v0Data.interestRows : [];
+    } catch {
+      v0InterestRows = [];
+    }
+  }
+
   const v2FilePath = path.join(process.cwd(), "public", "data", "rsi-interest-zones-v2.json");
   let v2InterestRows: unknown[] = [];
 
@@ -25,6 +38,7 @@ export async function GET() {
 
   return NextResponse.json({
     ...data,
+    v0InterestRows,
     v2InterestRows,
   }, {
     headers: {

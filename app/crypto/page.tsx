@@ -38,6 +38,10 @@ type InterestRow = {
   anchorTime: string | null;
   timeframe: string;
   sourceVenue: string;
+  previousRsi?: number | null;
+  firstDetectedAt?: string;
+  lastSeenAt?: string;
+  currentlyInZone?: boolean;
 };
 
 type FormationRow = {
@@ -189,10 +193,19 @@ function trendBadgeClasses(trend: string) {
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
+function versionBadge(active: boolean, label: string) {
+  return (
+    <span className={`inline-flex min-w-[2.25rem] justify-center rounded-full border px-2 py-1 text-[10px] font-semibold ${active ? "border-sky-300/70 bg-sky-300/20 text-sky-50" : "border-slate-200/15 bg-slate-100/5 text-slate-500"}`}>
+      {label}
+    </span>
+  );
+}
+
 const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
 export default function CryptoDashboardPage() {
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
+  const [v0InterestRows, setV0InterestRows] = useState<InterestRow[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
@@ -211,6 +224,7 @@ export default function CryptoDashboardPage() {
         if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
         const data = await res.json();
         setOpenPaperPositions(data.openPaperPositions || []);
+        setV0InterestRows(data.v0InterestRows || []);
         setInterestRows(data.interestRows || []);
         setV2InterestRows(data.v2InterestRows || []);
         setFormationRows(data.formationRows || []);
@@ -221,6 +235,7 @@ export default function CryptoDashboardPage() {
         scheduleNextLoad(data.nextScanAt);
       } catch (error) {
         console.error("crypto dashboard load failed", error);
+        setV0InterestRows([]);
         setInterestRows([]);
         setV2InterestRows([]);
         setFormationRows([]);
@@ -313,6 +328,56 @@ export default function CryptoDashboardPage() {
     });
   }, [trendRows]);
 
+  const versionSummaryRows = useMemo(() => {
+    const rows = new Map<string, {
+      symbol: string;
+      zone: string;
+      rsi: number;
+      price: number | null;
+      detectedAt: string;
+      v0: boolean;
+      v1: boolean;
+      v2: boolean;
+      previousRsi?: number | null;
+      anchorRsi?: number | null;
+    }>();
+
+    const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
+      const key = `${row.symbol}:${row.zone}`;
+      const existing = rows.get(key);
+      const next = existing || {
+        symbol: row.symbol,
+        zone: row.zone,
+        rsi: row.rsi,
+        price: row.price,
+        detectedAt: row.detectedAt,
+        v0: false,
+        v1: false,
+        v2: false,
+        previousRsi: row.previousRsi ?? null,
+        anchorRsi: row.anchorRsi ?? null,
+      };
+      next[version] = true;
+      next.rsi = row.rsi;
+      next.price = row.price;
+      next.detectedAt = row.detectedAt;
+      if (row.previousRsi != null) next.previousRsi = row.previousRsi;
+      if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
+      rows.set(key, next);
+    };
+
+    v0InterestRows.forEach((row) => upsert(row, "v0"));
+    interestRows.forEach((row) => upsert(row, "v1"));
+    v2InterestRows.forEach((row) => upsert(row, "v2"));
+
+    return [...rows.values()].sort((a, b) => {
+      const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+      const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+      if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [v0InterestRows, interestRows, v2InterestRows]);
+
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
   }, [btcContextRows]);
@@ -323,7 +388,7 @@ export default function CryptoDashboardPage() {
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RAI Crypto Dashboard</h1>
-            <p className="text-sm text-slate-300">4H radar: RSI Interest Zones V1 + V2</p>
+            <p className="text-sm text-slate-300">4H radar: version matrix pentru RSI Interest Zones</p>
           </div>
           <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard simplified</p>
@@ -334,8 +399,8 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">RSI Interest Zones V1</h2>
-            <span className="text-[10px] text-slate-400">4H only</span>
+            <h2 className="text-base font-semibold text-white">RSI Version Matrix</h2>
+            <span className="text-[10px] text-slate-400">V0 / V1 / V2 pe aceeași monedă</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
@@ -345,26 +410,30 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">RSI</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Detected at</th>
+                  <th className="px-4 py-3 text-left">V0</th>
+                  <th className="px-4 py-3 text-left">V1</th>
+                  <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">Best fit</th>
+                  <th className="px-4 py-3 text-left">Note</th>
                 </tr>
               </thead>
               <tbody>
-                {interestRows.length === 0 ? (
+                {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI Interest Zones V1 right now.</td>
+                    <td colSpan={9} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
-                  interestRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
+                  versionSummaryRows.map((row) => (
+                    <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
                       <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
-                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.v2 ? "V2" : row.v1 ? "V1" : row.v0 ? "V0" : "-"}</td>
+                      <td className="px-4 py-3">{row.v2 ? `prev RSI ${row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}` : row.v1 ? `anchor ${row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}` : "zone only"}</td>
                     </tr>
                   ))
                 )}
@@ -373,44 +442,18 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">RSI Interest Zones V2</h2>
-            <span className="text-[10px] text-slate-400">experimental</span>
+        <section className="mb-4 grid gap-2 md:grid-cols-3">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{v0InterestRows.length}</p>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Prior RSI anchor</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Detected at</th>
-                </tr>
-              </thead>
-              <tbody>
-                {v2InterestRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-4 text-slate-400">No coins in RSI Interest Zones V2 right now.</td>
-                  </tr>
-                ) : (
-                  v2InterestRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.detectedAt}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3">{row.anchorTime ? new Date(row.anchorTime).toLocaleString() : "-"}</td>
-                      <td className="px-4 py-3">{new Date(row.detectedAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V1 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{interestRows.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V2 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{v2InterestRows.length}</p>
           </div>
         </section>
 
@@ -459,8 +502,8 @@ export default function CryptoDashboardPage() {
 
         <section className="mb-4 grid gap-2 md:grid-cols-4">
           <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Interest rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{interestRows.length}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Tracked coins</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{versionSummaryRows.length}</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Uptrend</p>

@@ -14,6 +14,8 @@ python scripts\generate_paper_entry_alerts.py
 
 $files = @(
   'public/data/rsi-trend-dashboard.json',
+  'public/data/rsi-interest-zones-v0.json',
+  'public/data/rsi-interest-v0-state.json',
   'public/data/rsi-interest-zones-v2.json',
   'public/data/rsi-interest-v2-state.json',
   'public/data/hl-lh-formation-state.json',
