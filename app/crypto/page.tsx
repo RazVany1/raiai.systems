@@ -477,6 +477,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">RSI</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Data-ora</th>
                   <th className="px-4 py-3 text-left">V0</th>
                   <th className="px-4 py-3 text-left">V1</th>
                   <th className="px-4 py-3 text-left">V2</th>
@@ -487,7 +488,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={11} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
@@ -497,6 +498,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
                       <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
                       <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
