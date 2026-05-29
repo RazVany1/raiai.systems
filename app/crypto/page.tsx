@@ -344,6 +344,7 @@ export default function CryptoDashboardPage() {
       v2: boolean;
       previousRsi?: number | null;
       anchorRsi?: number | null;
+      anchorTime?: string | null;
       serialNumber?: number;
     }>();
 
@@ -362,6 +363,7 @@ export default function CryptoDashboardPage() {
         v2: false,
         previousRsi: row.previousRsi ?? null,
         anchorRsi: row.anchorRsi ?? null,
+        anchorTime: row.anchorTime ?? null,
         serialNumber: row.serialNumber,
       };
       next[version] = true;
@@ -372,6 +374,7 @@ export default function CryptoDashboardPage() {
       if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
       if (row.previousRsi != null) next.previousRsi = row.previousRsi;
       if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
+      if (row.anchorTime != null) next.anchorTime = row.anchorTime;
       rows.set(key, next);
     };
 
@@ -481,6 +484,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">V0</th>
                   <th className="px-4 py-3 text-left">V1</th>
                   <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">Anchor RSI</th>
                   <th className="px-4 py-3 text-left">Best fit</th>
                   <th className="px-4 py-3 text-left">Note</th>
                 </tr>
@@ -488,7 +492,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={12} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
@@ -502,8 +506,9 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.v2 ? "V2" : row.v1 ? "V1" : row.v0 ? "V0" : "-"}</td>
-                      <td className="px-4 py-3">{row.v2 ? `prev RSI ${row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}` : row.v1 ? `anchor ${row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}` : "zone only"}</td>
+                      <td className="px-4 py-3">{row.v2 ? `prev RSI ${row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}` : row.v1 ? `anchor point ${row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}` : "zone only"}</td>
                     </tr>
                   ))
                 )}

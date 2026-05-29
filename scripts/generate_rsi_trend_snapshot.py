@@ -679,21 +679,56 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, look
 
     if zone == "upper_interest":
         threshold = 77
+        qualifying_index = None
         for i in range(current_index - 1, start_index - 1, -1):
             value = rsi[i]
             if value is not None and value > threshold:
+                qualifying_index = i
+                break
+        if qualifying_index is not None:
+            segment_start = qualifying_index
+            while segment_start - 1 >= start_index:
+                prev_value = rsi[segment_start - 1]
+                if prev_value is None or prev_value <= threshold:
+                    break
+                segment_start -= 1
+
+            best_index = max(
+                range(segment_start, qualifying_index + 1),
+                key=lambda idx: float(rsi[idx]) if rsi[idx] is not None else float("-inf"),
+            )
+            best_value = rsi[best_index]
+            if best_value is not None:
                 return {
-                    "anchorRsi": round(float(value), 2),
-                    "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
+                    "anchorRsi": round(float(best_value), 2),
+                    "anchorTime": datetime.fromtimestamp(int(klines[best_index][0]) / 1000, tz=timezone.utc).isoformat(),
                 }
+
     elif zone == "lower_interest":
         threshold = 23
+        qualifying_index = None
         for i in range(current_index - 1, start_index - 1, -1):
             value = rsi[i]
             if value is not None and value < threshold:
+                qualifying_index = i
+                break
+        if qualifying_index is not None:
+            segment_start = qualifying_index
+            while segment_start - 1 >= start_index:
+                prev_value = rsi[segment_start - 1]
+                if prev_value is None or prev_value >= threshold:
+                    break
+                segment_start -= 1
+
+            best_index = min(
+                range(segment_start, qualifying_index + 1),
+                key=lambda idx: float(rsi[idx]) if rsi[idx] is not None else float("inf"),
+            )
+            best_value = rsi[best_index]
+            if best_value is not None:
                 return {
-                    "anchorRsi": round(float(value), 2),
-                    "anchorTime": datetime.fromtimestamp(int(klines[i][0]) / 1000, tz=timezone.utc).isoformat(),
+                    "anchorRsi": round(float(best_value), 2),
+                    "anchorTime": datetime.fromtimestamp(int(klines[best_index][0]) / 1000, tz=timezone.utc).isoformat(),
                 }
 
     return {"anchorRsi": None, "anchorTime": None}
