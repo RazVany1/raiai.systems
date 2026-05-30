@@ -1425,6 +1425,7 @@ def main():
 
             status = existing.get("status", "open")
             closed_at = existing.get("closedAt")
+            already_closed = str(status).startswith("closed") or closed_at is not None
 
             invalidated = False
             if current_price is not None and invalidation_level is not None:
@@ -1438,14 +1439,15 @@ def main():
             if invalidated:
                 status = "closed_invalidated"
                 closed_at = closed_at or updated_at
-            elif formation and formation.get("state") in {"watch", "late"}:
-                status = "weakened"
-            elif formation and formation.get("state") in {"forming", "confirmed"}:
-                if status not in {"partial_closed_runner", "protected_open"}:
-                    status = "open"
-            elif trend:
-                if status not in {"partial_closed_runner", "protected_open"}:
-                    status = "monitoring"
+            elif not already_closed:
+                if formation and formation.get("state") in {"watch", "late"}:
+                    status = "weakened"
+                elif formation and formation.get("state") in {"forming", "confirmed"}:
+                    if status not in {"partial_closed_runner", "protected_open"}:
+                        status = "open"
+                elif trend:
+                    if status not in {"partial_closed_runner", "protected_open"}:
+                        status = "monitoring"
 
             signal_key = (symbol, side)
             if signal_key not in exit_signal_cache:
