@@ -125,12 +125,15 @@ function formatSizePercent(value?: number | null) {
   return `${value.toFixed(0)}%`;
 }
 
-function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
-  if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || entryPrice === 0) return "-";
-  const raw = side === "SHORT"
+function computePlValue(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
+  if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || entryPrice === 0) return null;
+  return side === "SHORT"
     ? ((entryPrice - currentPrice) / entryPrice) * 100
     : ((currentPrice - entryPrice) / entryPrice) * 100;
-  return formatPercent(raw);
+}
+
+function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
+  return formatPercent(computePlValue(entryPrice, currentPrice, side));
 }
 
 function formatCompactDate(value?: string | null) {
@@ -207,6 +210,7 @@ const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 sh
 
 export default function CryptoDashboardPage() {
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
+  const [paperPositionHistory, setPaperPositionHistory] = useState<OpenPaperPosition[]>([]);
   const [v0InterestRows, setV0InterestRows] = useState<InterestRow[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
@@ -227,6 +231,7 @@ export default function CryptoDashboardPage() {
         if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
         const data = await res.json();
         setOpenPaperPositions(data.openPaperPositions || []);
+        setPaperPositionHistory(data.paperPositionHistory || []);
         setV0InterestRows(data.v0InterestRows || []);
         setInterestRows(data.interestRows || []);
         setV2InterestRows(data.v2InterestRows || []);
@@ -238,6 +243,7 @@ export default function CryptoDashboardPage() {
         scheduleNextLoad(data.nextScanAt);
       } catch (error) {
         console.error("crypto dashboard load failed", error);
+        setPaperPositionHistory([]);
         setV0InterestRows([]);
         setInterestRows([]);
         setV2InterestRows([]);
@@ -276,12 +282,13 @@ export default function CryptoDashboardPage() {
   }, [trendRows]);
 
   const orderedPaperPositions = useMemo(() => {
-    return [...openPaperPositions].sort((a, b) => {
+    const source = paperPositionHistory.length > 0 ? paperPositionHistory : openPaperPositions;
+    return [...source].sort((a, b) => {
       const aTime = new Date(a.entryAt).getTime();
       const bTime = new Date(b.entryAt).getTime();
       return bTime - aTime;
     });
-  }, [openPaperPositions]);
+  }, [openPaperPositions, paperPositionHistory]);
 
   const activePaperPositions = useMemo(() => {
     return orderedPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
@@ -293,7 +300,7 @@ export default function CryptoDashboardPage() {
 
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
-    for (const row of openPaperPositions) {
+    for (const row of orderedPaperPositions) {
       const bucket = bySymbol.get(row.symbol) || [];
       bucket.push(row);
       bySymbol.set(row.symbol, bucket);
@@ -312,7 +319,7 @@ export default function CryptoDashboardPage() {
       });
     }
     return labelMap;
-  }, [openPaperPositions]);
+  }, [orderedPaperPositions]);
 
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
@@ -529,6 +536,122 @@ export default function CryptoDashboardPage() {
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V2 rows</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{v2InterestRows.length}</p>
+          </div>
+        </section>
+
+        <section className="mb-4 grid gap-2 md:grid-cols-3">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Paper history</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedPaperPositions.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active positions</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{activePaperPositions.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed positions</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{closedPaperPositions.length}</p>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Paper Positions — Active</h2>
+            <span className="text-[10px] text-slate-400">history-backed when live engine is off</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">Current</th>
+                  <th className="px-4 py-3 text-left">Current P/L</th>
+                  <th className="px-4 py-3 text-left">Best</th>
+                  <th className="px-4 py-3 text-left">Worst</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Runner stop</th>
+                  <th className="px-4 py-3 text-left">Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activePaperPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-4 text-slate-400">No active paper positions.</td>
+                  </tr>
+                ) : (
+                  activePaperPositions.map((row) => {
+                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
+                    return (
+                      <tr key={key} className="border-t border-white/10">
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{shortSide(row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
+                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">Paper Positions — Closed</h2>
+            <span className="text-[10px] text-slate-400">kept visible for learning continuity</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">Exit</th>
+                  <th className="px-4 py-3 text-left">Partial</th>
+                  <th className="px-4 py-3 text-left">Close P/L</th>
+                  <th className="px-4 py-3 text-left">Best</th>
+                  <th className="px-4 py-3 text-left">Worst</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Closed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {closedPaperPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
+                  </tr>
+                ) : (
+                  closedPaperPositions.map((row) => {
+                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                    return (
+                      <tr key={key} className="border-t border-white/10">
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{shortSide(row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
+                        <td className="px-4 py-3">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatPercent(row.closePlPercent)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
+                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.closedAt)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
 
