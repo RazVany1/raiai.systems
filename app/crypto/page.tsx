@@ -204,6 +204,65 @@ function trendBadgeClasses(trend: string) {
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
+function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[], v2Rows: InterestRow[]) {
+  const rows = new Map<string, any>();
+
+  const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
+    const key = `${row.symbol}:${row.zone}`;
+    const existing = rows.get(key);
+    const next: any = existing || {
+      key,
+      symbol: row.symbol,
+      zone: row.zone,
+      rsi: row.rsi,
+      price: row.price,
+      detectedAt: row.detectedAt,
+      v0: false,
+      v1: false,
+      v2: false,
+      previousRsi: row.previousRsi ?? null,
+      anchorRsi: row.anchorRsi ?? null,
+      anchorTime: row.anchorTime ?? null,
+      anchorPrice: row.anchorPrice ?? null,
+      serialNumber: row.serialNumber,
+      v0Active: false,
+      v1Active: false,
+      v2Active: false,
+    };
+    next[version] = true;
+    if (version === "v1" || version === "v2") next.v0 = true;
+
+    const incomingActive = Boolean(row.currentlyInZone);
+    const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active);
+    const incomingSeen = parseIsoDate(row.lastSeenAt ?? row.detectedAt ?? row.firstDetectedAt);
+    const existingSeen = parseIsoDate(next.lastSeenAt ?? next.detectedAt);
+    const shouldReplaceFields = (!existingActive && incomingActive)
+      || !existingSeen
+      || (!!incomingSeen && incomingSeen >= existingSeen);
+
+    if (shouldReplaceFields) {
+      next.rsi = row.rsi;
+      next.price = row.price;
+      next.detectedAt = row.detectedAt;
+      next.lastSeenAt = row.lastSeenAt ?? null;
+      if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
+      if (row.previousRsi != null) next.previousRsi = row.previousRsi;
+      if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
+      if (row.anchorTime != null) next.anchorTime = row.anchorTime;
+      if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
+    }
+
+    next[`${version}Active`] = incomingActive;
+    rows.set(key, next);
+  };
+
+  v0Rows.forEach((row) => upsert(row, "v0"));
+  v1Rows.forEach((row) => upsert(row, "v1"));
+  v2Rows.forEach((row) => upsert(row, "v2"));
+
+  return [...rows.values()];
+}
+
 function versionBadge(active: boolean, label: string) {
   if (!active) return null;
   return (
@@ -221,6 +280,9 @@ export default function CryptoDashboardPage() {
   const [v0InterestRows, setV0InterestRows] = useState<InterestRow[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
+  const [v0InterestRows1h, setV0InterestRows1h] = useState<InterestRow[]>([]);
+  const [interestRows1h, setInterestRows1h] = useState<InterestRow[]>([]);
+  const [v2InterestRows1h, setV2InterestRows1h] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
@@ -242,6 +304,9 @@ export default function CryptoDashboardPage() {
         setV0InterestRows(data.v0InterestRows || []);
         setInterestRows(data.interestRows || []);
         setV2InterestRows(data.v2InterestRows || []);
+        setV0InterestRows1h(data.v0InterestRows1h || []);
+        setInterestRows1h(data.interestRows1h || []);
+        setV2InterestRows1h(data.v2InterestRows1h || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
         setBtcContextRows(data.btcContextRows || []);
@@ -254,6 +319,9 @@ export default function CryptoDashboardPage() {
         setV0InterestRows([]);
         setInterestRows([]);
         setV2InterestRows([]);
+        setV0InterestRows1h([]);
+        setInterestRows1h([]);
+        setV2InterestRows1h([]);
         setFormationRows([]);
         setTrendRows([]);
         setBtcContextRows([]);
@@ -345,79 +413,9 @@ export default function CryptoDashboardPage() {
     });
   }, [trendRows]);
 
-  const versionSummaryBaseRows = useMemo(() => {
-    const rows = new Map<string, {
-      key: string;
-      symbol: string;
-      zone: string;
-      rsi: number;
-      price: number | null;
-      detectedAt: string;
-      v0: boolean;
-      v1: boolean;
-      v2: boolean;
-      previousRsi?: number | null;
-      anchorRsi?: number | null;
-      anchorTime?: string | null;
-      anchorPrice?: number | null;
-      serialNumber?: number;
-    }>();
+  const versionSummaryBaseRows = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows, interestRows, v2InterestRows), [v0InterestRows, interestRows, v2InterestRows]);
 
-    const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
-      const key = `${row.symbol}:${row.zone}`;
-      const existing = rows.get(key);
-      const next: any = existing || {
-        key,
-        symbol: row.symbol,
-        zone: row.zone,
-        rsi: row.rsi,
-        price: row.price,
-        detectedAt: row.detectedAt,
-        v0: false,
-        v1: false,
-        v2: false,
-        previousRsi: row.previousRsi ?? null,
-        anchorRsi: row.anchorRsi ?? null,
-        anchorTime: row.anchorTime ?? null,
-        anchorPrice: row.anchorPrice ?? null,
-        serialNumber: row.serialNumber,
-        v0Active: false,
-        v1Active: false,
-        v2Active: false,
-      };
-      next[version] = true;
-      if (version === "v1" || version === "v2") next.v0 = true;
-
-      const incomingActive = Boolean(row.currentlyInZone);
-      const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active);
-      const incomingSeen = parseIsoDate(row.lastSeenAt ?? row.detectedAt ?? row.firstDetectedAt);
-      const existingSeen = parseIsoDate((next as any).lastSeenAt ?? next.detectedAt);
-      const shouldReplaceFields = (!existingActive && incomingActive)
-        || !existingSeen
-        || (!!incomingSeen && incomingSeen >= existingSeen);
-
-      if (shouldReplaceFields) {
-        next.rsi = row.rsi;
-        next.price = row.price;
-        next.detectedAt = row.detectedAt;
-        (next as any).lastSeenAt = row.lastSeenAt ?? null;
-        if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
-        if (row.previousRsi != null) next.previousRsi = row.previousRsi;
-        if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
-        if (row.anchorTime != null) next.anchorTime = row.anchorTime;
-        if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
-      }
-
-      (next as any)[`${version}Active`] = incomingActive;
-      rows.set(key, next);
-    };
-
-    v0InterestRows.forEach((row) => upsert(row, "v0"));
-    interestRows.forEach((row) => upsert(row, "v1"));
-    v2InterestRows.forEach((row) => upsert(row, "v2"));
-
-    return [...rows.values()];
-  }, [v0InterestRows, interestRows, v2InterestRows]);
+  const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h]);
 
   useEffect(() => {
     try {
@@ -435,8 +433,9 @@ export default function CryptoDashboardPage() {
       const next = { ...prev };
       let maxSerial = Object.values(next).reduce((max, value) => Math.max(max, Number(value) || 0), 0);
       let changed = false;
+      const allRows = [...versionSummaryBaseRows, ...versionSummaryBaseRows1h.map((row) => ({ ...row, key: `1h:${row.key}` }))];
 
-      for (const row of versionSummaryBaseRows) {
+      for (const row of allRows) {
         if (typeof row.serialNumber === "number") {
           if (next[row.key] !== row.serialNumber) {
             next[row.key] = row.serialNumber;
@@ -446,7 +445,7 @@ export default function CryptoDashboardPage() {
         }
       }
 
-      for (const row of versionSummaryBaseRows) {
+      for (const row of allRows) {
         if (typeof next[row.key] !== "number") {
           maxSerial += 1;
           next[row.key] = maxSerial;
@@ -462,7 +461,7 @@ export default function CryptoDashboardPage() {
       }
       return prev;
     });
-  }, [versionSummaryBaseRows]);
+  }, [versionSummaryBaseRows, versionSummaryBaseRows1h]);
 
   const versionSummaryRows = useMemo(() => {
     return versionSummaryBaseRows
@@ -481,6 +480,23 @@ export default function CryptoDashboardPage() {
       });
   }, [versionSummaryBaseRows, serialMap]);
 
+  const versionSummaryRows1h = useMemo(() => {
+    return versionSummaryBaseRows1h
+      .map((row) => ({
+        ...row,
+        serialNumber: typeof row.serialNumber === "number" ? row.serialNumber : serialMap[`1h:${row.key}`],
+      }))
+      .sort((a, b) => {
+        const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
+        const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
+        if (aSerial !== bSerial) return bSerial - aSerial;
+        const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+        const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+        return a.symbol.localeCompare(b.symbol);
+      });
+  }, [versionSummaryBaseRows1h, serialMap]);
+
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
   }, [btcContextRows]);
@@ -491,7 +507,7 @@ export default function CryptoDashboardPage() {
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RAI Crypto Dashboard</h1>
-            <p className="text-sm text-slate-300">4H radar: version matrix pentru RSI Interest Zones</p>
+            <p className="text-sm text-slate-300">S4h + S1h radar: version matrix pentru RSI Interest Zones</p>
           </div>
           <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard simplified</p>
@@ -502,7 +518,7 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">RSI Version Matrix</h2>
+            <h2 className="text-base font-semibold text-white">S4h — RSI Version Matrix</h2>
             <span className="text-[10px] text-slate-400">V0 / V1 / V2 pe aceeași monedă</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
@@ -532,6 +548,59 @@ export default function CryptoDashboardPage() {
                 ) : (
                   versionSummaryRows.map((row) => (
                     <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-400">{row.serialNumber ?? "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S1h — RSI Version Matrix</h2>
+            <span className="text-[10px] text-slate-400">V0 / V1 / V2 pe aceeași monedă</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Nr.</th>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">RSI now</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Detected</th>
+                  <th className="px-4 py-3 text-left">V0</th>
+                  <th className="px-4 py-3 text-left">V1</th>
+                  <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">Anchor RSI</th>
+                  <th className="px-4 py-3 text-left">Anchor price</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
+                  <th className="px-4 py-3 text-left">Prev RSI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {versionSummaryRows1h.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
+                  </tr>
+                ) : (
+                  versionSummaryRows1h.map((row) => (
+                    <tr key={`1h-${row.symbol}-${row.zone}`} className="border-t border-white/10">
                       <td className="px-4 py-3 font-semibold text-slate-400">{row.serialNumber ?? "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>

@@ -57,7 +57,7 @@ def parse_iso(value):
         return None
 
 
-def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[str, dict]:
+def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list, system: str) -> dict[str, dict]:
     matrix: dict[str, dict] = {}
 
     def upsert(row: dict, version: str):
@@ -67,9 +67,10 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
         zone = row.get("zone")
         if not symbol or not zone:
             return
-        key = f"{symbol}:{zone}"
+        key = f"{system}:{symbol}:{zone}"
         existing = matrix.get(key, {
             "key": key,
+            "system": system,
             "symbol": symbol,
             "zone": zone,
             "rsi": row.get("rsi"),
@@ -129,9 +130,14 @@ def main():
     v0_rows = v0_data.get("interestRows", []) if isinstance(v0_data, dict) else []
     v1_rows = dashboard.get("interestRows", []) if isinstance(dashboard, dict) else []
     v2_rows = v2_data.get("interestRows", []) if isinstance(v2_data, dict) else []
+    v0_rows_1h = dashboard.get("v0InterestRows1h", []) if isinstance(dashboard, dict) else []
+    v1_rows_1h = dashboard.get("interestRows1h", []) if isinstance(dashboard, dict) else []
+    v2_rows_1h = dashboard.get("v2InterestRows1h", []) if isinstance(dashboard, dict) else []
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    version_matrix = build_version_matrix(v0_rows, v1_rows, v2_rows)
+    version_matrix = {}
+    version_matrix.update(build_version_matrix(v0_rows, v1_rows, v2_rows, "S4h"))
+    version_matrix.update(build_version_matrix(v0_rows_1h, v1_rows_1h, v2_rows_1h, "S1h"))
 
     current_active = {}
     alerts = []
@@ -145,6 +151,7 @@ def main():
         if not (row.get("v1Active") or row.get("v2Active")):
             continue
 
+        system = row.get("system") or "S4h"
         symbol = row.get("symbol")
         zone = row.get("zone")
         detected_at = row.get("detectedAt") or row.get("firstDetectedAt")
@@ -155,7 +162,7 @@ def main():
         anchor_rsi = row.get("anchorRsi")
         anchor_time = row.get("anchorTime")
         anchor_price = row.get("anchorPrice")
-        instance_key = f"{symbol}:{zone}:{detected_at}"
+        instance_key = f"{system}:{symbol}:{zone}:{detected_at}"
 
         if zone in {"upper_interest", "lower_interest"}:
             if not anchor_time:
@@ -168,6 +175,7 @@ def main():
                 continue
 
         current_active[key] = {
+            "system": system,
             "symbol": symbol,
             "zone": zone,
             "detectedAt": detected_at,
@@ -183,6 +191,7 @@ def main():
         needs_send = not already_sent_for_instance and (not was_same_instance_active or last_sent.get(key) != instance_key)
 
         alert = {
+            "system": system,
             "symbol": symbol,
             "type": "rsi_zone_entered",
             "priority": "medium",
@@ -199,11 +208,11 @@ def main():
             "v1Active": bool(row.get("v1Active")),
             "v2Active": bool(row.get("v2Active")),
             "instanceKey": instance_key,
-            "message": f"{symbol} qualifies for V1+V2 in {zone} at RSI {rsi}",
+            "message": f"{system} | {symbol} qualifies for V1+V2 in {zone} at RSI {rsi}",
             "deliveryStatus": "telegram_sent" if already_sent_for_instance else "telegram_ready",
             "chatDeliveryText": (
                 f"RSI V1+V2 ALERT\n"
-                f"{symbol} | {zone}\n"
+                f"{system} | {symbol} | {zone}\n"
                 f"RSI now: {display_value(rsi)}\n"
                 f"Anchor RSI: {display_value(anchor_rsi)}\n"
                 f"Anchor time: {display_value(anchor_time)}\n"
@@ -222,6 +231,7 @@ def main():
             last_sent[key] = instance_key
             history.append({
                 "instanceKey": instance_key,
+                "system": system,
                 "symbol": symbol,
                 "zone": zone,
                 "detectedAt": detected_at,
