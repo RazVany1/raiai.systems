@@ -44,6 +44,10 @@ def send_telegram_message(text: str) -> bool:
         return False
 
 
+def display_value(value):
+    return "-" if value is None else value
+
+
 def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[str, dict]:
     matrix: dict[str, dict] = {}
 
@@ -60,8 +64,13 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
             "symbol": symbol,
             "zone": zone,
             "rsi": row.get("rsi"),
+            "price": row.get("price"),
             "detectedAt": row.get("detectedAt"),
+            "firstDetectedAt": row.get("firstDetectedAt"),
+            "lastSeenAt": row.get("lastSeenAt"),
+            "anchorRsi": row.get("anchorRsi"),
             "anchorTime": row.get("anchorTime"),
+            "previousRsi": row.get("previousRsi"),
             "v0": False,
             "v1": False,
             "v2": False,
@@ -72,10 +81,9 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
         existing[version] = True
         if version in {"v1", "v2"}:
             existing["v0"] = True
-        existing["rsi"] = row.get("rsi")
-        existing["detectedAt"] = row.get("detectedAt")
-        if row.get("anchorTime") is not None:
-            existing["anchorTime"] = row.get("anchorTime")
+        for field in ["rsi", "price", "detectedAt", "firstDetectedAt", "lastSeenAt", "anchorRsi", "anchorTime", "previousRsi"]:
+            if row.get(field) is not None:
+                existing[field] = row.get(field)
         existing[f"{version}Active"] = bool(row.get("currentlyInZone"))
         matrix[key] = existing
 
@@ -92,8 +100,9 @@ def main():
     dashboard = load_json(DASHBOARD_PATH, {})
     v0_data = load_json(V0_PATH, {})
     v2_data = load_json(V2_PATH, {})
-    state = load_json(STATE_PATH, {"active": {}})
+    state = load_json(STATE_PATH, {"active": {}, "lastSent": {}})
     active = state.get("active", {}) if isinstance(state.get("active"), dict) else {}
+    last_sent = state.get("lastSent", {}) if isinstance(state.get("lastSent"), dict) else {}
     v0_rows = v0_data.get("interestRows", []) if isinstance(v0_data, dict) else []
     v1_rows = dashboard.get("interestRows", []) if isinstance(dashboard, dict) else []
     v2_rows = v2_data.get("interestRows", []) if isinstance(v2_data, dict) else []
@@ -103,18 +112,22 @@ def main():
 
     current_active = {}
     alerts = []
-    delivered = load_json(DELIVERED_PATH, {"sent": []})
+    delivered = load_json(DELIVERED_PATH, {"sent": [], "history": []})
     sent_keys = set(delivered.get("sent", [])) if isinstance(delivered.get("sent", []), list) else set()
+    history = delivered.get("history", []) if isinstance(delivered.get("history"), list) else []
 
     for key, row in version_matrix.items():
-        if not (row.get("v1") and row.get("v2") and row.get("v1Active") and row.get("v2Active")):
+        if not (row.get("v1") and row.get("v2")):
             continue
 
         symbol = row.get("symbol")
         zone = row.get("zone")
-        detected_at = row.get("detectedAt")
+        detected_at = row.get("detectedAt") or row.get("firstDetectedAt")
         rsi = row.get("rsi")
         anchor_time = row.get("anchorTime")
+        last_seen_at = row.get("lastSeenAt")
+        price = row.get("price")
+        instance_key = f"{symbol}:{zone}:{detected_at}"
 
         if zone in {"upper_interest", "lower_interest"}:
             if not anchor_time:
@@ -130,31 +143,65 @@ def main():
             "symbol": symbol,
             "zone": zone,
             "detectedAt": detected_at,
+            "lastSeenAt": last_seen_at,
             "rsi": rsi,
+            "price": price,
+            "instanceKey": instance_key,
             "source": "dashboard_matrix_v1_v2",
         }
 
-        if key not in active:
-            alert = {
+        already_sent_for_instance = instance_key in sent_keys
+        was_same_instance_active = bool(active.get(key)) and active.get(key, {}).get("instanceKey") == instance_key
+        needs_send = not already_sent_for_instance and (not was_same_instance_active or last_sent.get(key) != instance_key)
+
+        alert = {
+            "symbol": symbol,
+            "type": "rsi_zone_entered",
+            "priority": "medium",
+            "zone": zone,
+            "rsi": rsi,
+            "price": price,
+            "detectedAt": detected_at,
+            "lastSeenAt": last_seen_at,
+            "v1": True,
+            "v2": True,
+            "v1Active": bool(row.get("v1Active")),
+            "v2Active": bool(row.get("v2Active")),
+            "instanceKey": instance_key,
+            "message": f"{symbol} qualifies for V1+V2 in {zone} at RSI {rsi}",
+            "deliveryStatus": "telegram_sent" if already_sent_for_instance else "telegram_ready",
+            "chatDeliveryText": (
+                f"RSI V1+V2 ALERT\n"
+                f"{symbol} | {zone}\n"
+                f"RSI: {display_value(rsi)}\n"
+                f"Price: {display_value(price)}\n"
+                f"Detected: {display_value(detected_at)}\n"
+                f"Last seen: {display_value(last_seen_at)}\n"
+                f"V1 active: {'yes' if row.get('v1Active') else 'no'} | V2 active: {'yes' if row.get('v2Active') else 'no'}"
+            ),
+            "createdAt": now_iso,
+            "source": "dashboard_matrix_v1_v2",
+        }
+
+        if needs_send and send_telegram_message(alert["chatDeliveryText"]):
+            alert["deliveryStatus"] = "telegram_sent"
+            sent_keys.add(instance_key)
+            last_sent[key] = instance_key
+            history.append({
+                "instanceKey": instance_key,
                 "symbol": symbol,
-                "type": "rsi_zone_entered",
-                "priority": "medium",
                 "zone": zone,
-                "rsi": rsi,
-                "message": f"{symbol} entered {zone} zone at RSI {rsi} and qualifies for V1+V2",
-                "deliveryStatus": "telegram_ready",
-                "chatDeliveryText": f"RSI ZONE ALERT: {symbol} entered {zone} on 4H, RSI={rsi} | qualifies V1+V2",
-                "createdAt": now_iso,
-                "source": "dashboard_matrix_v1_v2",
-            }
-            if key not in sent_keys and send_telegram_message(alert["chatDeliveryText"]):
-                alert["deliveryStatus"] = "telegram_sent"
-                sent_keys.add(key)
-            alerts.append(alert)
+                "detectedAt": detected_at,
+                "sentAt": now_iso,
+            })
+        elif needs_send:
+            alert["deliveryStatus"] = "telegram_failed"
+
+        alerts.append(alert)
 
     ALERTS_PATH.write_text(json.dumps(alerts, indent=2, ensure_ascii=False), encoding="utf-8")
-    STATE_PATH.write_text(json.dumps({"updatedAt": now_iso, "active": current_active}, indent=2, ensure_ascii=False), encoding="utf-8")
-    DELIVERED_PATH.write_text(json.dumps({"updatedAt": now_iso, "sent": sorted(sent_keys)}, indent=2, ensure_ascii=False), encoding="utf-8")
+    STATE_PATH.write_text(json.dumps({"updatedAt": now_iso, "active": current_active, "lastSent": last_sent}, indent=2, ensure_ascii=False), encoding="utf-8")
+    DELIVERED_PATH.write_text(json.dumps({"updatedAt": now_iso, "sent": sorted(sent_keys), "history": history[-500:]}, indent=2, ensure_ascii=False), encoding="utf-8")
     print(ALERTS_PATH)
 
 
