@@ -17,7 +17,7 @@ if str(SCRIPT_PATH) not in sys.path:
     sys.path.append(str(SCRIPT_PATH))
 
 from rai_crypto_signal_output_layer_v0_3 import RAICryptoSignalOutputLayerV3  # type: ignore
-from hyper_price_utils import fetch_hyper_price  # type: ignore
+from hyper_price_utils import fetch_hyper_price, fetch_hyper_meta_and_prices  # type: ignore
 
 SYMBOLS = [
     "BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT", "XMRUSDT", "DOGEUSDT", "BNBUSDT", "TAOUSDT", "SUIUSDT",
@@ -356,7 +356,7 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
     }
 
 
-def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3) -> dict:
+def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3, price_cache: dict[str, float] | None = None) -> dict:
     klines_4h = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
     _, highs_4h, lows_4h, closes_4h = layer.extract_ohlc(klines_4h)
     klines_1d = layer.fetch_binance_klines(symbol=symbol, interval="1d", limit=300)
@@ -457,7 +457,7 @@ def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3) ->
         "finalMarketDirection": final_direction,
         "invalidationLevel": invalidation_level,
         "tradePermission": trade_permission,
-        "price": fetch_hyper_price(symbol),
+        "price": (price_cache or {}).get(symbol) if isinstance((price_cache or {}).get(symbol), (int, float)) else fetch_hyper_price(symbol),
         "lastUpdate": datetime.fromtimestamp(int(klines_4h[-1][0]) / 1000, tz=timezone.utc).isoformat(),
         "sourceVenue": "hyper",
         "dailyClose": closes_1d[-1],
@@ -766,7 +766,7 @@ def find_rsi_divergence(rsi: list[float | None], price_pivots: list[tuple[int, f
     return "none"
 
 
-def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: list[float], lows: list[float], rsi: list[float | None]) -> list[dict]:
+def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: list[float], lows: list[float], rsi: list[float | None], price_cache: dict[str, float] | None = None) -> list[dict]:
     if len(closes) < 220:
         return []
 
@@ -808,7 +808,7 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                         "reaction": "close_up" if reaction else "none",
                         "emaZone": "above_ema20" if closes[-1] >= ema20[-1] else "above_ema50" if closes[-1] >= ema50[-1] else "below_ema50",
                         "rsiDivergence": divergence,
-                        "price": fetch_hyper_price(symbol),
+                        "price": (price_cache or {}).get(symbol) if isinstance((price_cache or {}).get(symbol), (int, float)) else fetch_hyper_price(symbol),
                         "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
                         "eventAt": datetime.fromtimestamp(int(klines[event_index][0]) / 1000, tz=timezone.utc).isoformat(),
                     })
@@ -842,7 +842,7 @@ def detect_hl_lh_scanner(symbol: str, klines: list, closes: list[float], highs: 
                         "reaction": "close_down" if reaction else "none",
                         "emaZone": "below_ema20" if closes[-1] <= ema20[-1] else "below_ema50" if closes[-1] <= ema50[-1] else "above_ema50",
                         "rsiDivergence": divergence,
-                        "price": fetch_hyper_price(symbol),
+                        "price": (price_cache or {}).get(symbol) if isinstance((price_cache or {}).get(symbol), (int, float)) else fetch_hyper_price(symbol),
                         "detectedAt": datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat(),
                         "eventAt": datetime.fromtimestamp(int(klines[event_index][0]) / 1000, tz=timezone.utc).isoformat(),
                     })
@@ -997,6 +997,10 @@ def main():
     trend_rows = []
     market_scan_map = {}
     updated_at = datetime.now(timezone.utc).isoformat()
+    try:
+        price_cache = fetch_hyper_meta_and_prices()
+    except Exception:
+        price_cache = {}
     formation_state = load_json(FORMATION_STATE_PATH, {"confirmed": {}})
     confirmed_state = formation_state.get("confirmed", {}) if isinstance(formation_state.get("confirmed"), dict) else {}
     interest_v0_state = load_json(RSI_INTEREST_V0_STATE_PATH, {"rows": {}})
@@ -1016,7 +1020,7 @@ def main():
         try:
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
             opens, highs, lows, closes = layer.extract_ohlc(klines)
-            live_price = fetch_hyper_price(symbol)
+            live_price = price_cache.get(symbol) if isinstance(price_cache.get(symbol), (int, float)) else fetch_hyper_price(symbol)
             price = live_price if isinstance(live_price, (int, float)) else (closes[-1] if closes else None)
 
             live_closes = list(closes)
@@ -1192,9 +1196,9 @@ def main():
                         "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
                     })
 
-            formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi))
+            formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi, price_cache))
 
-            trend_rows.append(detect_market_direction(symbol, layer))
+            trend_rows.append(detect_market_direction(symbol, layer, price_cache))
         except Exception as exc:
             trend_rows.append({
                 "symbol": symbol,
