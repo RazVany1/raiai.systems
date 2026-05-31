@@ -36,6 +36,7 @@ type InterestRow = {
   detectedAt: string;
   anchorRsi: number | null;
   anchorTime: string | null;
+  anchorPrice?: number | null;
   timeframe: string;
   sourceVenue: string;
   previousRsi?: number | null;
@@ -352,6 +353,7 @@ export default function CryptoDashboardPage() {
       previousRsi?: number | null;
       anchorRsi?: number | null;
       anchorTime?: string | null;
+      anchorPrice?: number | null;
       serialNumber?: number;
     }>();
 
@@ -371,6 +373,7 @@ export default function CryptoDashboardPage() {
         previousRsi: row.previousRsi ?? null,
         anchorRsi: row.anchorRsi ?? null,
         anchorTime: row.anchorTime ?? null,
+        anchorPrice: row.anchorPrice ?? null,
         serialNumber: row.serialNumber,
       };
       next[version] = true;
@@ -382,6 +385,7 @@ export default function CryptoDashboardPage() {
       if (row.previousRsi != null) next.previousRsi = row.previousRsi;
       if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
       if (row.anchorTime != null) next.anchorTime = row.anchorTime;
+      if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
       rows.set(key, next);
     };
 
@@ -484,22 +488,23 @@ export default function CryptoDashboardPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">Nr.</th>
                   <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI</th>
+                  <th className="px-4 py-3 text-left">RSI now</th>
                   <th className="px-4 py-3 text-left">Price</th>
                   <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Data-ora</th>
+                  <th className="px-4 py-3 text-left">Detected</th>
                   <th className="px-4 py-3 text-left">V0</th>
                   <th className="px-4 py-3 text-left">V1</th>
                   <th className="px-4 py-3 text-left">V2</th>
                   <th className="px-4 py-3 text-left">Anchor RSI</th>
-                  <th className="px-4 py-3 text-left">Best fit</th>
-                  <th className="px-4 py-3 text-left">Note</th>
+                  <th className="px-4 py-3 text-left">Anchor price</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
+                  <th className="px-4 py-3 text-left">Prev RSI</th>
                 </tr>
               </thead>
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
@@ -514,8 +519,9 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.v2 ? "V2" : row.v1 ? "V1" : row.v0 ? "V0" : "-"}</td>
-                      <td className="px-4 py-3">{row.v2 ? `prev RSI ${row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}` : row.v1 ? `anchor point ${row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}` : "zone only"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
                     </tr>
                   ))
                 )}

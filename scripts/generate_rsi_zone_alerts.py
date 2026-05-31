@@ -70,6 +70,7 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
             "lastSeenAt": row.get("lastSeenAt"),
             "anchorRsi": row.get("anchorRsi"),
             "anchorTime": row.get("anchorTime"),
+            "anchorPrice": row.get("anchorPrice"),
             "previousRsi": row.get("previousRsi"),
             "v0": False,
             "v1": False,
@@ -81,7 +82,7 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
         existing[version] = True
         if version in {"v1", "v2"}:
             existing["v0"] = True
-        for field in ["rsi", "price", "detectedAt", "firstDetectedAt", "lastSeenAt", "anchorRsi", "anchorTime", "previousRsi"]:
+        for field in ["rsi", "price", "detectedAt", "firstDetectedAt", "lastSeenAt", "anchorRsi", "anchorTime", "anchorPrice", "previousRsi"]:
             if row.get(field) is not None:
                 existing[field] = row.get(field)
         existing[f"{version}Active"] = bool(row.get("currentlyInZone"))
@@ -119,6 +120,8 @@ def main():
     for key, row in version_matrix.items():
         if not (row.get("v1") and row.get("v2")):
             continue
+        if not (row.get("v1Active") or row.get("v2Active")):
+            continue
 
         symbol = row.get("symbol")
         zone = row.get("zone")
@@ -127,6 +130,9 @@ def main():
         anchor_time = row.get("anchorTime")
         last_seen_at = row.get("lastSeenAt")
         price = row.get("price")
+        anchor_rsi = row.get("anchorRsi")
+        anchor_time = row.get("anchorTime")
+        anchor_price = row.get("anchorPrice")
         instance_key = f"{symbol}:{zone}:{detected_at}"
 
         if zone in {"upper_interest", "lower_interest"}:
@@ -163,6 +169,9 @@ def main():
             "price": price,
             "detectedAt": detected_at,
             "lastSeenAt": last_seen_at,
+            "anchorRsi": anchor_rsi,
+            "anchorTime": anchor_time,
+            "anchorPrice": anchor_price,
             "v1": True,
             "v2": True,
             "v1Active": bool(row.get("v1Active")),
@@ -173,11 +182,13 @@ def main():
             "chatDeliveryText": (
                 f"RSI V1+V2 ALERT\n"
                 f"{symbol} | {zone}\n"
-                f"RSI: {display_value(rsi)}\n"
-                f"Price: {display_value(price)}\n"
+                f"RSI now: {display_value(rsi)}\n"
+                f"Anchor RSI: {display_value(anchor_rsi)}\n"
+                f"Anchor time: {display_value(anchor_time)}\n"
+                f"Price now: {display_value(price)}\n"
+                f"Anchor price: {display_value(anchor_price)}\n"
                 f"Detected: {display_value(detected_at)}\n"
-                f"Last seen: {display_value(last_seen_at)}\n"
-                f"V1 active: {'yes' if row.get('v1Active') else 'no'} | V2 active: {'yes' if row.get('v2Active') else 'no'}"
+                f"Last seen: {display_value(last_seen_at)}"
             ),
             "createdAt": now_iso,
             "source": "dashboard_matrix_v1_v2",
