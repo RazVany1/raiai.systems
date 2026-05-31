@@ -48,6 +48,15 @@ def display_value(value):
     return "-" if value is None else value
 
 
+def parse_iso(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except Exception:
+        return None
+
+
 def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[str, dict]:
     matrix: dict[str, dict] = {}
 
@@ -82,10 +91,23 @@ def build_version_matrix(v0_rows: list, v1_rows: list, v2_rows: list) -> dict[st
         existing[version] = True
         if version in {"v1", "v2"}:
             existing["v0"] = True
-        for field in ["rsi", "price", "detectedAt", "firstDetectedAt", "lastSeenAt", "anchorRsi", "anchorTime", "anchorPrice", "previousRsi"]:
-            if row.get(field) is not None:
-                existing[field] = row.get(field)
-        existing[f"{version}Active"] = bool(row.get("currentlyInZone"))
+
+        incoming_active = bool(row.get("currentlyInZone"))
+        existing_active = bool(existing.get("v1Active") or existing.get("v2Active"))
+        incoming_seen = parse_iso(row.get("lastSeenAt") or row.get("detectedAt") or row.get("firstDetectedAt"))
+        existing_seen = parse_iso(existing.get("lastSeenAt") or existing.get("detectedAt") or existing.get("firstDetectedAt"))
+        should_replace_fields = (
+            not existing_active and incoming_active
+            or existing_seen is None
+            or (incoming_seen is not None and existing_seen is not None and incoming_seen >= existing_seen)
+        )
+
+        if should_replace_fields:
+            for field in ["rsi", "price", "detectedAt", "firstDetectedAt", "lastSeenAt", "anchorRsi", "anchorTime", "anchorPrice", "previousRsi"]:
+                if row.get(field) is not None:
+                    existing[field] = row.get(field)
+
+        existing[f"{version}Active"] = incoming_active
         matrix[key] = existing
 
     for row in v0_rows:

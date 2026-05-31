@@ -146,6 +146,12 @@ function formatCompactDate(value?: string | null) {
   return `${date} ${time}`;
 }
 
+function parseIsoDate(value?: string | null) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function shortSide(side?: string | null) {
   if (!side) return "-";
   return side === "SHORT" ? "S" : side === "LONG" ? "L" : side.charAt(0).toUpperCase();
@@ -360,7 +366,7 @@ export default function CryptoDashboardPage() {
     const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
       const key = `${row.symbol}:${row.zone}`;
       const existing = rows.get(key);
-      const next = existing || {
+      const next: any = existing || {
         key,
         symbol: row.symbol,
         zone: row.zone,
@@ -375,17 +381,34 @@ export default function CryptoDashboardPage() {
         anchorTime: row.anchorTime ?? null,
         anchorPrice: row.anchorPrice ?? null,
         serialNumber: row.serialNumber,
+        v0Active: false,
+        v1Active: false,
+        v2Active: false,
       };
       next[version] = true;
       if (version === "v1" || version === "v2") next.v0 = true;
-      next.rsi = row.rsi;
-      next.price = row.price;
-      next.detectedAt = row.detectedAt;
-      if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
-      if (row.previousRsi != null) next.previousRsi = row.previousRsi;
-      if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
-      if (row.anchorTime != null) next.anchorTime = row.anchorTime;
-      if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
+
+      const incomingActive = Boolean(row.currentlyInZone);
+      const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active);
+      const incomingSeen = parseIsoDate(row.lastSeenAt ?? row.detectedAt ?? row.firstDetectedAt);
+      const existingSeen = parseIsoDate((next as any).lastSeenAt ?? next.detectedAt);
+      const shouldReplaceFields = (!existingActive && incomingActive)
+        || !existingSeen
+        || (!!incomingSeen && incomingSeen >= existingSeen);
+
+      if (shouldReplaceFields) {
+        next.rsi = row.rsi;
+        next.price = row.price;
+        next.detectedAt = row.detectedAt;
+        (next as any).lastSeenAt = row.lastSeenAt ?? null;
+        if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
+        if (row.previousRsi != null) next.previousRsi = row.previousRsi;
+        if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
+        if (row.anchorTime != null) next.anchorTime = row.anchorTime;
+        if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
+      }
+
+      (next as any)[`${version}Active`] = incomingActive;
       rows.set(key, next);
     };
 

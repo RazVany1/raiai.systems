@@ -690,7 +690,7 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, look
                 return {
                     "anchorRsi": round(float(best_value), 2),
                     "anchorTime": datetime.fromtimestamp(int(klines[best_index][0]) / 1000, tz=timezone.utc).isoformat(),
-                    "anchorPrice": round(float(klines[best_index][4]), 6) if len(klines[best_index]) > 4 and klines[best_index][4] is not None else None,
+                    "anchorPrice": round(float(klines[best_index][2]), 6) if len(klines[best_index]) > 2 and klines[best_index][2] is not None else None,
                 }
 
     elif zone == "lower_interest":
@@ -706,7 +706,7 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, look
                 return {
                     "anchorRsi": round(float(best_value), 2),
                     "anchorTime": datetime.fromtimestamp(int(klines[best_index][0]) / 1000, tz=timezone.utc).isoformat(),
-                    "anchorPrice": round(float(klines[best_index][4]), 6) if len(klines[best_index]) > 4 and klines[best_index][4] is not None else None,
+                    "anchorPrice": round(float(klines[best_index][3]), 6) if len(klines[best_index]) > 3 and klines[best_index][3] is not None else None,
                 }
 
     return {"anchorRsi": None, "anchorTime": None, "anchorPrice": None}
@@ -1003,17 +1003,29 @@ def main():
         try:
             klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
             opens, highs, lows, closes = layer.extract_ohlc(klines)
-            rsi = layer.compute_rsi(closes)
-            ema20_scan = ema(closes, 20)
-            ema50_scan = ema(closes, 50)
-            atr_scan = atr(highs, lows, closes, 14)
+            live_price = fetch_hyper_price(symbol)
+            price = live_price if isinstance(live_price, (int, float)) else (closes[-1] if closes else None)
+
+            live_closes = list(closes)
+            live_highs = list(highs)
+            live_lows = list(lows)
+            if live_closes and isinstance(price, (int, float)):
+                live_closes[-1] = float(price)
+                if live_highs:
+                    live_highs[-1] = max(float(live_highs[-1]), float(price))
+                if live_lows:
+                    live_lows[-1] = min(float(live_lows[-1]), float(price))
+
+            rsi = layer.compute_rsi(live_closes)
+            ema20_scan = ema(live_closes, 20)
+            ema50_scan = ema(live_closes, 50)
+            atr_scan = atr(live_highs, live_lows, live_closes, 14)
             last_rsi = rsi[-1]
             prev_rsi = rsi[-2] if len(rsi) > 1 else None
             if last_rsi is None:
                 continue
-            price = fetch_hyper_price(symbol)
-            detected_at = datetime.fromtimestamp(int(klines[-1][0]) / 1000, tz=timezone.utc).isoformat()
-            last_close = closes[-1] if closes else None
+            detected_at = updated_at
+            last_close = live_closes[-1] if live_closes else None
             last_ema20 = ema20_scan[-1] if ema20_scan else None
             last_ema50 = ema50_scan[-1] if ema50_scan else None
             dist_ema20_pct = None
@@ -1026,8 +1038,8 @@ def main():
             market_scan_map[symbol] = {
                 "rsi4h": float(last_rsi),
                 "open4h": opens[-1] if opens else None,
-                "high4h": highs[-1] if highs else None,
-                "low4h": lows[-1] if lows else None,
+                "high4h": live_highs[-1] if live_highs else None,
+                "low4h": live_lows[-1] if live_lows else None,
                 "close4h": last_close,
                 "volume4h": float(klines[-1][5]) if len(klines[-1]) > 5 else None,
                 "ema20_4h": last_ema20,
@@ -1095,7 +1107,7 @@ def main():
                     "previousRsi": round(float(prev_rsi), 2) if isinstance(prev_rsi, (int, float)) else None,
                 })
 
-            formation_rows.extend(detect_hl_lh_scanner(symbol, klines, closes, highs, lows, rsi))
+            formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi))
 
             trend_rows.append(detect_market_direction(symbol, layer))
         except Exception as exc:
