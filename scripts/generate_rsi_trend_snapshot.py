@@ -715,7 +715,13 @@ def find_prior_rsi_anchor(rsi: list[float | None], klines: list, zone: str, look
     return {"anchorRsi": None, "anchorTime": None, "anchorPrice": None}
 
 
-def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
+def detect_v2_zone_entry(
+    rsi: list[float | None],
+    min_impulse: float = 0.0,
+    origin_lookback_bars: int | None = None,
+    lower_origin_min: float | None = None,
+    upper_origin_max: float | None = None,
+) -> str | None:
     if len(rsi) < 3:
         return None
 
@@ -725,7 +731,22 @@ def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
     if last_rsi is None or prev_rsi is None or prev_prev_rsi is None:
         return None
 
-    if 28 <= last_rsi <= 32 and last_rsi < prev_rsi and prev_rsi < prev_prev_rsi:
+    lower_impulse_ok = (float(prev_prev_rsi) - float(last_rsi)) >= float(min_impulse)
+    upper_impulse_ok = (float(last_rsi) - float(prev_prev_rsi)) >= float(min_impulse)
+
+    recent_window = []
+    if origin_lookback_bars and origin_lookback_bars > 0:
+        recent_window = [value for value in rsi[-origin_lookback_bars:] if value is not None]
+
+    lower_origin_ok = True
+    if lower_origin_min is not None and recent_window:
+        lower_origin_ok = any(float(value) >= float(lower_origin_min) for value in recent_window)
+
+    upper_origin_ok = True
+    if upper_origin_max is not None and recent_window:
+        upper_origin_ok = any(float(value) <= float(upper_origin_max) for value in recent_window)
+
+    if 28 <= last_rsi <= 32 and last_rsi < prev_rsi and prev_rsi < prev_prev_rsi and lower_impulse_ok and lower_origin_ok:
         start = len(rsi) - 1
         while start > 0:
             value = rsi[start - 1]
@@ -736,7 +757,7 @@ def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
         if prior_value is not None and prior_value > 32:
             return "lower_interest"
 
-    if 68 <= last_rsi <= 72 and last_rsi > prev_rsi and prev_rsi > prev_prev_rsi:
+    if 68 <= last_rsi <= 72 and last_rsi > prev_rsi and prev_rsi > prev_prev_rsi and upper_impulse_ok and upper_origin_ok:
         start = len(rsi) - 1
         while start > 0:
             value = rsi[start - 1]
@@ -1180,7 +1201,13 @@ def main():
                         "sourceVenue": "hyper",
                     })
 
-                v2_zone_1h = detect_v2_zone_entry(rsi_1h)
+                v2_zone_1h = detect_v2_zone_entry(
+                    rsi_1h,
+                    min_impulse=2.0,
+                    origin_lookback_bars=8,
+                    lower_origin_min=40.0,
+                    upper_origin_max=60.0,
+                )
                 if v2_zone_1h:
                     v2_interest_rows_1h.append({
                         "symbol": symbol,
