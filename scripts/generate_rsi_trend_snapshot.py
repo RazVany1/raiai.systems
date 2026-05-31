@@ -47,9 +47,11 @@ RSI_INTEREST_V0_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-int
 RSI_INTEREST_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-state.json")
 RSI_INTEREST_V2_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-zones-v2.json")
 RSI_INTEREST_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-v2-state.json")
+RSI_INTEREST_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-v3-state.json")
 RSI_INTEREST_1H_V0_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v0-state.json")
 RSI_INTEREST_1H_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-state.json")
 RSI_INTEREST_1H_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v2-state.json")
+RSI_INTEREST_1H_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v3-state.json")
 PAPER_POSITIONS_ENABLED = False
 
 
@@ -356,10 +358,11 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
     }
 
 
-def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3, price_cache: dict[str, float] | None = None) -> dict:
-    klines_4h = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
+def detect_market_direction(symbol: str, layer: RAICryptoSignalOutputLayerV3, price_cache: dict[str, float] | None = None, kline_cache: dict[tuple[str, str, int], list] | None = None) -> dict:
+    cache = kline_cache if isinstance(kline_cache, dict) else {}
+    klines_4h = get_klines_cached(layer, cache, symbol, "4h", 300)
     _, highs_4h, lows_4h, closes_4h = layer.extract_ohlc(klines_4h)
-    klines_1d = layer.fetch_binance_klines(symbol=symbol, interval="1d", limit=300)
+    klines_1d = get_klines_cached(layer, cache, symbol, "1d", 300)
     _, highs_1d, lows_1d, closes_1d = layer.extract_ohlc(klines_1d)
 
     ema20_4h = ema(closes_4h, 20)
@@ -897,6 +900,19 @@ def load_json(path: Path, fallback):
         return fallback
 
 
+def get_klines_cached(
+    layer: RAICryptoSignalOutputLayerV3,
+    cache: dict[tuple[str, str, int], list],
+    symbol: str,
+    interval: str,
+    limit: int = 300,
+) -> list:
+    key = (symbol, interval, limit)
+    if key not in cache:
+        cache[key] = layer.fetch_binance_klines(symbol=symbol, interval=interval, limit=limit)
+    return cache[key]
+
+
 def rounded(value, digits: int = 6):
     if isinstance(value, (int, float)):
         return round(float(value), digits)
@@ -1028,9 +1044,11 @@ def main():
     v0_interest_rows = []
     interest_rows = []
     v2_interest_rows = []
+    v3_interest_rows = []
     v0_interest_rows_1h = []
     interest_rows_1h = []
     v2_interest_rows_1h = []
+    v3_interest_rows_1h = []
     formation_rows = []
     trend_rows = []
     market_scan_map = {}
@@ -1039,6 +1057,7 @@ def main():
         price_cache = fetch_hyper_meta_and_prices()
     except Exception:
         price_cache = {}
+    kline_cache: dict[tuple[str, str, int], list] = {}
     formation_state = load_json(FORMATION_STATE_PATH, {"confirmed": {}})
     confirmed_state = formation_state.get("confirmed", {}) if isinstance(formation_state.get("confirmed"), dict) else {}
     interest_v0_state = load_json(RSI_INTEREST_V0_STATE_PATH, {"rows": {}})
@@ -1047,16 +1066,20 @@ def main():
     saved_interest_rows = interest_state.get("rows", {}) if isinstance(interest_state.get("rows"), dict) else {}
     interest_v2_state = load_json(RSI_INTEREST_V2_STATE_PATH, {"rows": {}})
     saved_v2_interest_rows = interest_v2_state.get("rows", {}) if isinstance(interest_v2_state.get("rows"), dict) else {}
+    interest_v3_state = load_json(RSI_INTEREST_V3_STATE_PATH, {"rows": {}})
+    saved_v3_interest_rows = interest_v3_state.get("rows", {}) if isinstance(interest_v3_state.get("rows"), dict) else {}
     interest_1h_v0_state = load_json(RSI_INTEREST_1H_V0_STATE_PATH, {"rows": {}})
     saved_v0_interest_rows_1h = interest_1h_v0_state.get("rows", {}) if isinstance(interest_1h_v0_state.get("rows"), dict) else {}
     interest_1h_state = load_json(RSI_INTEREST_1H_STATE_PATH, {"rows": {}})
     saved_interest_rows_1h = interest_1h_state.get("rows", {}) if isinstance(interest_1h_state.get("rows"), dict) else {}
     interest_1h_v2_state = load_json(RSI_INTEREST_1H_V2_STATE_PATH, {"rows": {}})
     saved_v2_interest_rows_1h = interest_1h_v2_state.get("rows", {}) if isinstance(interest_1h_v2_state.get("rows"), dict) else {}
+    interest_1h_v3_state = load_json(RSI_INTEREST_1H_V3_STATE_PATH, {"rows": {}})
+    saved_v3_interest_rows_1h = interest_1h_v3_state.get("rows", {}) if isinstance(interest_1h_v3_state.get("rows"), dict) else {}
 
     for symbol in SYMBOLS:
         try:
-            klines = layer.fetch_binance_klines(symbol=symbol, interval="4h", limit=300)
+            klines = get_klines_cached(layer, kline_cache, symbol, "4h", 300)
             opens, highs, lows, closes = layer.extract_ohlc(klines)
             live_price = price_cache.get(symbol) if isinstance(price_cache.get(symbol), (int, float)) else fetch_hyper_price(symbol)
             price = live_price if isinstance(live_price, (int, float)) else (closes[-1] if closes else None)
@@ -1146,7 +1169,7 @@ def main():
                     "sourceVenue": "hyper",
                 })
 
-            v2_zone = detect_v2_zone_entry(rsi)
+            v2_zone = detect_v2_zone_entry_from_anchor(rsi, zone, anchor.get("anchorIndex")) if zone else None
             if v2_zone:
                 v2_interest_rows.append({
                     "symbol": symbol,
@@ -1154,15 +1177,38 @@ def main():
                     "price": price,
                     "zone": v2_zone,
                     "detectedAt": detected_at,
-                    "anchorRsi": None,
-                    "anchorTime": None,
-                    "anchorPrice": None,
+                    "anchorRsi": anchor.get("anchorRsi"),
+                    "anchorTime": anchor.get("anchorTime"),
+                    "anchorPrice": anchor.get("anchorPrice"),
                     "timeframe": "4h",
                     "sourceVenue": "hyper",
                     "previousRsi": round(float(prev_rsi), 2) if isinstance(prev_rsi, (int, float)) else None,
                 })
 
-            klines_1h = layer.fetch_binance_klines(symbol=symbol, interval="1h", limit=300)
+                anchor_price = anchor.get("anchorPrice")
+                v3_price_ok = False
+                if isinstance(price, (int, float)) and isinstance(anchor_price, (int, float)):
+                    if v2_zone == "upper_interest":
+                        v3_price_ok = float(price) > float(anchor_price)
+                    elif v2_zone == "lower_interest":
+                        v3_price_ok = float(price) < float(anchor_price)
+
+                if v3_price_ok:
+                    v3_interest_rows.append({
+                        "symbol": symbol,
+                        "rsi": round(float(last_rsi), 2),
+                        "price": price,
+                        "zone": v2_zone,
+                        "detectedAt": detected_at,
+                        "anchorRsi": anchor.get("anchorRsi"),
+                        "anchorTime": anchor.get("anchorTime"),
+                        "anchorPrice": anchor_price,
+                        "timeframe": "4h",
+                        "sourceVenue": "hyper",
+                        "previousRsi": round(float(prev_rsi), 2) if isinstance(prev_rsi, (int, float)) else None,
+                    })
+
+            klines_1h = get_klines_cached(layer, kline_cache, symbol, "1h", 300)
             _, highs_1h, lows_1h, closes_1h = layer.extract_ohlc(klines_1h)
             live_closes_1h = list(closes_1h)
             live_highs_1h = list(highs_1h)
@@ -1227,17 +1273,40 @@ def main():
                         "price": price,
                         "zone": v2_zone_1h,
                         "detectedAt": detected_at,
-                        "anchorRsi": None,
-                        "anchorTime": None,
-                        "anchorPrice": None,
+                        "anchorRsi": anchor_1h.get("anchorRsi"),
+                        "anchorTime": anchor_1h.get("anchorTime"),
+                        "anchorPrice": anchor_1h.get("anchorPrice"),
                         "timeframe": "1h",
                         "sourceVenue": "hyper",
                         "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
                     })
 
+                    anchor_price_1h = anchor_1h.get("anchorPrice")
+                    v3_price_ok = False
+                    if isinstance(price, (int, float)) and isinstance(anchor_price_1h, (int, float)):
+                        if v2_zone_1h == "upper_interest":
+                            v3_price_ok = float(price) > float(anchor_price_1h)
+                        elif v2_zone_1h == "lower_interest":
+                            v3_price_ok = float(price) < float(anchor_price_1h)
+
+                    if v3_price_ok:
+                        v3_interest_rows_1h.append({
+                            "symbol": symbol,
+                            "rsi": round(float(last_rsi_1h), 2),
+                            "price": price,
+                            "zone": v2_zone_1h,
+                            "detectedAt": detected_at,
+                            "anchorRsi": anchor_1h.get("anchorRsi"),
+                            "anchorTime": anchor_1h.get("anchorTime"),
+                            "anchorPrice": anchor_price_1h,
+                            "timeframe": "1h",
+                            "sourceVenue": "hyper",
+                            "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
+                        })
+
             formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi, price_cache))
 
-            trend_rows.append(detect_market_direction(symbol, layer, price_cache))
+            trend_rows.append(detect_market_direction(symbol, layer, price_cache, kline_cache))
         except Exception as exc:
             trend_rows.append({
                 "symbol": symbol,
@@ -1337,6 +1406,28 @@ def main():
             "currentlyInZone": False,
         }
 
+    current_v3_interest_map = {}
+    for row in v3_interest_rows:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_v3_interest_rows.get(key, {}) if isinstance(saved_v3_interest_rows.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_v3_interest_map[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_v3_interest_map = dict(current_v3_interest_map)
+    for key, saved in saved_v3_interest_rows.items():
+        if key in retained_v3_interest_map or not isinstance(saved, dict):
+            continue
+        retained_v3_interest_map[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
     v0_interest_rows = sorted(
         retained_v0_interest_map.values(),
         key=lambda row: (
@@ -1359,6 +1450,16 @@ def main():
 
     v2_interest_rows = sorted(
         retained_v2_interest_map.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
+    v3_interest_rows = sorted(
+        retained_v3_interest_map.values(),
         key=lambda row: (
             0 if row.get("currentlyInZone") else 1,
             row.get("firstDetectedAt", row.get("detectedAt", "")),
@@ -1433,6 +1534,28 @@ def main():
             "currentlyInZone": False,
         }
 
+    current_v3_interest_map_1h = {}
+    for row in v3_interest_rows_1h:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_v3_interest_rows_1h.get(key, {}) if isinstance(saved_v3_interest_rows_1h.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_v3_interest_map_1h[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_v3_interest_map_1h = dict(current_v3_interest_map_1h)
+    for key, saved in saved_v3_interest_rows_1h.items():
+        if key in retained_v3_interest_map_1h or not isinstance(saved, dict):
+            continue
+        retained_v3_interest_map_1h[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
     v0_interest_rows_1h = sorted(
         retained_v0_interest_map_1h.values(),
         key=lambda row: (
@@ -1455,6 +1578,16 @@ def main():
 
     v2_interest_rows_1h = sorted(
         retained_v2_interest_map_1h.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
+    v3_interest_rows_1h = sorted(
+        retained_v3_interest_map_1h.values(),
         key=lambda row: (
             0 if row.get("currentlyInZone") else 1,
             row.get("firstDetectedAt", row.get("detectedAt", "")),
@@ -1803,9 +1936,11 @@ def main():
         "nextScanAt": next_scan_at,
         "openPaperPositions": paper_positions,
         "interestRows": interest_rows,
+        "v3InterestRows": v3_interest_rows,
         "v0InterestRows1h": v0_interest_rows_1h,
         "interestRows1h": interest_rows_1h,
         "v2InterestRows1h": v2_interest_rows_1h,
+        "v3InterestRows1h": v3_interest_rows_1h,
         "formationRows": formation_rows,
         "trendRows": trend_rows,
         "btcContextRows": btc_context_rows,
@@ -1819,9 +1954,11 @@ def main():
     RSI_INTEREST_V0_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v0_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_V2_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v2_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_V3_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v3_interest_map}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1H_V0_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v0_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1H_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1H_V2_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v2_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_1H_V3_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v3_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
     if PAPER_POSITIONS_ENABLED:
         append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)

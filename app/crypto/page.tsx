@@ -204,10 +204,10 @@ function trendBadgeClasses(trend: string) {
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
-function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[], v2Rows: InterestRow[]) {
+function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[], v2Rows: InterestRow[], v3Rows: InterestRow[] = []) {
   const rows = new Map<string, any>();
 
-  const upsert = (row: InterestRow, version: "v0" | "v1" | "v2") => {
+  const upsert = (row: InterestRow, version: "v0" | "v1" | "v2" | "v3") => {
     const key = `${row.symbol}:${row.zone}`;
     const existing = rows.get(key);
     const next: any = existing || {
@@ -220,6 +220,7 @@ function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[
       v0: false,
       v1: false,
       v2: false,
+      v3: false,
       previousRsi: row.previousRsi ?? null,
       anchorRsi: row.anchorRsi ?? null,
       anchorTime: row.anchorTime ?? null,
@@ -228,12 +229,13 @@ function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[
       v0Active: false,
       v1Active: false,
       v2Active: false,
+      v3Active: false,
     };
     next[version] = true;
-    if (version === "v1" || version === "v2") next.v0 = true;
+    if (version === "v1" || version === "v2" || version === "v3") next.v0 = true;
 
     const incomingActive = Boolean(row.currentlyInZone);
-    const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active);
+    const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active || next.v3Active);
     const incomingSeen = parseIsoDate(row.lastSeenAt ?? row.detectedAt ?? row.firstDetectedAt);
     const existingSeen = parseIsoDate(next.lastSeenAt ?? next.detectedAt);
     const shouldReplaceFields = (!existingActive && incomingActive)
@@ -259,6 +261,7 @@ function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[
   v0Rows.forEach((row) => upsert(row, "v0"));
   v1Rows.forEach((row) => upsert(row, "v1"));
   v2Rows.forEach((row) => upsert(row, "v2"));
+  v3Rows.forEach((row) => upsert(row, "v3"));
 
   return [...rows.values()];
 }
@@ -280,9 +283,11 @@ export default function CryptoDashboardPage() {
   const [v0InterestRows, setV0InterestRows] = useState<InterestRow[]>([]);
   const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
+  const [v3InterestRows, setV3InterestRows] = useState<InterestRow[]>([]);
   const [v0InterestRows1h, setV0InterestRows1h] = useState<InterestRow[]>([]);
   const [interestRows1h, setInterestRows1h] = useState<InterestRow[]>([]);
   const [v2InterestRows1h, setV2InterestRows1h] = useState<InterestRow[]>([]);
+  const [v3InterestRows1h, setV3InterestRows1h] = useState<InterestRow[]>([]);
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
@@ -304,9 +309,11 @@ export default function CryptoDashboardPage() {
         setV0InterestRows(data.v0InterestRows || []);
         setInterestRows(data.interestRows || []);
         setV2InterestRows(data.v2InterestRows || []);
+        setV3InterestRows(data.v3InterestRows || []);
         setV0InterestRows1h(data.v0InterestRows1h || []);
         setInterestRows1h(data.interestRows1h || []);
         setV2InterestRows1h(data.v2InterestRows1h || []);
+        setV3InterestRows1h(data.v3InterestRows1h || []);
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
         setBtcContextRows(data.btcContextRows || []);
@@ -319,9 +326,11 @@ export default function CryptoDashboardPage() {
         setV0InterestRows([]);
         setInterestRows([]);
         setV2InterestRows([]);
+        setV3InterestRows([]);
         setV0InterestRows1h([]);
         setInterestRows1h([]);
         setV2InterestRows1h([]);
+        setV3InterestRows1h([]);
         setFormationRows([]);
         setTrendRows([]);
         setBtcContextRows([]);
@@ -413,9 +422,9 @@ export default function CryptoDashboardPage() {
     });
   }, [trendRows]);
 
-  const versionSummaryBaseRows = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows, interestRows, v2InterestRows), [v0InterestRows, interestRows, v2InterestRows]);
+  const versionSummaryBaseRows = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows, interestRows, v2InterestRows, v3InterestRows), [v0InterestRows, interestRows, v2InterestRows, v3InterestRows]);
 
-  const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h]);
+  const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h]);
 
   useEffect(() => {
     try {
@@ -473,8 +482,8 @@ export default function CryptoDashboardPage() {
         const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
         const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
         if (aSerial !== bSerial) return bSerial - aSerial;
-        const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
         if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
         return a.symbol.localeCompare(b.symbol);
       });
@@ -490,8 +499,8 @@ export default function CryptoDashboardPage() {
         const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
         const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
         if (aSerial !== bSerial) return bSerial - aSerial;
-        const versionScoreA = (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
         if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
         return a.symbol.localeCompare(b.symbol);
       });
@@ -519,7 +528,7 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">S4h — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 pe aceeași monedă</span>
+            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
@@ -534,6 +543,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">V0</th>
                   <th className="px-4 py-3 text-left">V1</th>
                   <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">V3</th>
                   <th className="px-4 py-3 text-left">Anchor RSI</th>
                   <th className="px-4 py-3 text-left">Anchor price</th>
                   <th className="px-4 py-3 text-left">Anchor time</th>
@@ -543,7 +553,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={14} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
@@ -557,6 +567,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
@@ -572,7 +583,7 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">S1h — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 pe aceeași monedă</span>
+            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
@@ -587,6 +598,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">V0</th>
                   <th className="px-4 py-3 text-left">V1</th>
                   <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">V3</th>
                   <th className="px-4 py-3 text-left">Anchor RSI</th>
                   <th className="px-4 py-3 text-left">Anchor price</th>
                   <th className="px-4 py-3 text-left">Anchor time</th>
@@ -596,7 +608,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows1h.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
+                    <td colSpan={14} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows1h.map((row) => (
@@ -610,6 +622,7 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
                       <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
