@@ -52,7 +52,8 @@ RSI_INTEREST_1H_V0_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-
 RSI_INTEREST_1H_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-state.json")
 RSI_INTEREST_1H_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v2-state.json")
 RSI_INTEREST_1H_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v3-state.json")
-PAPER_POSITIONS_ENABLED = False
+PAPER_POSITIONS_ENABLED = True
+PAPER_POSITIONS_ENTRY_MODE = "v3"
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -1663,31 +1664,67 @@ def main():
         paper_positions = []
         handled_entry_keys = set()
         exit_signal_cache = {}
+        entry_candidates = []
 
-        for row in formation_rows:
+        if PAPER_POSITIONS_ENTRY_MODE == "v3":
+            for system_name, rows in (("S4h", v3_interest_rows), ("S1h", v3_interest_rows_1h)):
+                for row in rows:
+                    if not isinstance(row, dict) or not row.get("currentlyInZone"):
+                        continue
+                    zone = row.get("zone")
+                    side = "LONG" if zone == "upper_interest" else "SHORT" if zone == "lower_interest" else None
+                    price = row.get("price")
+                    if side is None or not isinstance(price, (int, float)):
+                        continue
+                    detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
+                    if not detected_at:
+                        continue
+                    entry_candidates.append({
+                        "symbol": row.get("symbol"),
+                        "side": side,
+                        "state": "confirmed",
+                        "confirmedAt": detected_at,
+                        "detectedAt": row.get("detectedAt") or detected_at,
+                        "price": price,
+                        "formationType": "RSI_V3",
+                        "entrySignal": "RSI_V3",
+                        "entrySystem": system_name,
+                        "signalZone": zone,
+                        "anchorRsi": row.get("anchorRsi"),
+                        "anchorTime": row.get("anchorTime"),
+                        "anchorPrice": row.get("anchorPrice"),
+                        "previousRsi": row.get("previousRsi"),
+                    })
+        else:
+            entry_candidates = formation_rows
+
+        for row in entry_candidates:
             symbol = row.get("symbol")
             side = row.get("side")
             state = row.get("state")
             trend = trend_map.get(symbol)
             if not trend:
                 continue
-            long_allowed = (
-                trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"}
-                and trend.get("tradePermission") == "LONG ONLY"
-                and trend.get("marketStructure") == "bullish HH/HL"
-                and trend.get("emaDirection4h") == "bullish"
-                and trend.get("dailyBias") == "bullish"
-                and not btc_long_blocked
-            )
-            short_allowed = (
-                trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"}
-                and trend.get("tradePermission") == "SHORT ONLY"
-                and trend.get("marketStructure") == "bearish LH/LL"
-                and trend.get("emaDirection4h") == "bearish"
-                and trend.get("dailyBias") == "bearish"
-                and not btc_short_blocked
-            )
-            allowed = (side == "LONG" and long_allowed) or (side == "SHORT" and short_allowed)
+            if PAPER_POSITIONS_ENTRY_MODE == "v3":
+                allowed = True
+            else:
+                long_allowed = (
+                    trend.get("finalMarketDirection") in {"STRONG BULLISH", "MODERATE BULLISH"}
+                    and trend.get("tradePermission") == "LONG ONLY"
+                    and trend.get("marketStructure") == "bullish HH/HL"
+                    and trend.get("emaDirection4h") == "bullish"
+                    and trend.get("dailyBias") == "bullish"
+                    and not btc_long_blocked
+                )
+                short_allowed = (
+                    trend.get("finalMarketDirection") in {"STRONG BEARISH", "MODERATE BEARISH"}
+                    and trend.get("tradePermission") == "SHORT ONLY"
+                    and trend.get("marketStructure") == "bearish LH/LL"
+                    and trend.get("emaDirection4h") == "bearish"
+                    and trend.get("dailyBias") == "bearish"
+                    and not btc_short_blocked
+                )
+                allowed = (side == "LONG" and long_allowed) or (side == "SHORT" and short_allowed)
             if state not in {"forming", "confirmed"} or not allowed:
                 continue
 
@@ -1721,7 +1758,8 @@ def main():
                     max_pl = max(max_pl, current_pl)
                     min_pl = min(min_pl, current_pl)
                 exit_signals = exit_signal_cache.get(signal_key, {})
-                exit_state = apply_exit_management(existing, side, entry_price, row, trend, updated_at, exit_signals)
+                formation_context = None if existing.get("entrySignal") == "RSI_V3" else row
+                exit_state = apply_exit_management(existing, side, entry_price, formation_context, trend, updated_at, exit_signals)
                 paper_positions.append({
                     **existing,
                     "lastSeenAt": updated_at,
@@ -1730,6 +1768,13 @@ def main():
                     "tradePermission": trend.get("tradePermission"),
                     "invalidationLevel": trend.get("invalidationLevel"),
                     "entryState": existing.get("entryState", state),
+                    "entrySignal": existing.get("entrySignal", row.get("entrySignal")),
+                    "entrySystem": existing.get("entrySystem", row.get("entrySystem")),
+                    "signalZone": existing.get("signalZone", row.get("signalZone")),
+                    "anchorRsi": existing.get("anchorRsi", row.get("anchorRsi")),
+                    "anchorTime": existing.get("anchorTime", row.get("anchorTime")),
+                    "anchorPrice": existing.get("anchorPrice", row.get("anchorPrice")),
+                    "previousRsi": row.get("previousRsi", existing.get("previousRsi")),
                     **exit_state,
                     "exitSignals": exit_signals,
                     "maxPlPercent": max_pl,
@@ -1742,6 +1787,13 @@ def main():
                     "entryPrice": entry_price,
                     "entryAt": entry_time,
                     "entryState": state,
+                    "entrySignal": row.get("entrySignal"),
+                    "entrySystem": row.get("entrySystem"),
+                    "signalZone": row.get("signalZone"),
+                    "anchorRsi": row.get("anchorRsi"),
+                    "anchorTime": row.get("anchorTime"),
+                    "anchorPrice": row.get("anchorPrice"),
+                    "previousRsi": row.get("previousRsi"),
                     "trendDirection": trend.get("finalMarketDirection"),
                     "tradePermission": trend.get("tradePermission"),
                     "invalidationLevel": trend.get("invalidationLevel"),
@@ -1768,7 +1820,7 @@ def main():
                 continue
             symbol, side, _entry_at = key
             trend = trend_map.get(symbol)
-            formation = formation_map.get((symbol, side))
+            formation = None if existing.get("entrySignal") == "RSI_V3" else formation_map.get((symbol, side))
             current_price = trend.get("price") if trend else existing.get("currentPrice")
             invalidation_level = existing.get("invalidationLevel")
             if trend and trend.get("invalidationLevel") is not None:

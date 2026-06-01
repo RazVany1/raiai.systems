@@ -127,17 +127,17 @@ def main():
     state = load_json(STATE_PATH, {"active": {}, "lastSent": {}})
     active = state.get("active", {}) if isinstance(state.get("active"), dict) else {}
     last_sent = state.get("lastSent", {}) if isinstance(state.get("lastSent"), dict) else {}
-    v0_rows = v0_data.get("interestRows", []) if isinstance(v0_data, dict) else []
-    v1_rows = dashboard.get("interestRows", []) if isinstance(dashboard, dict) else []
-    v2_rows = v2_data.get("interestRows", []) if isinstance(v2_data, dict) else []
-    v0_rows_1h = dashboard.get("v0InterestRows1h", []) if isinstance(dashboard, dict) else []
-    v1_rows_1h = dashboard.get("interestRows1h", []) if isinstance(dashboard, dict) else []
-    v2_rows_1h = dashboard.get("v2InterestRows1h", []) if isinstance(dashboard, dict) else []
+    v3_rows = dashboard.get("v3InterestRows", []) if isinstance(dashboard, dict) else []
+    v3_rows_1h = dashboard.get("v3InterestRows1h", []) if isinstance(dashboard, dict) else []
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    version_matrix = {}
-    version_matrix.update(build_version_matrix(v0_rows, v1_rows, v2_rows, "S4h"))
-    version_matrix.update(build_version_matrix(v0_rows_1h, v1_rows_1h, v2_rows_1h, "S1h"))
+    active_v3_rows = []
+    for row in v3_rows:
+        if isinstance(row, dict) and row.get("currentlyInZone"):
+            active_v3_rows.append(("S4h", row))
+    for row in v3_rows_1h:
+        if isinstance(row, dict) and row.get("currentlyInZone"):
+            active_v3_rows.append(("S1h", row))
 
     current_active = {}
     alerts = []
@@ -145,13 +145,7 @@ def main():
     sent_keys = set(delivered.get("sent", [])) if isinstance(delivered.get("sent", []), list) else set()
     history = delivered.get("history", []) if isinstance(delivered.get("history"), list) else []
 
-    for key, row in version_matrix.items():
-        if not (row.get("v1") and row.get("v2")):
-            continue
-        if not (row.get("v1Active") or row.get("v2Active")):
-            continue
-
-        system = row.get("system") or "S4h"
+    for system, row in active_v3_rows:
         symbol = row.get("symbol")
         zone = row.get("zone")
         detected_at = row.get("detectedAt") or row.get("firstDetectedAt")
@@ -160,13 +154,12 @@ def main():
         last_seen_at = row.get("lastSeenAt")
         price = row.get("price")
         anchor_rsi = row.get("anchorRsi")
-        anchor_time = row.get("anchorTime")
         anchor_price = row.get("anchorPrice")
+        previous_rsi = row.get("previousRsi")
+        key = f"{system}:{symbol}:{zone}"
         instance_key = f"{system}:{symbol}:{zone}:{detected_at}"
 
-        if zone in {"upper_interest", "lower_interest"}:
-            if not anchor_time:
-                continue
+        if zone in {"upper_interest", "lower_interest"} and anchor_time:
             try:
                 anchor_dt = datetime.fromisoformat(anchor_time)
             except Exception:
@@ -183,7 +176,7 @@ def main():
             "rsi": rsi,
             "price": price,
             "instanceKey": instance_key,
-            "source": "dashboard_matrix_v1_v2",
+            "source": "dashboard_v3",
         }
 
         already_sent_for_instance = instance_key in sent_keys
@@ -203,17 +196,16 @@ def main():
             "anchorRsi": anchor_rsi,
             "anchorTime": anchor_time,
             "anchorPrice": anchor_price,
-            "v1": True,
-            "v2": True,
-            "v1Active": bool(row.get("v1Active")),
-            "v2Active": bool(row.get("v2Active")),
+            "previousRsi": previous_rsi,
+            "v3": True,
             "instanceKey": instance_key,
-            "message": f"{system} | {symbol} qualifies for V1+V2 in {zone} at RSI {rsi}",
+            "message": f"{system} | {symbol} qualifies for V3 in {zone} at RSI {rsi}",
             "deliveryStatus": "telegram_sent" if already_sent_for_instance else "telegram_ready",
             "chatDeliveryText": (
-                f"RSI V1+V2 ALERT\n"
+                f"RSI V3 ALERT\n"
                 f"{system} | {symbol} | {zone}\n"
                 f"RSI now: {display_value(rsi)}\n"
+                f"Prev RSI: {display_value(previous_rsi)}\n"
                 f"Anchor RSI: {display_value(anchor_rsi)}\n"
                 f"Anchor time: {display_value(anchor_time)}\n"
                 f"Price now: {display_value(price)}\n"
@@ -222,7 +214,7 @@ def main():
                 f"Last seen: {display_value(last_seen_at)}"
             ),
             "createdAt": now_iso,
-            "source": "dashboard_matrix_v1_v2",
+            "source": "dashboard_v3",
         }
 
         if needs_send and send_telegram_message(alert["chatDeliveryText"]):
