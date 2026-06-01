@@ -730,26 +730,26 @@ def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
     if last_rsi is None or prev_rsi is None or prev_prev_rsi is None:
         return None
 
-    if 28 <= last_rsi <= 32 and last_rsi < prev_rsi and prev_rsi < prev_prev_rsi:
+    if 30 <= last_rsi <= 33 and last_rsi < prev_rsi and prev_rsi < prev_prev_rsi:
         start = len(rsi) - 1
         while start > 0:
             value = rsi[start - 1]
-            if value is None or not (28 <= value <= 32):
+            if value is None or not (30 <= value <= 33):
                 break
             start -= 1
         prior_value = rsi[start - 1] if start > 0 else None
-        if prior_value is not None and prior_value > 32:
+        if prior_value is not None and prior_value > 33:
             return "lower_interest"
 
-    if 68 <= last_rsi <= 72 and last_rsi > prev_rsi and prev_rsi > prev_prev_rsi:
+    if 67 <= last_rsi <= 70 and last_rsi > prev_rsi and prev_rsi > prev_prev_rsi:
         start = len(rsi) - 1
         while start > 0:
             value = rsi[start - 1]
-            if value is None or not (68 <= value <= 72):
+            if value is None or not (67 <= value <= 70):
                 break
             start -= 1
         prior_value = rsi[start - 1] if start > 0 else None
-        if prior_value is not None and prior_value < 68:
+        if prior_value is not None and prior_value < 67:
             return "upper_interest"
 
     return None
@@ -758,12 +758,13 @@ def detect_v2_zone_entry(rsi: list[float | None]) -> str | None:
 def detect_v2_zone_entry_from_anchor(rsi: list[float | None], zone: str, anchor_index: int | None) -> str | None:
     if anchor_index is None or anchor_index < 0 or anchor_index >= len(rsi):
         return None
-    if len(rsi) < 2:
+    if len(rsi) < 3:
         return None
 
     last_rsi = rsi[-1]
     prev_rsi = rsi[-2]
-    if last_rsi is None or prev_rsi is None:
+    prev_prev_rsi = rsi[-3]
+    if last_rsi is None or prev_rsi is None or prev_prev_rsi is None:
         return None
 
     segment = [value for value in rsi[anchor_index:len(rsi)] if value is not None]
@@ -771,20 +772,20 @@ def detect_v2_zone_entry_from_anchor(rsi: list[float | None], zone: str, anchor_
         return None
 
     if zone == "upper_interest":
-        if not (68 <= float(last_rsi) <= 72):
+        if not (67 <= float(last_rsi) <= 70):
             return None
         if not any(float(value) < 60.0 for value in segment[1:-1] if value is not None):
             return None
-        if not float(last_rsi) > float(prev_rsi):
+        if not (float(last_rsi) > float(prev_rsi) > float(prev_prev_rsi)):
             return None
         return "upper_interest"
 
     if zone == "lower_interest":
-        if not (28 <= float(last_rsi) <= 32):
+        if not (30 <= float(last_rsi) <= 33):
             return None
         if not any(float(value) > 40.0 for value in segment[1:-1] if value is not None):
             return None
-        if not float(last_rsi) < float(prev_rsi):
+        if not (float(last_rsi) < float(prev_rsi) < float(prev_prev_rsi)):
             return None
         return "lower_interest"
 
@@ -1130,9 +1131,9 @@ def main():
             }
 
             base_zone = None
-            if 28 <= last_rsi <= 32:
+            if 30 <= last_rsi <= 33:
                 base_zone = "lower_interest"
-            elif 68 <= last_rsi <= 72:
+            elif 67 <= last_rsi <= 70:
                 base_zone = "upper_interest"
 
             if base_zone:
@@ -1225,9 +1226,9 @@ def main():
             prev_rsi_1h = rsi_1h[-2] if len(rsi_1h) > 1 else None
             if last_rsi_1h is not None:
                 base_zone_1h = None
-                if 28 <= last_rsi_1h <= 32:
+                if 30 <= last_rsi_1h <= 33:
                     base_zone_1h = "lower_interest"
-                elif 68 <= last_rsi_1h <= 72:
+                elif 67 <= last_rsi_1h <= 70:
                     base_zone_1h = "upper_interest"
 
                 if base_zone_1h:
