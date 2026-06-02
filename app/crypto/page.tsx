@@ -320,10 +320,10 @@ function versionBadge(active: boolean, label: string) {
 
 function entrySignalBadge(row: OpenPaperPosition) {
   if (row.entrySignal !== "RSI_V3") return null;
-  const system = row.entrySystem || "?";
+  const system = row.entrySystem === "S1h" ? "1h" : row.entrySystem === "S4h" ? "4h" : (row.entrySystem || "?").replace(/^S/i, "");
   return (
     <span className="inline-flex rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
-      {system} V3
+      {system}
     </span>
   );
 }
