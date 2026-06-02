@@ -148,6 +148,22 @@ function formatCompactDate(value?: string | null) {
   return `${date} ${time}`;
 }
 
+function systemBarHours(system?: string | null) {
+  if (system === "S1h") return 1;
+  if (system === "S4h") return 4;
+  return null;
+}
+
+function barsProgressLabel(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
+  const barHours = systemBarHours(system);
+  const entryDate = parseIsoDate(entryAt);
+  const updatedDate = parseIsoDate(updatedAt);
+  if (!barHours || !entryDate || !updatedDate) return "-";
+  const elapsedMs = Math.max(0, updatedDate.getTime() - entryDate.getTime());
+  const bars = Math.floor(elapsedMs / (barHours * 60 * 60 * 1000)) + 1;
+  return `${Math.min(bars, 20)}/20`;
+}
+
 function parseIsoDate(value?: string | null) {
   if (!value) return null;
   const d = new Date(value);
@@ -632,6 +648,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">System</th>
                   <th className="px-4 py-3 text-left">Side</th>
                   <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">20 bars</th>
                   <th className="px-4 py-3 text-left">Current</th>
                   <th className="px-4 py-3 text-left">Current P/L</th>
                   <th className="px-4 py-3 text-left">Best</th>
@@ -656,6 +673,7 @@ export default function CryptoDashboardPage() {
                         <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
                         <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
                         <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
                         <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
@@ -685,6 +703,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">System</th>
                   <th className="px-4 py-3 text-left">Side</th>
                   <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">20 bars</th>
                   <th className="px-4 py-3 text-left">Exit</th>
                   <th className="px-4 py-3 text-left">Partial</th>
                   <th className="px-4 py-3 text-left">Close P/L</th>
@@ -708,6 +727,7 @@ export default function CryptoDashboardPage() {
                         <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.closedAt || row.lastSeenAt || updatedAt)}</td>
                         <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
                         <td className="px-4 py-3">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
                         <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatPercent(row.closePlPercent)}</td>
