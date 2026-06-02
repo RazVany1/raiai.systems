@@ -517,6 +517,27 @@ export default function CryptoDashboardPage() {
       });
   }, [versionSummaryBaseRows1h, updatedAt]);
 
+  const scanSummary = useMemo(() => {
+    const scanned = new Set(
+      trendRows
+        .map((row) => row.symbol)
+        .filter((symbol) => symbol && symbol !== "BTC.D"),
+    ).size;
+
+    const visible = new Set([
+      ...versionSummaryRows.map((row) => row.symbol),
+      ...versionSummaryRows1h.map((row) => row.symbol),
+    ]).size;
+
+    const hiddenV0 = new Set(
+      [...versionSummaryBaseRows, ...versionSummaryBaseRows1h]
+        .filter((row) => row.v0 && !row.v1 && !row.v2 && !row.v3)
+        .map((row) => row.symbol),
+    ).size;
+
+    return { scanned, visible, hiddenV0 };
+  }, [trendRows, versionSummaryRows, versionSummaryRows1h, versionSummaryBaseRows, versionSummaryBaseRows1h]);
+
   const openPositionEvolutionRows = useMemo(() => {
     return activePaperPositions.map((row) => {
       const key = `${row.symbol}:${row.side}:${row.entryAt}`;
@@ -968,10 +989,18 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className="mb-4 grid gap-2 md:grid-cols-4">
+        <section className="mb-4 grid gap-2 md:grid-cols-6">
           <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Tracked coins</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{versionSummaryRows.length}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Scanned</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.scanned}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Visible now</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.visible}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 hidden</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.hiddenV0}</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Uptrend</p>
