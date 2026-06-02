@@ -839,8 +839,8 @@ export default function CryptoDashboardPage() {
                     <span>Entry {formatPrice(row.entryPrice)}</span>
                     <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
                     <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{row.entrySystem === "S4h" ? "160 scans max" : row.entrySystem === "S1h" ? "40 scans max" : "scan view"}</span>
-                    <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(bestBar?.value)}`}>Best {bestBar ? `B${bestBar.bar} ${formatPercent(bestBar.value)}` : "-"}</span>
-                    <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(worstBar?.value)}`}>Worst {worstBar ? `B${worstBar.bar} ${formatPercent(worstBar.value)}` : "-"}</span>
+                    <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestBar?.value != null && bestBar.value > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestBar ? `B${bestBar.bar} ${formatPercent(bestBar.value)}` : "-"}</span>
+                    <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstBar?.value != null && worstBar.value < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstBar ? `B${worstBar.bar} ${formatPercent(worstBar.value)}` : "-"}</span>
                   </div>
                   <div className="grid min-w-[1200px] grid-cols-20 gap-2">
                     {bars.map((bar) => (
