@@ -1924,6 +1924,15 @@ def main():
     else:
         paper_positions = []
 
+    dashboard_paper_positions = [
+        row for row in paper_positions
+        if isinstance(row, dict) and row.get("entrySignal") == "RSI_V3"
+    ]
+    dashboard_paper_history = [
+        row for row in history_positions
+        if isinstance(row, dict) and row.get("entrySignal") == "RSI_V3"
+    ]
+
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
 
     btc_context_rows = []
@@ -1990,7 +1999,8 @@ def main():
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
-        "openPaperPositions": paper_positions,
+        "openPaperPositions": dashboard_paper_positions,
+        "paperPositionHistory": dashboard_paper_history,
         "interestRows": interest_rows,
         "v3InterestRows": v3_interest_rows,
         "v0InterestRows1h": v0_interest_rows_1h,
