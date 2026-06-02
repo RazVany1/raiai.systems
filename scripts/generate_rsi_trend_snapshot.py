@@ -54,6 +54,7 @@ RSI_INTEREST_1H_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-
 RSI_INTEREST_1H_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v3-state.json")
 PAPER_POSITIONS_ENABLED = True
 PAPER_POSITIONS_ENTRY_MODE = "v3"
+MATRIX_RETENTION_DAYS = 5
 
 
 def ema(values: list[float], period: int) -> list[float]:
@@ -902,6 +903,21 @@ def load_json(path: Path, fallback):
         return fallback
 
 
+def should_retain_matrix_row(saved: dict, now_dt: datetime) -> bool:
+    if not isinstance(saved, dict):
+        return False
+    if saved.get("currentlyInZone"):
+        return True
+    last_seen_at = saved.get("lastSeenAt") or saved.get("detectedAt") or saved.get("firstDetectedAt")
+    if not last_seen_at:
+        return False
+    try:
+        last_seen_dt = datetime.fromisoformat(last_seen_at)
+    except Exception:
+        return False
+    return (now_dt - last_seen_dt) <= timedelta(days=MATRIX_RETENTION_DAYS)
+
+
 def get_klines_cached(
     layer: RAICryptoSignalOutputLayerV3,
     cache: dict[tuple[str, str, int], list],
@@ -1357,7 +1373,7 @@ def main():
 
     retained_v0_interest_map = dict(current_v0_interest_map)
     for key, saved in saved_v0_interest_rows.items():
-        if key in retained_v0_interest_map or not isinstance(saved, dict):
+        if key in retained_v0_interest_map or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v0_interest_map[key] = {
             **saved,
@@ -1379,7 +1395,7 @@ def main():
 
     retained_interest_map = dict(current_interest_map)
     for key, saved in saved_interest_rows.items():
-        if key in retained_interest_map or not isinstance(saved, dict):
+        if key in retained_interest_map or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_interest_map[key] = {
             **saved,
@@ -1401,7 +1417,7 @@ def main():
 
     retained_v2_interest_map = dict(current_v2_interest_map)
     for key, saved in saved_v2_interest_rows.items():
-        if key in retained_v2_interest_map or not isinstance(saved, dict):
+        if key in retained_v2_interest_map or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v2_interest_map[key] = {
             **saved,
@@ -1423,7 +1439,7 @@ def main():
 
     retained_v3_interest_map = dict(current_v3_interest_map)
     for key, saved in saved_v3_interest_rows.items():
-        if key in retained_v3_interest_map or not isinstance(saved, dict):
+        if key in retained_v3_interest_map or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v3_interest_map[key] = {
             **saved,
@@ -1485,7 +1501,7 @@ def main():
 
     retained_v0_interest_map_1h = dict(current_v0_interest_map_1h)
     for key, saved in saved_v0_interest_rows_1h.items():
-        if key in retained_v0_interest_map_1h or not isinstance(saved, dict):
+        if key in retained_v0_interest_map_1h or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v0_interest_map_1h[key] = {
             **saved,
@@ -1507,7 +1523,7 @@ def main():
 
     retained_interest_map_1h = dict(current_interest_map_1h)
     for key, saved in saved_interest_rows_1h.items():
-        if key in retained_interest_map_1h or not isinstance(saved, dict):
+        if key in retained_interest_map_1h or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_interest_map_1h[key] = {
             **saved,
@@ -1529,7 +1545,7 @@ def main():
 
     retained_v2_interest_map_1h = dict(current_v2_interest_map_1h)
     for key, saved in saved_v2_interest_rows_1h.items():
-        if key in retained_v2_interest_map_1h or not isinstance(saved, dict):
+        if key in retained_v2_interest_map_1h or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v2_interest_map_1h[key] = {
             **saved,
@@ -1551,7 +1567,7 @@ def main():
 
     retained_v3_interest_map_1h = dict(current_v3_interest_map_1h)
     for key, saved in saved_v3_interest_rows_1h.items():
-        if key in retained_v3_interest_map_1h or not isinstance(saved, dict):
+        if key in retained_v3_interest_map_1h or not should_retain_matrix_row(saved, now_dt):
             continue
         retained_v3_interest_map_1h[key] = {
             **saved,
