@@ -439,23 +439,23 @@ export default function CryptoDashboardPage() {
     return versionSummaryBaseRows
       .filter((row) => row.v1 || row.v2 || row.v3)
       .sort((a, b) => {
-        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
-        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
+        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
+        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
         return a.symbol.localeCompare(b.symbol);
       });
-  }, [versionSummaryBaseRows]);
+  }, [versionSummaryBaseRows, updatedAt]);
 
   const versionSummaryRows1h = useMemo(() => {
     return versionSummaryBaseRows1h
       .filter((row) => row.v1 || row.v2 || row.v3)
       .sort((a, b) => {
-        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
-        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
+        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
+        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
         return a.symbol.localeCompare(b.symbol);
       });
-  }, [versionSummaryBaseRows1h]);
+  }, [versionSummaryBaseRows1h, updatedAt]);
 
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
