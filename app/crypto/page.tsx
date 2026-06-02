@@ -521,7 +521,7 @@ export default function CryptoDashboardPage() {
   }, [versionSummaryBaseRows1h, updatedAt]);
 
   const scanSummary = useMemo(() => {
-    const expected = 150;
+    const expected = 175;
     const scanned = new Set(
       trendRows
         .map((row) => row.symbol)
