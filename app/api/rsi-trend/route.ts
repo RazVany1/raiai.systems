@@ -36,10 +36,38 @@ export async function GET() {
     }
   }
 
+  const paperHistoryFilePath = path.join(process.cwd(), "public", "data", "paper-entry-positions-history.json");
+  let paperPositionHistory: unknown[] = [];
+
+  if (fs.existsSync(paperHistoryFilePath)) {
+    try {
+      const historyRaw = fs.readFileSync(paperHistoryFilePath, "utf-8");
+      const historyData = JSON.parse(historyRaw);
+      paperPositionHistory = Array.isArray(historyData?.positions) ? historyData.positions : [];
+    } catch {
+      paperPositionHistory = [];
+    }
+  }
+
+  const snapshotsFilePath = path.join(process.cwd(), "public", "data", "paper-position-snapshots.json");
+  let positionSnapshots: Record<string, unknown> = {};
+
+  if (fs.existsSync(snapshotsFilePath)) {
+    try {
+      const snapshotsRaw = fs.readFileSync(snapshotsFilePath, "utf-8");
+      const snapshotsData = JSON.parse(snapshotsRaw);
+      positionSnapshots = snapshotsData?.positions && typeof snapshotsData.positions === "object" ? snapshotsData.positions : {};
+    } catch {
+      positionSnapshots = {};
+    }
+  }
+
   return NextResponse.json({
     ...data,
     v0InterestRows,
     v2InterestRows,
+    paperPositionHistory,
+    positionSnapshots,
   }, {
     headers: {
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

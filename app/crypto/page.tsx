@@ -102,6 +102,20 @@ type BtcContextRow = {
   sourceVenue?: string;
 };
 
+type PositionSnapshot = {
+  scanAt: string;
+  currentPrice?: number | null;
+  currentPlPercent?: number | null;
+};
+
+type PositionSnapshotBucket = {
+  symbol: string;
+  side: string;
+  entryAt: string;
+  entryPrice?: number | null;
+  snapshots?: PositionSnapshot[];
+};
+
 function formatPrice(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
   const abs = Math.abs(value);
@@ -154,13 +168,18 @@ function systemBarHours(system?: string | null) {
   return null;
 }
 
-function barsProgressLabel(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
+function barsProgressValue(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
   const barHours = systemBarHours(system);
   const entryDate = parseIsoDate(entryAt);
   const updatedDate = parseIsoDate(updatedAt);
-  if (!barHours || !entryDate || !updatedDate) return "-";
+  if (!barHours || !entryDate || !updatedDate) return null;
   const elapsedMs = Math.max(0, updatedDate.getTime() - entryDate.getTime());
-  const bars = Math.floor(elapsedMs / (barHours * 60 * 60 * 1000)) + 1;
+  return Math.floor(elapsedMs / (barHours * 60 * 60 * 1000)) + 1;
+}
+
+function barsProgressLabel(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
+  const bars = barsProgressValue(entryAt, system, updatedAt);
+  if (bars == null) return "-";
   return `${Math.min(bars, 20)}/20`;
 }
 
@@ -317,6 +336,7 @@ export default function CryptoDashboardPage() {
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
+  const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
 
@@ -342,6 +362,7 @@ export default function CryptoDashboardPage() {
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
         setBtcContextRows(data.btcContextRows || []);
+        setPositionSnapshots(data.positionSnapshots || {});
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
         scheduleNextLoad(data.nextScanAt);
@@ -359,6 +380,7 @@ export default function CryptoDashboardPage() {
         setFormationRows([]);
         setTrendRows([]);
         setBtcContextRows([]);
+        setPositionSnapshots({});
       }
     };
 
@@ -479,6 +501,57 @@ export default function CryptoDashboardPage() {
         return a.symbol.localeCompare(b.symbol);
       });
   }, [versionSummaryBaseRows1h, updatedAt]);
+
+  const openPositionEvolutionRows = useMemo(() => {
+    return activePaperPositions.map((row) => {
+      const key = `${row.symbol}:${row.side}:${row.entryAt}`;
+      const bucket = positionSnapshots[key];
+      const barHours = systemBarHours(row.entrySystem);
+      const entryDate = parseIsoDate(row.entryAt);
+      const snapshots = Array.isArray(bucket?.snapshots) ? bucket.snapshots : [];
+      const bars = Array.from({ length: 20 }, (_, index) => ({
+        bar: index + 1,
+        scans: [] as PositionSnapshot[],
+      }));
+
+      if (barHours && entryDate) {
+        for (const snapshot of snapshots) {
+          const scanDate = parseIsoDate(snapshot.scanAt);
+          if (!scanDate) continue;
+          const barIndex = Math.floor((scanDate.getTime() - entryDate.getTime()) / (barHours * 60 * 60 * 1000)) + 1;
+          if (barIndex < 1 || barIndex > 20) continue;
+          bars[barIndex - 1].scans.push(snapshot);
+        }
+      }
+
+      const mappedBars = bars.map(({ bar, scans }) => {
+        const sortedScans = [...scans].sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
+        const prices = sortedScans
+          .map((scan) => (typeof scan.currentPrice === "number" ? scan.currentPrice : null))
+          .filter((value): value is number => value != null);
+        const close = prices.length ? prices[prices.length - 1] : null;
+        const high = prices.length ? Math.max(...prices) : null;
+        const low = prices.length ? Math.min(...prices) : null;
+        const closePl = computePlValue(row.entryPrice, close, row.side);
+        return {
+          bar,
+          scans: sortedScans,
+          prices,
+          close,
+          high,
+          low,
+          closePl,
+        };
+      });
+
+      return {
+        key,
+        row,
+        progress: barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt),
+        bars: mappedBars,
+      };
+    });
+  }, [activePaperPositions, positionSnapshots, updatedAt]);
 
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
@@ -688,6 +761,56 @@ export default function CryptoDashboardPage() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">20-Bar Evolution</h2>
+            <span className="text-[10px] text-slate-400">scan-by-scan path inside the first 20 bars after entry</span>
+          </div>
+          {openPositionEvolutionRows.length === 0 ? (
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No open positions to track yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {openPositionEvolutionRows.map(({ key, row, progress, bars }) => (
+                <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                    <span className="font-semibold text-white">{row.symbol}</span>
+                    <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
+                    <span>{shortSide(row.side)}</span>
+                    <span>Entry {formatPrice(row.entryPrice)}</span>
+                    <span>{progress}</span>
+                  </div>
+                  <table className="min-w-full text-xs text-slate-300">
+                    <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Bar</th>
+                        <th className="px-3 py-2 text-left">Scans</th>
+                        <th className="px-3 py-2 text-left">Price path</th>
+                        <th className="px-3 py-2 text-left">Close</th>
+                        <th className="px-3 py-2 text-left">High</th>
+                        <th className="px-3 py-2 text-left">Low</th>
+                        <th className="px-3 py-2 text-left">Close P/L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bars.map((bar) => (
+                        <tr key={`${key}-bar-${bar.bar}`} className="border-t border-white/10 align-top">
+                          <td className="px-3 py-2 font-semibold text-slate-100">B{bar.bar}</td>
+                          <td className="px-3 py-2">{bar.scans.length || "-"}</td>
+                          <td className="px-3 py-2 text-[11px] text-slate-300">{bar.prices.length ? bar.prices.map((price) => formatPrice(price)).join(" → ") : "-"}</td>
+                          <td className="px-3 py-2">{formatPrice(bar.close)}</td>
+                          <td className="px-3 py-2">{formatPrice(bar.high)}</td>
+                          <td className="px-3 py-2">{formatPrice(bar.low)}</td>
+                          <td className={`px-3 py-2 font-semibold ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={`${shellClass} mb-4`}>
