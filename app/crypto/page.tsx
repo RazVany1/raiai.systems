@@ -234,6 +234,13 @@ function percentTextClass(value?: number | null) {
   return "text-slate-300";
 }
 
+function evolutionCellClasses(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "border-white/10 bg-white/[0.03] text-slate-500";
+  if (value > 0) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+  if (value < 0) return "border-rose-400/30 bg-rose-400/10 text-rose-200";
+  return "border-white/10 bg-white/[0.03] text-slate-300";
+}
+
 function trendBadgeClasses(trend: string) {
   if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
@@ -544,11 +551,29 @@ export default function CryptoDashboardPage() {
         };
       });
 
+      const availableBars = mappedBars.filter((bar) => bar.prices.length > 0);
+      const bestBar = availableBars.reduce((best, bar) => {
+        if (bar.high == null) return best;
+        const value = computePlValue(row.entryPrice, bar.high, row.side);
+        if (value == null) return best;
+        if (!best || value > best.value) return { bar: bar.bar, value };
+        return best;
+      }, null as { bar: number; value: number } | null);
+      const worstBar = availableBars.reduce((worst, bar) => {
+        if (bar.low == null) return worst;
+        const value = computePlValue(row.entryPrice, bar.low, row.side);
+        if (value == null) return worst;
+        if (!worst || value < worst.value) return { bar: bar.bar, value };
+        return worst;
+      }, null as { bar: number; value: number } | null);
+
       return {
         key,
         row,
         progress: barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt),
         bars: mappedBars,
+        bestBar,
+        worstBar,
       };
     });
   }, [activePaperPositions, positionSnapshots, updatedAt]);
@@ -766,47 +791,38 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">20-Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">scan-by-scan path inside the first 20 bars after entry</span>
+            <span className="text-[10px] text-slate-400">first 20 bars after entry, grouped by bar and color-coded by result</span>
           </div>
           {openPositionEvolutionRows.length === 0 ? (
             <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No open positions to track yet.</div>
           ) : (
             <div className="space-y-4">
-              {openPositionEvolutionRows.map(({ key, row, progress, bars }) => (
+              {openPositionEvolutionRows.map(({ key, row, progress, bars, bestBar, worstBar }) => (
                 <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
                   <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
                     <span className="font-semibold text-white">{row.symbol}</span>
                     <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
                     <span>{shortSide(row.side)}</span>
                     <span>Entry {formatPrice(row.entryPrice)}</span>
-                    <span>{progress}</span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
+                    <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(bestBar?.value)}`}>Best {bestBar ? `B${bestBar.bar} ${formatPercent(bestBar.value)}` : "-"}</span>
+                    <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(worstBar?.value)}`}>Worst {worstBar ? `B${worstBar.bar} ${formatPercent(worstBar.value)}` : "-"}</span>
                   </div>
-                  <table className="min-w-full text-xs text-slate-300">
-                    <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Bar</th>
-                        <th className="px-3 py-2 text-left">Scans</th>
-                        <th className="px-3 py-2 text-left">Price path</th>
-                        <th className="px-3 py-2 text-left">Close</th>
-                        <th className="px-3 py-2 text-left">High</th>
-                        <th className="px-3 py-2 text-left">Low</th>
-                        <th className="px-3 py-2 text-left">Close P/L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bars.map((bar) => (
-                        <tr key={`${key}-bar-${bar.bar}`} className="border-t border-white/10 align-top">
-                          <td className="px-3 py-2 font-semibold text-slate-100">B{bar.bar}</td>
-                          <td className="px-3 py-2">{bar.scans.length || "-"}</td>
-                          <td className="px-3 py-2 text-[11px] text-slate-300">{bar.prices.length ? bar.prices.map((price) => formatPrice(price)).join(" → ") : "-"}</td>
-                          <td className="px-3 py-2">{formatPrice(bar.close)}</td>
-                          <td className="px-3 py-2">{formatPrice(bar.high)}</td>
-                          <td className="px-3 py-2">{formatPrice(bar.low)}</td>
-                          <td className={`px-3 py-2 font-semibold ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="grid min-w-[1200px] grid-cols-20 gap-2">
+                    {bars.map((bar) => (
+                      <div key={`${key}-bar-${bar.bar}`} className={`rounded-lg border p-2 ${evolutionCellClasses(bar.closePl)}`}>
+                        <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide">
+                          <span className="font-semibold">B{bar.bar}</span>
+                          <span>{bar.scans.length || 0}s</span>
+                        </div>
+                        <div className="text-xs font-semibold">{formatPrice(bar.close)}</div>
+                        <div className={`text-[11px] ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</div>
+                        <div className="mt-1 text-[10px] text-slate-400">H {formatPrice(bar.high)}</div>
+                        <div className="text-[10px] text-slate-400">L {formatPrice(bar.low)}</div>
+                        <div className="mt-1 truncate text-[10px] text-slate-500">{bar.prices.length ? bar.prices.map((price) => formatPrice(price)).join(" → ") : "-"}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
