@@ -1671,22 +1671,22 @@ def main():
                 for row in rows:
                     if not isinstance(row, dict) or not row.get("currentlyInZone"):
                         continue
-                    detected_now = row.get("detectedAt")
-                    if detected_now != updated_at:
+                    first_detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
+                    if first_detected_at != updated_at:
                         continue
                     zone = row.get("zone")
                     side = "SHORT" if zone == "upper_interest" else "LONG" if zone == "lower_interest" else None
                     price = row.get("price")
                     if side is None or not isinstance(price, (int, float)):
                         continue
-                    detected_at = detected_now
+                    detected_at = row.get("detectedAt") or first_detected_at
                     if not detected_at:
                         continue
                     entry_candidates.append({
                         "symbol": row.get("symbol"),
                         "side": side,
                         "state": "confirmed",
-                        "confirmedAt": detected_at,
+                        "confirmedAt": first_detected_at,
                         "detectedAt": detected_at,
                         "price": price,
                         "formationType": "RSI_V3",
@@ -1926,11 +1926,11 @@ def main():
 
     dashboard_paper_positions = [
         row for row in paper_positions
-        if isinstance(row, dict) and row.get("entrySignal") == "RSI_V3"
+        if isinstance(row, dict) and row.get("entrySignal") != "RSI_V0"
     ]
     dashboard_paper_history = [
         row for row in history_positions
-        if isinstance(row, dict) and row.get("entrySignal") == "RSI_V3"
+        if isinstance(row, dict) and row.get("entrySignal") != "RSI_V0"
     ]
 
     next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
