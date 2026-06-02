@@ -162,10 +162,18 @@ function formatCompactDate(value?: string | null) {
   return `${date} ${time}`;
 }
 
+const SCAN_INTERVAL_MINUTES = 30;
+
 function systemBarHours(system?: string | null) {
   if (system === "S1h") return 1;
   if (system === "S4h") return 4;
   return null;
+}
+
+function systemScanSlots(system?: string | null) {
+  const barHours = systemBarHours(system);
+  if (!barHours) return null;
+  return (barHours * 60) / SCAN_INTERVAL_MINUTES;
 }
 
 function barsProgressValue(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
@@ -531,8 +539,32 @@ export default function CryptoDashboardPage() {
         }
       }
 
+      const slotsPerBar = systemScanSlots(row.entrySystem) || 0;
       const mappedBars = bars.map(({ bar, scans }) => {
         const sortedScans = [...scans].sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
+        const slotValues = Array.from({ length: slotsPerBar }, (_, index) => ({
+          slot: index + 1,
+          price: null as number | null,
+          pl: null as number | null,
+        }));
+
+        if (entryDate && slotsPerBar > 0) {
+          for (const scan of sortedScans) {
+            const scanDate = parseIsoDate(scan.scanAt);
+            if (!scanDate) continue;
+            const elapsedMinutes = Math.max(0, (scanDate.getTime() - entryDate.getTime()) / (60 * 1000));
+            const slotIndex = Math.floor(elapsedMinutes / SCAN_INTERVAL_MINUTES);
+            const slotInBar = slotIndex - ((bar - 1) * slotsPerBar);
+            if (slotInBar < 0 || slotInBar >= slotsPerBar) continue;
+            const price = typeof scan.currentPrice === "number" ? scan.currentPrice : null;
+            slotValues[slotInBar] = {
+              slot: slotInBar + 1,
+              price,
+              pl: computePlValue(row.entryPrice, price, row.side),
+            };
+          }
+        }
+
         const prices = sortedScans
           .map((scan) => (typeof scan.currentPrice === "number" ? scan.currentPrice : null))
           .filter((value): value is number => value != null);
@@ -548,6 +580,7 @@ export default function CryptoDashboardPage() {
           high,
           low,
           closePl,
+          slotValues,
         };
       });
 
@@ -805,6 +838,7 @@ export default function CryptoDashboardPage() {
                     <span>{shortSide(row.side)}</span>
                     <span>Entry {formatPrice(row.entryPrice)}</span>
                     <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{row.entrySystem === "S4h" ? "160 scans max" : row.entrySystem === "S1h" ? "40 scans max" : "scan view"}</span>
                     <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(bestBar?.value)}`}>Best {bestBar ? `B${bestBar.bar} ${formatPercent(bestBar.value)}` : "-"}</span>
                     <span className={`rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 ${percentTextClass(worstBar?.value)}`}>Worst {worstBar ? `B${worstBar.bar} ${formatPercent(worstBar.value)}` : "-"}</span>
                   </div>
@@ -815,11 +849,19 @@ export default function CryptoDashboardPage() {
                           <span className="font-semibold">B{bar.bar}</span>
                           <span>{bar.scans.length || 0}s</span>
                         </div>
-                        <div className="text-xs font-semibold">{formatPrice(bar.close)}</div>
-                        <div className={`text-[11px] ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</div>
-                        <div className="mt-1 text-[10px] text-slate-400">H {formatPrice(bar.high)}</div>
+                        <div className="mb-1 text-xs font-semibold">{formatPrice(bar.close)}</div>
+                        <div className={`mb-1 text-[11px] ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</div>
+                        <div className="mb-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.max(bar.slotValues.length, 1)}, minmax(0, 1fr))` }}>
+                          {bar.slotValues.length ? bar.slotValues.map((slot) => (
+                            <div key={`${key}-bar-${bar.bar}-slot-${slot.slot}`} className={`rounded border px-1 py-1 text-center text-[9px] ${evolutionCellClasses(slot.pl)}`} title={slot.price != null ? `${formatPrice(slot.price)} | ${formatPercent(slot.pl)}` : `slot ${slot.slot}`}>
+                              {slot.price != null ? formatPrice(slot.price) : "·"}
+                            </div>
+                          )) : (
+                            <div className="rounded border border-white/10 px-1 py-1 text-center text-[9px] text-slate-500">·</div>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">H {formatPrice(bar.high)}</div>
                         <div className="text-[10px] text-slate-400">L {formatPrice(bar.low)}</div>
-                        <div className="mt-1 truncate text-[10px] text-slate-500">{bar.prices.length ? bar.prices.map((price) => formatPrice(price)).join(" → ") : "-"}</div>
                       </div>
                     ))}
                   </div>
