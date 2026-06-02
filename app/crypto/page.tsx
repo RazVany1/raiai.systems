@@ -629,6 +629,7 @@ export default function CryptoDashboardPage() {
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">System</th>
                   <th className="px-4 py-3 text-left">Side</th>
                   <th className="px-4 py-3 text-left">Entry</th>
                   <th className="px-4 py-3 text-left">Current</th>
@@ -643,7 +644,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {activePaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-4 text-slate-400">No active paper positions.</td>
+                    <td colSpan={11} className="px-4 py-4 text-slate-400">No active paper positions.</td>
                   </tr>
                 ) : (
                   activePaperPositions.map((row) => {
@@ -657,6 +658,7 @@ export default function CryptoDashboardPage() {
                             {entrySignalBadge(row)}
                           </div>
                         </td>
+                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                         <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
@@ -685,6 +687,7 @@ export default function CryptoDashboardPage() {
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">System</th>
                   <th className="px-4 py-3 text-left">Side</th>
                   <th className="px-4 py-3 text-left">Entry</th>
                   <th className="px-4 py-3 text-left">Exit</th>
@@ -699,7 +702,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {closedPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
+                    <td colSpan={11} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
                   </tr>
                 ) : (
                   closedPaperPositions.map((row) => {
@@ -712,6 +715,7 @@ export default function CryptoDashboardPage() {
                             {entrySignalBadge(row)}
                           </div>
                         </td>
+                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                         <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
