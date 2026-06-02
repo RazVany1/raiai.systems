@@ -374,26 +374,33 @@ export default function CryptoDashboardPage() {
     };
   }, [trendRows]);
 
-  const orderedPaperPositions = useMemo(() => {
-    const source = paperPositionHistory.length > 0 ? paperPositionHistory : openPaperPositions;
-    return [...source].sort((a, b) => {
+  const orderedOpenPaperPositions = useMemo(() => {
+    return [...openPaperPositions].sort((a, b) => {
       const aTime = new Date(a.entryAt).getTime();
       const bTime = new Date(b.entryAt).getTime();
       return bTime - aTime;
     });
-  }, [openPaperPositions, paperPositionHistory]);
+  }, [openPaperPositions]);
+
+  const orderedHistoryPaperPositions = useMemo(() => {
+    return [...paperPositionHistory].sort((a, b) => {
+      const aTime = new Date(a.entryAt).getTime();
+      const bTime = new Date(b.entryAt).getTime();
+      return bTime - aTime;
+    });
+  }, [paperPositionHistory]);
 
   const activePaperPositions = useMemo(() => {
-    return orderedPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
-  }, [orderedPaperPositions]);
+    return orderedOpenPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
+  }, [orderedOpenPaperPositions]);
 
   const closedPaperPositions = useMemo(() => {
-    return orderedPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
-  }, [orderedPaperPositions]);
+    return orderedHistoryPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
+  }, [orderedHistoryPaperPositions]);
 
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
-    for (const row of orderedPaperPositions) {
+    for (const row of [...orderedOpenPaperPositions, ...orderedHistoryPaperPositions]) {
       const bucket = bySymbol.get(row.symbol) || [];
       bucket.push(row);
       bySymbol.set(row.symbol, bucket);
@@ -412,7 +419,7 @@ export default function CryptoDashboardPage() {
       });
     }
     return labelMap;
-  }, [orderedPaperPositions]);
+  }, [orderedOpenPaperPositions, orderedHistoryPaperPositions]);
 
   const orderedTrendRows = useMemo(() => {
     const order: Record<string, number> = {
@@ -600,7 +607,7 @@ export default function CryptoDashboardPage() {
         <section className="mb-4 grid gap-2 md:grid-cols-3">
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Paper history</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedPaperPositions.length}</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedHistoryPaperPositions.length}</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active positions</p>
