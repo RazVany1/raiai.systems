@@ -2089,9 +2089,13 @@ def main():
         row["altContextLabel"] = label
         row["altContextScore"] = score
 
+    scan_universe_symbols = list(dict.fromkeys(SYMBOLS))
+
     payload = {
         "updatedAt": updated_at,
         "nextScanAt": next_scan_at,
+        "scanUniverseExpected": len(scan_universe_symbols),
+        "scanUniverseSymbols": scan_universe_symbols,
         "openPaperPositions": dashboard_paper_positions,
         "paperPositionHistory": dashboard_paper_history,
         "interestRows": interest_rows,
@@ -2125,4 +2129,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

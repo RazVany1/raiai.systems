@@ -357,6 +357,7 @@ export default function CryptoDashboardPage() {
   const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
+  const [scanUniverseExpected, setScanUniverseExpected] = useState<number>(0);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -383,6 +384,7 @@ export default function CryptoDashboardPage() {
         setPositionSnapshots(data.positionSnapshots || {});
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
+        setScanUniverseExpected(Number.isFinite(data.scanUniverseExpected) ? data.scanUniverseExpected : 0);
         scheduleNextLoad(data.nextScanAt);
       } catch (error) {
         console.error("crypto dashboard load failed", error);
@@ -399,6 +401,7 @@ export default function CryptoDashboardPage() {
         setTrendRows([]);
         setBtcContextRows([]);
         setPositionSnapshots({});
+        setScanUniverseExpected(0);
       }
     };
 
@@ -521,7 +524,6 @@ export default function CryptoDashboardPage() {
   }, [versionSummaryBaseRows1h, updatedAt]);
 
   const scanSummary = useMemo(() => {
-    const expected = 175;
     const scanned = new Set(
       trendRows
         .map((row) => row.symbol)
@@ -539,8 +541,9 @@ export default function CryptoDashboardPage() {
         .map((row) => row.symbol),
     ).size;
 
+    const expected = scanUniverseExpected > 0 ? scanUniverseExpected : scanned;
     return { expected, scanned, visible, hiddenV0, healthy: scanned >= expected };
-  }, [trendRows, versionSummaryRows, versionSummaryRows1h, versionSummaryBaseRows, versionSummaryBaseRows1h]);
+  }, [scanUniverseExpected, trendRows, versionSummaryRows, versionSummaryRows1h, versionSummaryBaseRows, versionSummaryBaseRows1h]);
 
   const openPositionEvolutionRows = useMemo(() => {
     return activePaperPositions.map((row) => {
