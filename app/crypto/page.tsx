@@ -46,7 +46,6 @@ type InterestRow = {
   firstDetectedAt?: string;
   lastSeenAt?: string;
   currentlyInZone?: boolean;
-  serialNumber?: number;
 };
 
 type FormationRow = {
@@ -228,7 +227,6 @@ function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[
       anchorRsi: row.anchorRsi ?? null,
       anchorTime: row.anchorTime ?? null,
       anchorPrice: row.anchorPrice ?? null,
-      serialNumber: row.serialNumber,
       v0Active: false,
       v1Active: false,
       v2Active: false,
@@ -250,7 +248,6 @@ function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[
       next.price = row.price;
       next.detectedAt = row.detectedAt;
       next.lastSeenAt = row.lastSeenAt ?? null;
-      if (typeof row.serialNumber === "number") next.serialNumber = row.serialNumber;
       if (row.previousRsi != null) next.previousRsi = row.previousRsi;
       if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
       if (row.anchorTime != null) next.anchorTime = row.anchorTime;
@@ -304,7 +301,6 @@ export default function CryptoDashboardPage() {
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
-  const [serialMap, setSerialMap] = useState<Record<string, number>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
 
@@ -439,85 +435,23 @@ export default function CryptoDashboardPage() {
 
   const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h]);
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("rsi-version-serial-map");
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        setSerialMap(parsed as Record<string, number>);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    setSerialMap((prev) => {
-      const next = { ...prev };
-      let maxSerial = Object.values(next).reduce((max, value) => Math.max(max, Number(value) || 0), 0);
-      let changed = false;
-      const allRows = [...versionSummaryBaseRows, ...versionSummaryBaseRows1h.map((row) => ({ ...row, key: `1h:${row.key}` }))];
-
-      for (const row of allRows) {
-        if (typeof row.serialNumber === "number") {
-          if (next[row.key] !== row.serialNumber) {
-            next[row.key] = row.serialNumber;
-            changed = true;
-          }
-          maxSerial = Math.max(maxSerial, row.serialNumber);
-        }
-      }
-
-      for (const row of allRows) {
-        if (typeof next[row.key] !== "number") {
-          maxSerial += 1;
-          next[row.key] = maxSerial;
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        try {
-          window.localStorage.setItem("rsi-version-serial-map", JSON.stringify(next));
-        } catch {}
-        return next;
-      }
-      return prev;
-    });
-  }, [versionSummaryBaseRows, versionSummaryBaseRows1h]);
-
   const versionSummaryRows = useMemo(() => {
-    return versionSummaryBaseRows
-      .map((row) => ({
-        ...row,
-        serialNumber: typeof row.serialNumber === "number" ? row.serialNumber : serialMap[row.key],
-      }))
-      .sort((a, b) => {
-        const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
-        const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
-        if (aSerial !== bSerial) return bSerial - aSerial;
-        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
-        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [versionSummaryBaseRows, serialMap]);
+    return [...versionSummaryBaseRows].sort((a, b) => {
+      const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+      const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+      if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [versionSummaryBaseRows]);
 
   const versionSummaryRows1h = useMemo(() => {
-    return versionSummaryBaseRows1h
-      .map((row) => ({
-        ...row,
-        serialNumber: typeof row.serialNumber === "number" ? row.serialNumber : serialMap[`1h:${row.key}`],
-      }))
-      .sort((a, b) => {
-        const aSerial = typeof a.serialNumber === "number" ? a.serialNumber : -1;
-        const bSerial = typeof b.serialNumber === "number" ? b.serialNumber : -1;
-        if (aSerial !== bSerial) return bSerial - aSerial;
-        const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
-        const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
-        if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [versionSummaryBaseRows1h, serialMap]);
+    return [...versionSummaryBaseRows1h].sort((a, b) => {
+      const versionScoreA = (a.v3 ? 8 : 0) + (a.v2 ? 4 : 0) + (a.v1 ? 2 : 0) + (a.v0 ? 1 : 0);
+      const versionScoreB = (b.v3 ? 8 : 0) + (b.v2 ? 4 : 0) + (b.v1 ? 2 : 0) + (b.v0 ? 1 : 0);
+      if (versionScoreA !== versionScoreB) return versionScoreB - versionScoreA;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [versionSummaryBaseRows1h]);
 
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
@@ -547,7 +481,6 @@ export default function CryptoDashboardPage() {
             <table className="min-w-full text-xs text-slate-300">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-3 text-left">Nr.</th>
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">RSI now</th>
                   <th className="px-4 py-3 text-left">Price</th>
@@ -566,12 +499,11 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows.map((row) => (
                     <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-400">{row.serialNumber ?? "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
@@ -602,7 +534,6 @@ export default function CryptoDashboardPage() {
             <table className="min-w-full text-xs text-slate-300">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-4 py-3 text-left">Nr.</th>
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">RSI now</th>
                   <th className="px-4 py-3 text-left">Price</th>
@@ -621,12 +552,11 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {versionSummaryRows1h.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
                   </tr>
                 ) : (
                   versionSummaryRows1h.map((row) => (
                     <tr key={`1h-${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-400">{row.serialNumber ?? "-"}</td>
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
                       <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                       <td className="px-4 py-3">{formatPrice(row.price)}</td>
