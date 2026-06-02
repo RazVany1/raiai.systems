@@ -1644,7 +1644,11 @@ def main():
             for pos in existing_positions.get("positions", []):
                 if isinstance(pos, dict):
                     entry_key = (pos.get("symbol"), pos.get("side"), pos.get("entryAt"))
-                    pair_key = (pos.get("symbol"), pos.get("side"))
+                    pair_key = (
+                        pos.get("symbol"),
+                        pos.get("side"),
+                        pos.get("entrySystem") if pos.get("entrySignal") == "RSI_V3" else None,
+                    )
                     existing_by_entry[entry_key] = pos
                     existing_by_pair.setdefault(pair_key, []).append(pos)
 
@@ -1672,8 +1676,6 @@ def main():
                     if not isinstance(row, dict) or not row.get("currentlyInZone"):
                         continue
                     first_detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
-                    if first_detected_at != updated_at:
-                        continue
                     zone = row.get("zone")
                     side = "SHORT" if zone == "upper_interest" else "LONG" if zone == "lower_interest" else None
                     price = row.get("price")
@@ -1686,8 +1688,9 @@ def main():
                         "symbol": row.get("symbol"),
                         "side": side,
                         "state": "confirmed",
-                        "confirmedAt": first_detected_at,
+                        "confirmedAt": detected_at,
                         "detectedAt": detected_at,
+                        "firstDetectedAt": first_detected_at,
                         "price": price,
                         "formationType": "RSI_V3",
                         "entrySignal": "RSI_V3",
@@ -1731,7 +1734,7 @@ def main():
             if state not in {"forming", "confirmed"} or not allowed:
                 continue
 
-            pair_key = (symbol, side)
+            pair_key = (symbol, side, row.get("entrySystem") if row.get("entrySignal") == "RSI_V3" else None)
             entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
             entry_price = row.get("price")
             existing_candidates = existing_by_pair.get(pair_key, [])
@@ -1778,6 +1781,7 @@ def main():
                     "anchorTime": existing.get("anchorTime", row.get("anchorTime")),
                     "anchorPrice": existing.get("anchorPrice", row.get("anchorPrice")),
                     "previousRsi": row.get("previousRsi", existing.get("previousRsi")),
+                    "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
                     **exit_state,
                     "exitSignals": exit_signals,
                     "maxPlPercent": max_pl,
@@ -1797,6 +1801,7 @@ def main():
                     "anchorTime": row.get("anchorTime"),
                     "anchorPrice": row.get("anchorPrice"),
                     "previousRsi": row.get("previousRsi"),
+                    "firstDetectedAt": row.get("firstDetectedAt"),
                     "trendDirection": trend.get("finalMarketDirection"),
                     "tradePermission": trend.get("tradePermission"),
                     "invalidationLevel": trend.get("invalidationLevel"),
