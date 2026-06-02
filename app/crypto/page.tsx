@@ -279,7 +279,7 @@ function entrySignalBadge(row: OpenPaperPosition) {
   if (row.entrySignal !== "RSI_V3") return null;
   const system = row.entrySystem || "?";
   return (
-    <span className="mt-1 inline-flex rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+    <span className="inline-flex rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
       {system} V3
     </span>
   );
@@ -652,13 +652,8 @@ export default function CryptoDashboardPage() {
                     const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
                     return (
                       <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">
-                          <div className="flex flex-col">
-                            <span>{paperPositionLabels.get(key) || row.symbol}</span>
-                            {entrySignalBadge(row)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                         <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
@@ -709,13 +704,8 @@ export default function CryptoDashboardPage() {
                     const key = `${row.symbol}-${row.side}-${row.entryAt}`;
                     return (
                       <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">
-                          <div className="flex flex-col">
-                            <span>{paperPositionLabels.get(key) || row.symbol}</span>
-                            {entrySignalBadge(row)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
                         <td className="px-4 py-3">{shortSide(row.side)}</td>
                         <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
                         <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
