@@ -242,13 +242,6 @@ function percentTextClass(value?: number | null) {
   return "text-slate-300";
 }
 
-function evolutionCellClasses(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) return "border-white/10 bg-white/[0.03] text-slate-500";
-  if (value > 0) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
-  if (value < 0) return "border-rose-400/30 bg-rose-400/10 text-rose-200";
-  return "border-white/10 bg-white/[0.03] text-slate-300";
-}
-
 function trendBadgeClasses(trend: string) {
   if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
@@ -544,90 +537,61 @@ export default function CryptoDashboardPage() {
       const bucket = positionSnapshots[key];
       const barHours = systemBarHours(row.entrySystem);
       const entryDate = parseIsoDate(row.entryAt);
-      const snapshots = Array.isArray(bucket?.snapshots) ? bucket.snapshots : [];
-      const bars = Array.from({ length: 20 }, (_, index) => ({
-        bar: index + 1,
-        scans: [] as PositionSnapshot[],
-      }));
-
-      if (barHours && entryDate) {
-        for (const snapshot of snapshots) {
-          const scanDate = parseIsoDate(snapshot.scanAt);
-          if (!scanDate) continue;
-          const barIndex = Math.floor((scanDate.getTime() - entryDate.getTime()) / (barHours * 60 * 60 * 1000)) + 1;
-          if (barIndex < 1 || barIndex > 20) continue;
-          bars[barIndex - 1].scans.push(snapshot);
-        }
-      }
-
       const slotsPerBar = systemScanSlots(row.entrySystem) || 0;
-      const mappedBars = bars.map(({ bar, scans }) => {
-        const sortedScans = [...scans].sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
-        const slotValues = Array.from({ length: slotsPerBar }, (_, index) => ({
-          slot: index + 1,
-          price: null as number | null,
-          pl: null as number | null,
-        }));
+      const maxScans = slotsPerBar * 20;
+      const snapshots = (Array.isArray(bucket?.snapshots) ? bucket.snapshots : [])
+        .filter((snapshot) => typeof snapshot.currentPrice === "number")
+        .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
 
-        if (entryDate && slotsPerBar > 0) {
-          for (const scan of sortedScans) {
-            const scanDate = parseIsoDate(scan.scanAt);
-            if (!scanDate) continue;
-            const elapsedMinutes = Math.max(0, (scanDate.getTime() - entryDate.getTime()) / (60 * 1000));
-            const slotIndex = Math.floor(elapsedMinutes / SCAN_INTERVAL_MINUTES);
-            const slotInBar = slotIndex - ((bar - 1) * slotsPerBar);
-            if (slotInBar < 0 || slotInBar >= slotsPerBar) continue;
-            const price = typeof scan.currentPrice === "number" ? scan.currentPrice : null;
-            slotValues[slotInBar] = {
-              slot: slotInBar + 1,
-              price,
-              pl: computePlValue(row.entryPrice, price, row.side),
-            };
-          }
-        }
+      const scanSeries = snapshots
+        .map((snapshot) => {
+          const scanDate = parseIsoDate(snapshot.scanAt);
+          const price = typeof snapshot.currentPrice === "number" ? snapshot.currentPrice : null;
+          if (!entryDate || !scanDate || price == null || !barHours) return null;
+          const elapsedMinutes = Math.max(0, (scanDate.getTime() - entryDate.getTime()) / (60 * 1000));
+          const scanIndex = Math.floor(elapsedMinutes / SCAN_INTERVAL_MINUTES) + 1;
+          if (scanIndex < 1 || scanIndex > maxScans) return null;
+          const bar = Math.floor((scanIndex - 1) / Math.max(slotsPerBar, 1)) + 1;
+          return {
+            scanAt: snapshot.scanAt,
+            scanIndex,
+            bar,
+            price,
+            pl: computePlValue(row.entryPrice, price, row.side),
+          };
+        })
+        .filter((item): item is { scanAt: string; scanIndex: number; bar: number; price: number; pl: number | null } => Boolean(item));
 
-        const prices = sortedScans
-          .map((scan) => (typeof scan.currentPrice === "number" ? scan.currentPrice : null))
-          .filter((value): value is number => value != null);
-        const close = prices.length ? prices[prices.length - 1] : null;
-        const high = prices.length ? Math.max(...prices) : null;
-        const low = prices.length ? Math.min(...prices) : null;
-        const closePl = computePlValue(row.entryPrice, close, row.side);
-        return {
-          bar,
-          scans: sortedScans,
-          prices,
-          close,
-          high,
-          low,
-          closePl,
-          slotValues,
-        };
-      });
-
-      const availableBars = mappedBars.filter((bar) => bar.prices.length > 0);
-      const bestBar = availableBars.reduce((best, bar) => {
-        if (bar.high == null) return best;
-        const value = computePlValue(row.entryPrice, bar.high, row.side);
-        if (value == null) return best;
-        if (!best || value > best.value) return { bar: bar.bar, value };
+      const priceValues = [
+        ...(row.entryPrice != null && Number.isFinite(row.entryPrice) ? [row.entryPrice] : []),
+        ...scanSeries.map((point) => point.price),
+      ];
+      const minPrice = priceValues.length ? Math.min(...priceValues) : null;
+      const maxPrice = priceValues.length ? Math.max(...priceValues) : null;
+      const bestPoint = scanSeries.reduce((best, point) => {
+        if (point.pl == null) return best;
+        if (!best || point.pl > best.pl) return point;
         return best;
-      }, null as { bar: number; value: number } | null);
-      const worstBar = availableBars.reduce((worst, bar) => {
-        if (bar.low == null) return worst;
-        const value = computePlValue(row.entryPrice, bar.low, row.side);
-        if (value == null) return worst;
-        if (!worst || value < worst.value) return { bar: bar.bar, value };
+      }, null as (typeof scanSeries)[number] | null);
+      const worstPoint = scanSeries.reduce((worst, point) => {
+        if (point.pl == null) return worst;
+        if (!worst || point.pl < worst.pl) return point;
         return worst;
-      }, null as { bar: number; value: number } | null);
+      }, null as (typeof scanSeries)[number] | null);
+      const currentPoint = scanSeries.length ? scanSeries[scanSeries.length - 1] : null;
 
       return {
         key,
         row,
         progress: barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt),
-        bars: mappedBars,
-        bestBar,
-        worstBar,
+        maxScans,
+        slotsPerBar,
+        scanSeries,
+        minPrice,
+        maxPrice,
+        bestPoint,
+        worstPoint,
+        currentPoint,
       };
     });
   }, [activePaperPositions, positionSnapshots, updatedAt]);
@@ -845,49 +809,78 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">20-Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">first 20 bars after entry, grouped by bar and color-coded by result</span>
+            <span className="text-[10px] text-slate-400">all 30m scans plotted across the first 20 bars after entry</span>
           </div>
           {openPositionEvolutionRows.length === 0 ? (
             <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No open positions to track yet.</div>
           ) : (
             <div className="space-y-4">
-              {openPositionEvolutionRows.map(({ key, row, progress, bars, bestBar, worstBar }) => (
-                <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
-                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                    <span className="font-semibold text-white">{row.symbol}</span>
-                    <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
-                    <span>{shortSide(row.side)}</span>
-                    <span>Entry {formatPrice(row.entryPrice)}</span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{row.entrySystem === "S4h" ? "160 scans max" : row.entrySystem === "S1h" ? "40 scans max" : "scan view"}</span>
-                    <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestBar?.value != null && bestBar.value > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestBar ? `B${bestBar.bar} ${formatPercent(bestBar.value)}` : "-"}</span>
-                    <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstBar?.value != null && worstBar.value < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstBar ? `B${worstBar.bar} ${formatPercent(worstBar.value)}` : "-"}</span>
-                  </div>
-                  <div className="grid min-w-[1200px] grid-cols-20 gap-2">
-                    {bars.map((bar) => (
-                      <div key={`${key}-bar-${bar.bar}`} className={`rounded-lg border p-2 ${evolutionCellClasses(bar.closePl)}`}>
-                        <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide">
-                          <span className="font-semibold">B{bar.bar}</span>
-                          <span>{bar.scans.length || 0}s</span>
-                        </div>
-                        <div className="mb-1 text-xs font-semibold">{formatPrice(bar.close)}</div>
-                        <div className={`mb-1 text-[11px] ${percentTextClass(bar.closePl)}`}>{formatPercent(bar.closePl)}</div>
-                        <div className="mb-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.max(bar.slotValues.length, 1)}, minmax(0, 1fr))` }}>
-                          {bar.slotValues.length ? bar.slotValues.map((slot) => (
-                            <div key={`${key}-bar-${bar.bar}-slot-${slot.slot}`} className={`rounded border px-1 py-1 text-center text-[9px] ${evolutionCellClasses(slot.pl)}`} title={slot.price != null ? `${formatPrice(slot.price)} | ${formatPercent(slot.pl)}` : `slot ${slot.slot}`}>
-                              {slot.price != null ? formatPrice(slot.price) : "·"}
-                            </div>
-                          )) : (
-                            <div className="rounded border border-white/10 px-1 py-1 text-center text-[9px] text-slate-500">·</div>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-400">H {formatPrice(bar.high)}</div>
-                        <div className="text-[10px] text-slate-400">L {formatPrice(bar.low)}</div>
+              {openPositionEvolutionRows.map(({ key, row, progress, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
+                const width = 1200;
+                const height = 260;
+                const paddingX = 18;
+                const paddingTop = 18;
+                const paddingBottom = 28;
+                const plotWidth = width - paddingX * 2;
+                const plotHeight = height - paddingTop - paddingBottom;
+                const priceRange = minPrice != null && maxPrice != null ? Math.max(maxPrice - minPrice, (maxPrice || 1) * 0.002) : 1;
+                const valueToY = (value: number) => paddingTop + ((maxPrice ?? value) - value) / priceRange * plotHeight;
+                const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(maxScans - 1, 1)) * plotWidth;
+                const linePoints = scanSeries.map((point) => `${scanToX(point.scanIndex)},${valueToY(point.price)}`).join(" ");
+                const entryY = row.entryPrice != null && minPrice != null && maxPrice != null ? valueToY(row.entryPrice) : null;
+                const barMarkers = Array.from({ length: 20 }, (_, index) => {
+                  const scanIndex = index * Math.max(slotsPerBar, 1) + 1;
+                  return { bar: index + 1, x: scanToX(scanIndex) };
+                });
+
+                return (
+                  <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
+                    <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                      <span className="font-semibold text-white">{row.symbol}</span>
+                      <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
+                      <span>{shortSide(row.side)}</span>
+                      <span>Entry {formatPrice(row.entryPrice)}</span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{maxScans} scans max</span>
+                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestPoint?.pl != null && bestPoint.pl > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestPoint ? `B${bestPoint.bar} ${formatPercent(bestPoint.pl)}` : "-"}</span>
+                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstPoint?.pl != null && worstPoint.pl < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstPoint ? `B${worstPoint.bar} ${formatPercent(worstPoint.pl)}` : "-"}</span>
+                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${percentTextClass(currentPoint?.pl)}`}>Current {currentPoint ? formatPercent(currentPoint.pl) : "-"}</span>
+                    </div>
+                    <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
+                      <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
+                        <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
+                        {entryY != null ? <rect x={paddingX} y={paddingTop} width={plotWidth} height={Math.max(0, entryY - paddingTop)} fill="rgba(244,63,94,0.05)" /> : null}
+                        {entryY != null ? <rect x={paddingX} y={entryY} width={plotWidth} height={Math.max(0, paddingTop + plotHeight - entryY)} fill="rgba(16,185,129,0.05)" /> : null}
+                        {barMarkers.map((marker) => (
+                          <g key={`${key}-marker-${marker.bar}`}>
+                            <line x1={marker.x} y1={paddingTop} x2={marker.x} y2={paddingTop + plotHeight} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 5" />
+                            <text x={marker.x + 2} y={height - 8} fill="rgba(148,163,184,0.8)" fontSize="10">B{marker.bar}</text>
+                          </g>
+                        ))}
+                        {entryY != null ? (
+                          <g>
+                            <line x1={paddingX} y1={entryY} x2={paddingX + plotWidth} y2={entryY} stroke="rgba(250,204,21,0.8)" strokeDasharray="6 4" />
+                            <text x={paddingX + 6} y={Math.max(12, entryY - 6)} fill="rgba(250,204,21,0.95)" fontSize="11">Entry {formatPrice(row.entryPrice)}</text>
+                          </g>
+                        ) : null}
+                        {linePoints ? <polyline fill="none" stroke="rgba(125,211,252,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
+                        {scanSeries.map((point) => (
+                          <circle key={`${key}-scan-${point.scanIndex}`} cx={scanToX(point.scanIndex)} cy={valueToY(point.price)} r="2.5" fill={point.pl != null && point.pl >= 0 ? "rgba(52,211,153,0.9)" : "rgba(251,113,133,0.9)"} />
+                        ))}
+                        {bestPoint ? <circle cx={scanToX(bestPoint.scanIndex)} cy={valueToY(bestPoint.price)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" /> : null}
+                        {worstPoint ? <circle cx={scanToX(worstPoint.scanIndex)} cy={valueToY(worstPoint.price)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" /> : null}
+                        {currentPoint ? <circle cx={scanToX(currentPoint.scanIndex)} cy={valueToY(currentPoint.price)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" /> : null}
+                      </svg>
+                      <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
+                        <div>Scans captured: <span className="font-semibold text-slate-100">{scanSeries.length}/{maxScans}</span></div>
+                        <div>Price range: <span className="font-semibold text-slate-100">{minPrice != null && maxPrice != null ? `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}` : "-"}</span></div>
+                        <div>Best point: <span className="font-semibold text-emerald-200">{bestPoint ? `scan ${bestPoint.scanIndex} · ${formatPrice(bestPoint.price)}` : "-"}</span></div>
+                        <div>Worst point: <span className="font-semibold text-rose-200">{worstPoint ? `scan ${worstPoint.scanIndex} · ${formatPrice(worstPoint.price)}` : "-"}</span></div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
