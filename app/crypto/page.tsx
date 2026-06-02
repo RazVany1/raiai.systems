@@ -511,6 +511,7 @@ export default function CryptoDashboardPage() {
   }, [versionSummaryBaseRows1h, updatedAt]);
 
   const scanSummary = useMemo(() => {
+    const expected = 150;
     const scanned = new Set(
       trendRows
         .map((row) => row.symbol)
@@ -528,7 +529,7 @@ export default function CryptoDashboardPage() {
         .map((row) => row.symbol),
     ).size;
 
-    return { scanned, visible, hiddenV0 };
+    return { expected, scanned, visible, hiddenV0, healthy: scanned >= expected };
   }, [trendRows, versionSummaryRows, versionSummaryRows1h, versionSummaryBaseRows, versionSummaryBaseRows1h]);
 
   const openPositionEvolutionRows = useMemo(() => {
@@ -984,8 +985,9 @@ export default function CryptoDashboardPage() {
 
         <section className="mb-4 grid gap-2 md:grid-cols-6">
           <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Scanned</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.scanned}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Scan status</p>
+            <p className={`mt-2 text-lg font-semibold ${scanSummary.healthy ? "text-emerald-200" : "text-rose-200"}`}>{scanSummary.scanned}/{scanSummary.expected}</p>
+            <p className={`mt-1 text-[11px] ${scanSummary.healthy ? "text-emerald-300" : "text-rose-300"}`}>{scanSummary.healthy ? "OK" : "missing scans"}</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Visible now</p>
