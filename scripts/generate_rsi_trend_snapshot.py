@@ -1671,12 +1671,15 @@ def main():
                 for row in rows:
                     if not isinstance(row, dict) or not row.get("currentlyInZone"):
                         continue
+                    detected_now = row.get("detectedAt")
+                    if detected_now != updated_at:
+                        continue
                     zone = row.get("zone")
-                    side = "LONG" if zone == "upper_interest" else "SHORT" if zone == "lower_interest" else None
+                    side = "SHORT" if zone == "upper_interest" else "LONG" if zone == "lower_interest" else None
                     price = row.get("price")
                     if side is None or not isinstance(price, (int, float)):
                         continue
-                    detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
+                    detected_at = detected_now
                     if not detected_at:
                         continue
                     entry_candidates.append({
@@ -1684,7 +1687,7 @@ def main():
                         "side": side,
                         "state": "confirmed",
                         "confirmedAt": detected_at,
-                        "detectedAt": row.get("detectedAt") or detected_at,
+                        "detectedAt": detected_at,
                         "price": price,
                         "formationType": "RSI_V3",
                         "entrySignal": "RSI_V3",
