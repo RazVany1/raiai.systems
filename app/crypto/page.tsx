@@ -172,7 +172,7 @@ function parseIsoDate(value?: string | null) {
 
 function shortSide(side?: string | null) {
   if (!side) return "-";
-  return side === "SHORT" ? "S" : side === "LONG" ? "L" : side.charAt(0).toUpperCase();
+  return side === "SHORT" ? "SHORT" : side === "LONG" ? "LONG" : side.toUpperCase();
 }
 
 function shortEntryState(state?: string | null) {
