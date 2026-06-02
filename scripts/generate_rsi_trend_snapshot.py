@@ -1763,30 +1763,61 @@ def main():
                 if isinstance(current_pl, (int, float)):
                     max_pl = max(max_pl, current_pl)
                     min_pl = min(min_pl, current_pl)
-                exit_signals = exit_signal_cache.get(signal_key, {})
-                formation_context = None if existing.get("entrySignal") == "RSI_V3" else row
-                exit_state = apply_exit_management(existing, side, entry_price, formation_context, trend, updated_at, exit_signals)
-                paper_positions.append({
-                    **existing,
-                    "lastSeenAt": updated_at,
-                    "currentPrice": entry_price,
-                    "trendDirection": trend.get("finalMarketDirection"),
-                    "tradePermission": trend.get("tradePermission"),
-                    "invalidationLevel": trend.get("invalidationLevel"),
-                    "entryState": existing.get("entryState", state),
-                    "entrySignal": existing.get("entrySignal", row.get("entrySignal")),
-                    "entrySystem": existing.get("entrySystem", row.get("entrySystem")),
-                    "signalZone": existing.get("signalZone", row.get("signalZone")),
-                    "anchorRsi": existing.get("anchorRsi", row.get("anchorRsi")),
-                    "anchorTime": existing.get("anchorTime", row.get("anchorTime")),
-                    "anchorPrice": existing.get("anchorPrice", row.get("anchorPrice")),
-                    "previousRsi": row.get("previousRsi", existing.get("previousRsi")),
-                    "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
-                    **exit_state,
-                    "exitSignals": exit_signals,
-                    "maxPlPercent": max_pl,
-                    "minPlPercent": min_pl,
-                })
+                if existing.get("entrySignal") == "RSI_V3":
+                    paper_positions.append({
+                        **existing,
+                        "lastSeenAt": updated_at,
+                        "currentPrice": entry_price,
+                        "entryState": existing.get("entryState", state),
+                        "entrySignal": existing.get("entrySignal", row.get("entrySignal")),
+                        "entrySystem": existing.get("entrySystem", row.get("entrySystem")),
+                        "signalZone": existing.get("signalZone", row.get("signalZone")),
+                        "anchorRsi": existing.get("anchorRsi", row.get("anchorRsi")),
+                        "anchorTime": existing.get("anchorTime", row.get("anchorTime")),
+                        "anchorPrice": existing.get("anchorPrice", row.get("anchorPrice")),
+                        "previousRsi": row.get("previousRsi", existing.get("previousRsi")),
+                        "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
+                        "trendDirection": None,
+                        "tradePermission": None,
+                        "invalidationLevel": None,
+                        "status": "open",
+                        "closedAt": None,
+                        "closePrice": None,
+                        "closePlPercent": None,
+                        "remainingSizePercent": 100.0,
+                        "partialClosedAt": None,
+                        "partialClosePrice": None,
+                        "partialClosePlPercent": None,
+                        "runnerStopPrice": None,
+                        "exitSignals": {},
+                        "maxPlPercent": max_pl,
+                        "minPlPercent": min_pl,
+                    })
+                else:
+                    exit_signals = exit_signal_cache.get(signal_key, {})
+                    formation_context = row
+                    exit_state = apply_exit_management(existing, side, entry_price, formation_context, trend, updated_at, exit_signals)
+                    paper_positions.append({
+                        **existing,
+                        "lastSeenAt": updated_at,
+                        "currentPrice": entry_price,
+                        "trendDirection": trend.get("finalMarketDirection"),
+                        "tradePermission": trend.get("tradePermission"),
+                        "invalidationLevel": trend.get("invalidationLevel"),
+                        "entryState": existing.get("entryState", state),
+                        "entrySignal": existing.get("entrySignal", row.get("entrySignal")),
+                        "entrySystem": existing.get("entrySystem", row.get("entrySystem")),
+                        "signalZone": existing.get("signalZone", row.get("signalZone")),
+                        "anchorRsi": existing.get("anchorRsi", row.get("anchorRsi")),
+                        "anchorTime": existing.get("anchorTime", row.get("anchorTime")),
+                        "anchorPrice": existing.get("anchorPrice", row.get("anchorPrice")),
+                        "previousRsi": row.get("previousRsi", existing.get("previousRsi")),
+                        "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
+                        **exit_state,
+                        "exitSignals": exit_signals,
+                        "maxPlPercent": max_pl,
+                        "minPlPercent": min_pl,
+                    })
             else:
                 paper_positions.append({
                     "symbol": symbol,
@@ -1802,9 +1833,9 @@ def main():
                     "anchorPrice": row.get("anchorPrice"),
                     "previousRsi": row.get("previousRsi"),
                     "firstDetectedAt": row.get("firstDetectedAt"),
-                    "trendDirection": trend.get("finalMarketDirection"),
-                    "tradePermission": trend.get("tradePermission"),
-                    "invalidationLevel": trend.get("invalidationLevel"),
+                    "trendDirection": None if row.get("entrySignal") == "RSI_V3" else trend.get("finalMarketDirection"),
+                    "tradePermission": None if row.get("entrySignal") == "RSI_V3" else trend.get("tradePermission"),
+                    "invalidationLevel": None if row.get("entrySignal") == "RSI_V3" else trend.get("invalidationLevel"),
                     "formationType": row.get("formationType"),
                     "detectedAt": row.get("detectedAt"),
                     "lastSeenAt": updated_at,
@@ -1818,6 +1849,7 @@ def main():
                     "runnerStopPrice": None,
                     "closePrice": None,
                     "closePlPercent": None,
+                    "exitSignals": {},
                     "maxPlPercent": 0.0,
                     "minPlPercent": 0.0,
                 })
@@ -1828,7 +1860,44 @@ def main():
                 continue
             symbol, side, _entry_at = key
             trend = trend_map.get(symbol)
-            formation = None if existing.get("entrySignal") == "RSI_V3" else formation_map.get((symbol, side))
+            if existing.get("entrySignal") == "RSI_V3":
+                current_price = trend.get("price") if trend else existing.get("currentPrice")
+                current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
+                previous_max_pl = existing.get("maxPlPercent")
+                previous_min_pl = existing.get("minPlPercent")
+                max_pl = 0.0
+                min_pl = 0.0
+                if isinstance(previous_max_pl, (int, float)):
+                    max_pl = max(0.0, previous_max_pl)
+                if isinstance(previous_min_pl, (int, float)):
+                    min_pl = min(0.0, previous_min_pl)
+                if isinstance(current_pl, (int, float)):
+                    max_pl = max(max_pl, current_pl)
+                    min_pl = min(min_pl, current_pl)
+
+                paper_positions.append({
+                    **existing,
+                    "currentPrice": current_price,
+                    "lastSeenAt": updated_at,
+                    "trendDirection": None,
+                    "tradePermission": None,
+                    "invalidationLevel": None,
+                    "status": "open",
+                    "closedAt": None,
+                    "closePrice": None,
+                    "closePlPercent": None,
+                    "remainingSizePercent": 100.0,
+                    "partialClosedAt": None,
+                    "partialClosePrice": None,
+                    "partialClosePlPercent": None,
+                    "runnerStopPrice": None,
+                    "exitSignals": {},
+                    "maxPlPercent": max_pl,
+                    "minPlPercent": min_pl,
+                })
+                continue
+
+            formation = formation_map.get((symbol, side))
             current_price = trend.get("price") if trend else existing.get("currentPrice")
             invalidation_level = existing.get("invalidationLevel")
             if trend and trend.get("invalidationLevel") is not None:
