@@ -106,6 +106,8 @@ type PositionSnapshot = {
   scanAt: string;
   currentPrice?: number | null;
   currentPlPercent?: number | null;
+  candleClose4h?: number | null;
+  candleClose1h?: number | null;
 };
 
 type PositionSnapshotBucket = {
@@ -147,6 +149,14 @@ function computePlValue(entryPrice?: number | null, currentPrice?: number | null
   return side === "SHORT"
     ? ((entryPrice - currentPrice) / entryPrice) * 100
     : ((currentPrice - entryPrice) / entryPrice) * 100;
+}
+
+function snapshotDisplayPrice(snapshot?: PositionSnapshot | null) {
+  if (!snapshot) return null;
+  if (typeof snapshot.currentPrice === "number" && Number.isFinite(snapshot.currentPrice)) return snapshot.currentPrice;
+  if (typeof snapshot.candleClose4h === "number" && Number.isFinite(snapshot.candleClose4h)) return snapshot.candleClose4h;
+  if (typeof snapshot.candleClose1h === "number" && Number.isFinite(snapshot.candleClose1h)) return snapshot.candleClose1h;
+  return null;
 }
 
 function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
@@ -541,13 +551,13 @@ export default function CryptoDashboardPage() {
       const slotsPerBar = systemScanSlots(row.entrySystem) || 0;
       const maxScans = slotsPerBar * 20;
       const snapshots = (Array.isArray(bucket?.snapshots) ? bucket.snapshots : [])
-        .filter((snapshot) => typeof snapshot.currentPrice === "number")
+        .filter((snapshot) => snapshotDisplayPrice(snapshot) != null)
         .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
 
       const scanSeries = snapshots
         .map((snapshot) => {
           const scanDate = parseIsoDate(snapshot.scanAt);
-          const price = typeof snapshot.currentPrice === "number" ? snapshot.currentPrice : null;
+          const price = snapshotDisplayPrice(snapshot);
           if (!entryDate || !scanDate || price == null || !barHours) return null;
           const elapsedMinutes = Math.max(0, (scanDate.getTime() - entryDate.getTime()) / (60 * 1000));
           const scanIndex = Math.floor(elapsedMinutes / SCAN_INTERVAL_MINUTES) + 1;
