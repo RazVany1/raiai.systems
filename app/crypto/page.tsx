@@ -951,8 +951,24 @@ export default function CryptoDashboardPage() {
                     <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
                       <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
                         <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
-                        {entryY != null ? <rect x={paddingX} y={paddingTop} width={plotWidth} height={Math.max(0, entryY - paddingTop)} fill="rgba(244,63,94,0.05)" /> : null}
-                        {entryY != null ? <rect x={paddingX} y={entryY} width={plotWidth} height={Math.max(0, paddingTop + plotHeight - entryY)} fill="rgba(16,185,129,0.05)" /> : null}
+                        {entryY != null ? (
+                          <rect
+                            x={paddingX}
+                            y={paddingTop}
+                            width={plotWidth}
+                            height={Math.max(0, entryY - paddingTop)}
+                            fill={row.side === "SHORT" ? "rgba(244,63,94,0.05)" : "rgba(16,185,129,0.05)"}
+                          />
+                        ) : null}
+                        {entryY != null ? (
+                          <rect
+                            x={paddingX}
+                            y={entryY}
+                            width={plotWidth}
+                            height={Math.max(0, paddingTop + plotHeight - entryY)}
+                            fill={row.side === "SHORT" ? "rgba(16,185,129,0.05)" : "rgba(244,63,94,0.05)"}
+                          />
+                        ) : null}
                         {barMarkers.map((marker) => (
                           <g key={`${key}-marker-${marker.bar}`}>
                             <line x1={marker.x} y1={paddingTop} x2={marker.x} y2={paddingTop + plotHeight} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 5" />
