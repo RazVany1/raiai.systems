@@ -539,6 +539,63 @@ function ActivePositionsSection({
   );
 }
 
+function TotalPlEvolutionSection({
+  rows,
+}: {
+  rows: { scanAt: string; scanIndex: number; pnlUsd: number; activePositions: number }[];
+}) {
+  if (rows.length === 0) {
+    return <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No portfolio P/L scan history yet.</div>;
+  }
+
+  const width = 1200;
+  const height = 220;
+  const paddingX = 18;
+  const paddingTop = 18;
+  const paddingBottom = 28;
+  const plotWidth = width - paddingX * 2;
+  const plotHeight = height - paddingTop - paddingBottom;
+  const minPnl = Math.min(...rows.map((row) => row.pnlUsd), 0);
+  const maxPnl = Math.max(...rows.map((row) => row.pnlUsd), 0);
+  const pnlRange = Math.max(maxPnl - minPnl, 1);
+  const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(rows.length - 1, 1)) * plotWidth;
+  const pnlToY = (value: number) => paddingTop + (maxPnl - value) / pnlRange * plotHeight;
+  const zeroY = pnlToY(0);
+  const linePoints = rows.map((row) => `${scanToX(row.scanIndex)},${pnlToY(row.pnlUsd)}`).join(" ");
+  const bestRow = rows.reduce((best, row) => (row.pnlUsd > best.pnlUsd ? row : best), rows[0]);
+  const worstRow = rows.reduce((worst, row) => (row.pnlUsd < worst.pnlUsd ? row : worst), rows[0]);
+  const currentRow = rows[rows.length - 1];
+
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">Portfolio P/L Evolution</h2>
+        <span className="text-[10px] text-slate-400">un singur grafic total, la fiecare scanare</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
+        <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
+          <svg viewBox={`0 0 ${width} ${height}`} className="h-56 w-full">
+            <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
+            <line x1={paddingX} y1={zeroY} x2={paddingX + plotWidth} y2={zeroY} stroke="rgba(250,250,250,0.35)" strokeDasharray="5 5" />
+            <text x={paddingX + 6} y={Math.max(12, zeroY - 6)} fill="rgba(226,232,240,0.9)" fontSize="11">$0</text>
+            {linePoints ? <polyline fill="none" stroke="rgba(196,181,253,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
+            {rows.map((row) => <circle key={`portfolio-pl-${row.scanIndex}`} cx={scanToX(row.scanIndex)} cy={pnlToY(row.pnlUsd)} r="2.8" fill={row.pnlUsd >= 0 ? "rgba(52,211,153,0.95)" : "rgba(251,113,133,0.95)"} />)}
+            <circle cx={scanToX(bestRow.scanIndex)} cy={pnlToY(bestRow.pnlUsd)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" />
+            <circle cx={scanToX(worstRow.scanIndex)} cy={pnlToY(worstRow.pnlUsd)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" />
+            <circle cx={scanToX(currentRow.scanIndex)} cy={pnlToY(currentRow.pnlUsd)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(168,85,247,0.9)" strokeWidth="1.5" />
+          </svg>
+          <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
+            <div>Scans: <span className="font-semibold text-slate-100">{rows.length}</span></div>
+            <div>Best total P/L: <span className="font-semibold text-emerald-200">{formatUsd(bestRow.pnlUsd)}</span></div>
+            <div>Worst total P/L: <span className="font-semibold text-rose-200">{formatUsd(worstRow.pnlUsd)}</span></div>
+            <div>Current total P/L: <span className={`font-semibold ${percentTextClass(currentRow.pnlUsd)}`}>{formatUsd(currentRow.pnlUsd)}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function BarEvolutionSection({
   title,
   subtitle,
@@ -592,6 +649,7 @@ function BarEvolutionSection({
                   <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${percentTextClass(currentPoint?.pl)}`}>Current {currentPoint ? formatPercent(currentPoint.pl) : "-"}</span>
                 </div>
                 <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">Price evolution</div>
                   <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
                     <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
                     {entryY != null ? <rect x={paddingX} y={paddingTop} width={plotWidth} height={Math.max(0, entryY - paddingTop)} fill={row.side === "SHORT" ? "rgba(244,63,94,0.05)" : "rgba(16,185,129,0.05)"} /> : null}
@@ -615,6 +673,7 @@ function BarEvolutionSection({
                     <div>Best point: <span className="font-semibold text-emerald-200">{bestPoint ? `scan ${bestPoint.scanIndex} - ${formatPrice(bestPoint.price)}` : "-"}</span></div>
                     <div>Worst point: <span className="font-semibold text-rose-200">{worstPoint ? `scan ${worstPoint.scanIndex} - ${formatPrice(worstPoint.price)}` : "-"}</span></div>
                   </div>
+
                 </div>
               </div>
             );
@@ -778,6 +837,14 @@ export default function CryptoDashboardPage() {
       equityUsd: closedPaperPositions.length * ASSUMED_MARGIN_USD + pnlUsd,
     };
   }, [closedPaperPositions]);
+
+  const totalMoneySummary = useMemo(() => {
+    const pnlUsd = openMoneySummary.pnlUsd + closedMoneySummary.pnlUsd;
+    return {
+      pnlUsd,
+      isNegative: pnlUsd < 0,
+    };
+  }, [openMoneySummary, closedMoneySummary]);
 
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
@@ -956,6 +1023,22 @@ export default function CryptoDashboardPage() {
   const openPositionEvolutionRows4h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S4h"), [openPositionEvolutionRows]);
   const openPositionEvolutionRows1h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1h"), [openPositionEvolutionRows]);
 
+  const portfolioPlEvolutionRows = useMemo(() => {
+    const totals = new Map<string, { scanAt: string; pnlUsd: number; activePositions: number }>();
+    openPositionEvolutionRows.forEach(({ scanSeries }) => {
+      scanSeries.forEach((point: any) => {
+        if (point.pl == null) return;
+        const current = totals.get(point.scanAt) || { scanAt: point.scanAt, pnlUsd: 0, activePositions: 0 };
+        current.pnlUsd += plUsdFromPercent(point.pl) ?? 0;
+        current.activePositions += 1;
+        totals.set(point.scanAt, current);
+      });
+    });
+    return [...totals.values()]
+      .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0))
+      .map((row, index) => ({ ...row, scanIndex: index + 1 }));
+  }, [openPositionEvolutionRows]);
+
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
   }, [btcContextRows]);
@@ -975,28 +1058,40 @@ export default function CryptoDashboardPage() {
           </div>
         </div>
 
-        <section className="mb-4 grid gap-2 md:grid-cols-4">
+        <section className="mb-4 grid gap-2 md:grid-cols-5">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Money in play</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsd(openMoneySummary.marginUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Capitalul pus efectiv in joc acum.</p>
+            <p className="mt-1 text-[11px] text-slate-500">{openMoneySummary.positions} pozitii active x $10 marja.</p>
+          </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open notional</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsd(openMoneySummary.notionalUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">{openMoneySummary.positions} pozitii x $50</p>
+            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.notionalUsd)}`}>{formatUsd(openMoneySummary.notionalUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Valoarea totala controlata in piata acum.</p>
+            <p className="mt-1 text-[11px] text-slate-500">{openMoneySummary.positions} pozitii x $50 notional / pozitie.</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open P/L $</p>
             <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.pnlUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">marja initiala {formatUsd(openMoneySummary.marginUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Profitul sau pierderea nerealizata pe pozitiile deschise.</p>
+            <p className="mt-1 text-[11px] text-slate-500">Marja initiala blocata: {formatUsd(openMoneySummary.marginUsd)}.</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Total P/L $</p>
+            <p className={`mt-2 text-lg font-semibold ${percentTextClass(totalMoneySummary.pnlUsd)}`}>{formatUsd(totalMoneySummary.pnlUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Rezultatul total pana acum: open + closed.</p>
+            <p className="mt-1 text-[11px] text-slate-500">Se vede imediat daca esti per total pe plus sau pe minus.</p>
           </div>
           <div className={`${shellClass} p-2.5`}>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open money now</p>
             <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.equityUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">capital activ estimat</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed P/L $</p>
-            <p className={`mt-2 text-lg font-semibold ${percentTextClass(closedMoneySummary.pnlUsd)}`}>{formatUsd(closedMoneySummary.pnlUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">{closedMoneySummary.positions} pozitii inchise</p>
+            <p className="mt-1 text-[11px] text-slate-400">Cat ar valora acum toate pozitiile deschise, cu P/L inclus.</p>
+            <p className="mt-1 text-[11px] text-slate-500">Formula: money in play + open P/L.</p>
           </div>
         </section>
+
+        <TotalPlEvolutionSection rows={portfolioPlEvolutionRows} />
 
         <VersionsLegendSection />
 
