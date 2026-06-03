@@ -518,7 +518,7 @@ export default function CryptoDashboardPage() {
 
   const versionSummaryRows = useMemo(() => {
     return versionSummaryBaseRows
-      .filter((row) => row.v1 || row.v2 || row.v3)
+      .filter((row) => row.v2 || row.v3)
       .sort((a, b) => {
         const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
         const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
@@ -529,7 +529,7 @@ export default function CryptoDashboardPage() {
 
   const versionSummaryRows1h = useMemo(() => {
     return versionSummaryBaseRows1h
-      .filter((row) => row.v1 || row.v2 || row.v3)
+      .filter((row) => row.v2 || row.v3)
       .sort((a, b) => {
         const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
         const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
@@ -540,7 +540,7 @@ export default function CryptoDashboardPage() {
 
   const versionSummaryRows1d = useMemo(() => {
     return versionSummaryBaseRows1d
-      .filter((row) => row.v1 || row.v2 || row.v3)
+      .filter((row) => row.v2 || row.v3)
       .sort((a, b) => {
         const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
         const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
