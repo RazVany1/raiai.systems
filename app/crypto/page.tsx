@@ -645,6 +645,14 @@ export default function CryptoDashboardPage() {
     });
   }, [activePaperPositions, positionSnapshots, updatedAt]);
 
+  const activePaperPositions1d = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S1D"), [activePaperPositions]);
+  const activePaperPositions4h = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S4h"), [activePaperPositions]);
+  const activePaperPositions1h = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S1h"), [activePaperPositions]);
+
+  const openPositionEvolutionRows1d = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1D"), [openPositionEvolutionRows]);
+  const openPositionEvolutionRows4h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S4h"), [openPositionEvolutionRows]);
+  const openPositionEvolutionRows1h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1h"), [openPositionEvolutionRows]);
+
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
   }, [btcContextRows]);
@@ -655,7 +663,7 @@ export default function CryptoDashboardPage() {
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RAI Crypto Dashboard</h1>
-            <p className="text-sm text-slate-300">S4h + S1h + S1D radar: version matrix pentru RSI Interest Zones</p>
+            <p className="text-sm text-slate-300">S1D + S4h + S1h radar: version matrix, active paper positions și bar evolution pe fiecare sistem</p>
           </div>
           <div className="text-xs leading-5 text-slate-200">
             <p>Status: dashboard simplified</p>
@@ -663,6 +671,75 @@ export default function CryptoDashboardPage() {
             <p>Next scan: {nextScanAt ? new Date(nextScanAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S1D — RSI Version Matrix</h2>
+            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">RSI now</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Zone</th>
+                  <th className="px-4 py-3 text-left">Detected</th>
+                  <th className="px-4 py-3 text-left">V0</th>
+                  <th className="px-4 py-3 text-left">V1</th>
+                  <th className="px-4 py-3 text-left">V2</th>
+                  <th className="px-4 py-3 text-left">V3</th>
+                  <th className="px-4 py-3 text-left">Anchor RSI</th>
+                  <th className="px-4 py-3 text-left">Anchor price</th>
+                  <th className="px-4 py-3 text-left">Anchor time</th>
+                  <th className="px-4 py-3 text-left">Prev RSI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {versionSummaryRows1d.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1D RSI versions right now.</td>
+                  </tr>
+                ) : (
+                  versionSummaryRows1d.map((row) => (
+                    <tr key={`1d-${row.symbol}-${row.zone}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
+                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S1D — Paper Positions — Active</h2>
+            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S1D</span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Momentan nu există poziții active S1D.</div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S1D — Bar Evolution</h2>
+            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S1D</span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Momentan nu există evoluții S1D de afișat.</div>
+        </section>
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
@@ -715,6 +792,69 @@ export default function CryptoDashboardPage() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S4h — Paper Positions — Active</h2>
+            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S4h</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">System</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">20 bars</th>
+                  <th className="px-4 py-3 text-left">Current</th>
+                  <th className="px-4 py-3 text-left">Current P/L</th>
+                  <th className="px-4 py-3 text-left">Best</th>
+                  <th className="px-4 py-3 text-left">Worst</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Runner stop</th>
+                  <th className="px-4 py-3 text-left">Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activePaperPositions4h.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="px-4 py-4 text-slate-400">No active S4h paper positions.</td>
+                  </tr>
+                ) : (
+                  activePaperPositions4h.map((row) => {
+                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
+                    return (
+                      <tr key={key} className="border-t border-white/10">
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
+                        <td className="px-4 py-3">{shortSide(row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
+                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S4h — Bar Evolution</h2>
+            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S4h</span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Graficul S4h rămâne în pasul următor; am mutat deja ordinea dashboard-ului.</div>
         </section>
 
         <section className={`${shellClass} mb-4`}>
@@ -772,55 +912,65 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1D — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
+            <h2 className="text-base font-semibold text-white">S1h — Paper Positions — Active</h2>
+            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S1h</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI now</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Detected</th>
-                  <th className="px-4 py-3 text-left">V0</th>
-                  <th className="px-4 py-3 text-left">V1</th>
-                  <th className="px-4 py-3 text-left">V2</th>
-                  <th className="px-4 py-3 text-left">V3</th>
-                  <th className="px-4 py-3 text-left">Anchor RSI</th>
-                  <th className="px-4 py-3 text-left">Anchor price</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Prev RSI</th>
+                  <th className="px-4 py-3 text-left">System</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">20 bars</th>
+                  <th className="px-4 py-3 text-left">Current</th>
+                  <th className="px-4 py-3 text-left">Current P/L</th>
+                  <th className="px-4 py-3 text-left">Best</th>
+                  <th className="px-4 py-3 text-left">Worst</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Runner stop</th>
+                  <th className="px-4 py-3 text-left">Last seen</th>
                 </tr>
               </thead>
               <tbody>
-                {versionSummaryRows1d.length === 0 ? (
+                {activePaperPositions1h.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1D RSI versions right now.</td>
+                    <td colSpan={12} className="px-4 py-4 text-slate-400">No active S1h paper positions.</td>
                   </tr>
                 ) : (
-                  versionSummaryRows1d.map((row) => (
-                    <tr key={`1d-${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
-                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
-                    </tr>
-                  ))
+                  activePaperPositions1h.map((row) => {
+                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
+                    return (
+                      <tr key={key} className="border-t border-white/10">
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
+                        <td className="px-4 py-3">{shortSide(row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
+                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
+                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">S1h — Bar Evolution</h2>
+            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S1h</span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Graficul S1h rămâne în pasul următor; am mutat deja ordinea dashboard-ului.</div>
         </section>
 
         <section className="mb-4 grid gap-2 md:grid-cols-3">
