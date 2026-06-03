@@ -55,6 +55,10 @@ RSI_INTEREST_1H_V0_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-
 RSI_INTEREST_1H_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-state.json")
 RSI_INTEREST_1H_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v2-state.json")
 RSI_INTEREST_1H_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1h-v3-state.json")
+RSI_INTEREST_1D_V0_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-v0-state.json")
+RSI_INTEREST_1D_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-state.json")
+RSI_INTEREST_1D_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-v2-state.json")
+RSI_INTEREST_1D_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-v3-state.json")
 PAPER_POSITIONS_ENABLED = True
 PAPER_POSITIONS_ENTRY_MODE = "v3"
 MATRIX_RETENTION_DAYS = 5
@@ -1070,6 +1074,10 @@ def main():
     interest_rows_1h = []
     v2_interest_rows_1h = []
     v3_interest_rows_1h = []
+    v0_interest_rows_1d = []
+    interest_rows_1d = []
+    v2_interest_rows_1d = []
+    v3_interest_rows_1d = []
     formation_rows = []
     trend_rows = []
     market_scan_map = {}
@@ -1097,6 +1105,14 @@ def main():
     saved_v2_interest_rows_1h = interest_1h_v2_state.get("rows", {}) if isinstance(interest_1h_v2_state.get("rows"), dict) else {}
     interest_1h_v3_state = load_json(RSI_INTEREST_1H_V3_STATE_PATH, {"rows": {}})
     saved_v3_interest_rows_1h = interest_1h_v3_state.get("rows", {}) if isinstance(interest_1h_v3_state.get("rows"), dict) else {}
+    interest_1d_v0_state = load_json(RSI_INTEREST_1D_V0_STATE_PATH, {"rows": {}})
+    saved_v0_interest_rows_1d = interest_1d_v0_state.get("rows", {}) if isinstance(interest_1d_v0_state.get("rows"), dict) else {}
+    interest_1d_state = load_json(RSI_INTEREST_1D_STATE_PATH, {"rows": {}})
+    saved_interest_rows_1d = interest_1d_state.get("rows", {}) if isinstance(interest_1d_state.get("rows"), dict) else {}
+    interest_1d_v2_state = load_json(RSI_INTEREST_1D_V2_STATE_PATH, {"rows": {}})
+    saved_v2_interest_rows_1d = interest_1d_v2_state.get("rows", {}) if isinstance(interest_1d_v2_state.get("rows"), dict) else {}
+    interest_1d_v3_state = load_json(RSI_INTEREST_1D_V3_STATE_PATH, {"rows": {}})
+    saved_v3_interest_rows_1d = interest_1d_v3_state.get("rows", {}) if isinstance(interest_1d_v3_state.get("rows"), dict) else {}
 
     for symbol in SYMBOLS:
         try:
@@ -1323,6 +1339,102 @@ def main():
                             "timeframe": "1h",
                             "sourceVenue": "hyper",
                             "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
+                        })
+
+            klines_1d = get_klines_cached(layer, kline_cache, symbol, "1d", 300)
+            _, highs_1d, lows_1d, closes_1d = layer.extract_ohlc(klines_1d)
+            live_closes_1d = list(closes_1d)
+            live_highs_1d = list(highs_1d)
+            live_lows_1d = list(lows_1d)
+            if live_closes_1d and isinstance(price, (int, float)):
+                live_closes_1d[-1] = float(price)
+                if live_highs_1d:
+                    live_highs_1d[-1] = max(float(live_highs_1d[-1]), float(price))
+                if live_lows_1d:
+                    live_lows_1d[-1] = min(float(live_lows_1d[-1]), float(price))
+
+            rsi_1d = layer.compute_rsi(live_closes_1d)
+            last_rsi_1d = rsi_1d[-1] if rsi_1d else None
+            prev_rsi_1d = rsi_1d[-2] if len(rsi_1d) > 1 else None
+            if last_rsi_1d is not None:
+                base_zone_1d = None
+                if 30 <= last_rsi_1d <= 33:
+                    base_zone_1d = "lower_interest"
+                elif 67 <= last_rsi_1d <= 70:
+                    base_zone_1d = "upper_interest"
+
+                if base_zone_1d:
+                    v0_interest_rows_1d.append({
+                        "symbol": symbol,
+                        "rsi": round(float(last_rsi_1d), 2),
+                        "price": price,
+                        "zone": base_zone_1d,
+                        "detectedAt": detected_at,
+                        "anchorRsi": None,
+                        "anchorTime": None,
+                        "anchorPrice": None,
+                        "timeframe": "1d",
+                        "sourceVenue": "hyper",
+                    })
+
+                zone_1d = base_zone_1d
+                anchor_1d = {"anchorRsi": None, "anchorTime": None, "anchorPrice": None, "anchorIndex": None}
+                if zone_1d:
+                    anchor_1d = find_prior_rsi_anchor(rsi_1d, klines_1d, zone_1d, lookback_bars=RSI_LOOKBACK_BARS)
+                    if zone_1d in {"upper_interest", "lower_interest"} and anchor_1d["anchorRsi"] is None:
+                        zone_1d = None
+
+                if zone_1d:
+                    interest_rows_1d.append({
+                        "symbol": symbol,
+                        "rsi": round(float(last_rsi_1d), 2),
+                        "price": price,
+                        "zone": zone_1d,
+                        "detectedAt": detected_at,
+                        "anchorRsi": anchor_1d["anchorRsi"],
+                        "anchorTime": anchor_1d["anchorTime"],
+                        "anchorPrice": anchor_1d["anchorPrice"],
+                        "timeframe": "1d",
+                        "sourceVenue": "hyper",
+                    })
+
+                v2_zone_1d = detect_v2_zone_entry_from_anchor(rsi_1d, zone_1d, anchor_1d.get("anchorIndex")) if zone_1d else None
+                if v2_zone_1d:
+                    v2_interest_rows_1d.append({
+                        "symbol": symbol,
+                        "rsi": round(float(last_rsi_1d), 2),
+                        "price": price,
+                        "zone": v2_zone_1d,
+                        "detectedAt": detected_at,
+                        "anchorRsi": anchor_1d.get("anchorRsi"),
+                        "anchorTime": anchor_1d.get("anchorTime"),
+                        "anchorPrice": anchor_1d.get("anchorPrice"),
+                        "timeframe": "1d",
+                        "sourceVenue": "hyper",
+                        "previousRsi": round(float(prev_rsi_1d), 2) if isinstance(prev_rsi_1d, (int, float)) else None,
+                    })
+
+                    anchor_price_1d = anchor_1d.get("anchorPrice")
+                    v3_price_ok = False
+                    if isinstance(price, (int, float)) and isinstance(anchor_price_1d, (int, float)):
+                        if v2_zone_1d == "upper_interest":
+                            v3_price_ok = float(price) > float(anchor_price_1d)
+                        elif v2_zone_1d == "lower_interest":
+                            v3_price_ok = float(price) < float(anchor_price_1d)
+
+                    if v3_price_ok:
+                        v3_interest_rows_1d.append({
+                            "symbol": symbol,
+                            "rsi": round(float(last_rsi_1d), 2),
+                            "price": price,
+                            "zone": v2_zone_1d,
+                            "detectedAt": detected_at,
+                            "anchorRsi": anchor_1d.get("anchorRsi"),
+                            "anchorTime": anchor_1d.get("anchorTime"),
+                            "anchorPrice": anchor_price_1d,
+                            "timeframe": "1d",
+                            "sourceVenue": "hyper",
+                            "previousRsi": round(float(prev_rsi_1d), 2) if isinstance(prev_rsi_1d, (int, float)) else None,
                         })
 
             formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi, price_cache))
@@ -1617,6 +1729,134 @@ def main():
         reverse=False,
     )
 
+    current_v0_interest_map_1d = {}
+    for row in v0_interest_rows_1d:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_v0_interest_rows_1d.get(key, {}) if isinstance(saved_v0_interest_rows_1d.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_v0_interest_map_1d[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_v0_interest_map_1d = dict(current_v0_interest_map_1d)
+    for key, saved in saved_v0_interest_rows_1d.items():
+        if key in retained_v0_interest_map_1d or not should_retain_matrix_row(saved, now_dt):
+            continue
+        retained_v0_interest_map_1d[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
+    current_interest_map_1d = {}
+    for row in interest_rows_1d:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_interest_rows_1d.get(key, {}) if isinstance(saved_interest_rows_1d.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_interest_map_1d[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_interest_map_1d = dict(current_interest_map_1d)
+    for key, saved in saved_interest_rows_1d.items():
+        if key in retained_interest_map_1d or not should_retain_matrix_row(saved, now_dt):
+            continue
+        retained_interest_map_1d[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
+    current_v2_interest_map_1d = {}
+    for row in v2_interest_rows_1d:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_v2_interest_rows_1d.get(key, {}) if isinstance(saved_v2_interest_rows_1d.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_v2_interest_map_1d[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_v2_interest_map_1d = dict(current_v2_interest_map_1d)
+    for key, saved in saved_v2_interest_rows_1d.items():
+        if key in retained_v2_interest_map_1d or not should_retain_matrix_row(saved, now_dt):
+            continue
+        retained_v2_interest_map_1d[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
+    current_v3_interest_map_1d = {}
+    for row in v3_interest_rows_1d:
+        key = f"{row['symbol']}:{row['zone']}"
+        saved = saved_v3_interest_rows_1d.get(key, {}) if isinstance(saved_v3_interest_rows_1d.get(key), dict) else {}
+        first_detected_at = saved.get("firstDetectedAt", row.get("detectedAt"))
+        current_v3_interest_map_1d[key] = {
+            **saved,
+            **row,
+            "firstDetectedAt": first_detected_at,
+            "lastSeenAt": updated_at,
+            "currentlyInZone": True,
+        }
+
+    retained_v3_interest_map_1d = dict(current_v3_interest_map_1d)
+    for key, saved in saved_v3_interest_rows_1d.items():
+        if key in retained_v3_interest_map_1d or not should_retain_matrix_row(saved, now_dt):
+            continue
+        retained_v3_interest_map_1d[key] = {
+            **saved,
+            "currentlyInZone": False,
+        }
+
+    v0_interest_rows_1d = sorted(
+        retained_v0_interest_map_1d.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
+    interest_rows_1d = sorted(
+        retained_interest_map_1d.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
+    v2_interest_rows_1d = sorted(
+        retained_v2_interest_map_1d.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
+    v3_interest_rows_1d = sorted(
+        retained_v3_interest_map_1d.values(),
+        key=lambda row: (
+            0 if row.get("currentlyInZone") else 1,
+            row.get("firstDetectedAt", row.get("detectedAt", "")),
+            row.get("symbol", ""),
+        ),
+        reverse=False,
+    )
+
     new_confirmed_state = {}
     formation_index = {(row["symbol"], row["side"]): row for row in formation_rows}
 
@@ -1690,7 +1930,7 @@ def main():
         entry_candidates = []
 
         if PAPER_POSITIONS_ENTRY_MODE == "v3":
-            for system_name, rows in (("S4h", v3_interest_rows), ("S1h", v3_interest_rows_1h)):
+            for system_name, rows in (("S4h", v3_interest_rows), ("S1h", v3_interest_rows_1h), ("S1D", v3_interest_rows_1d)):
                 for row in rows:
                     if not isinstance(row, dict) or not row.get("currentlyInZone"):
                         continue
@@ -2104,6 +2344,10 @@ def main():
         "interestRows1h": interest_rows_1h,
         "v2InterestRows1h": v2_interest_rows_1h,
         "v3InterestRows1h": v3_interest_rows_1h,
+        "v0InterestRows1d": v0_interest_rows_1d,
+        "interestRows1d": interest_rows_1d,
+        "v2InterestRows1d": v2_interest_rows_1d,
+        "v3InterestRows1d": v3_interest_rows_1d,
         "formationRows": formation_rows,
         "trendRows": trend_rows,
         "btcContextRows": btc_context_rows,
@@ -2122,6 +2366,10 @@ def main():
     RSI_INTEREST_1H_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1H_V2_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v2_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1H_V3_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v3_interest_map_1h}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_1D_V0_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v0_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_1D_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_1D_V2_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v2_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
+    RSI_INTEREST_1D_V3_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v3_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
     if PAPER_POSITIONS_ENABLED:
         append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)
