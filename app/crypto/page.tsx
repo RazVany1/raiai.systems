@@ -174,6 +174,11 @@ function formatCompactDate(value?: string | null) {
 
 const SCAN_INTERVAL_MINUTES = 30;
 
+function systemTrackedBars(system?: string | null) {
+  if (system === "S1h") return 40;
+  return 20;
+}
+
 function systemBarHours(system?: string | null) {
   if (system === "S1h") return 1;
   if (system === "S4h") return 4;
@@ -199,7 +204,8 @@ function barsProgressValue(entryAt?: string | null, system?: string | null, upda
 function barsProgressLabel(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
   const bars = barsProgressValue(entryAt, system, updatedAt);
   if (bars == null) return "-";
-  return `${Math.min(bars, 20)}/20`;
+  const trackedBars = systemTrackedBars(system);
+  return `${Math.min(bars, trackedBars)}/${trackedBars}`;
 }
 
 function parseIsoDate(value?: string | null) {
@@ -579,7 +585,8 @@ export default function CryptoDashboardPage() {
       const barHours = systemBarHours(row.entrySystem);
       const entryDate = parseIsoDate(row.entryAt);
       const slotsPerBar = systemScanSlots(row.entrySystem) || 0;
-      const maxScans = slotsPerBar * 20;
+      const trackedBars = systemTrackedBars(row.entrySystem);
+      const maxScans = slotsPerBar * trackedBars;
       const snapshots = (Array.isArray(bucket?.snapshots) ? bucket.snapshots : [])
         .filter((snapshot) => snapshotDisplayPrice(snapshot) != null)
         .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
@@ -625,6 +632,7 @@ export default function CryptoDashboardPage() {
         key,
         row,
         progress: barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt),
+        trackedBars,
         maxScans,
         slotsPerBar,
         scanSeries,
@@ -902,14 +910,14 @@ export default function CryptoDashboardPage() {
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">20-Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">all 30m scans plotted across the first 20 bars after entry</span>
+            <h2 className="text-base font-semibold text-white">Bar Evolution</h2>
+            <span className="text-[10px] text-slate-400">all 30m scans plotted across tracked bars after entry (S1h = 40, others = 20)</span>
           </div>
           {openPositionEvolutionRows.length === 0 ? (
             <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No open positions to track yet.</div>
           ) : (
             <div className="space-y-4">
-              {openPositionEvolutionRows.map(({ key, row, progress, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
+              {openPositionEvolutionRows.map(({ key, row, progress, trackedBars, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
                 const width = 1200;
                 const height = 260;
                 const paddingX = 18;
@@ -922,7 +930,7 @@ export default function CryptoDashboardPage() {
                 const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(maxScans - 1, 1)) * plotWidth;
                 const linePoints = scanSeries.map((point) => `${scanToX(point.scanIndex)},${valueToY(point.price)}`).join(" ");
                 const entryY = row.entryPrice != null && minPrice != null && maxPrice != null ? valueToY(row.entryPrice) : null;
-                const barMarkers = Array.from({ length: 20 }, (_, index) => {
+                const barMarkers = Array.from({ length: trackedBars }, (_, index) => {
                   const scanIndex = index * Math.max(slotsPerBar, 1) + 1;
                   return { bar: index + 1, x: scanToX(scanIndex) };
                 });
