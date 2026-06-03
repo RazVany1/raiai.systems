@@ -347,6 +347,165 @@ function entrySignalBadge(row: OpenPaperPosition) {
 
 const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
+function ActivePositionsSection({
+  title,
+  subtitle,
+  rows,
+  updatedAt,
+  paperPositionLabels,
+  emptyText,
+}: {
+  title: string;
+  subtitle: string;
+  rows: OpenPaperPosition[];
+  updatedAt: string;
+  paperPositionLabels: Map<string, string>;
+  emptyText: string;
+}) {
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <span className="text-[10px] text-slate-400">{subtitle}</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+        <table className="min-w-full text-xs text-slate-300">
+          <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-4 py-3 text-left">Coin</th>
+              <th className="px-4 py-3 text-left">System</th>
+              <th className="px-4 py-3 text-left">Side</th>
+              <th className="px-4 py-3 text-left">Entry</th>
+              <th className="px-4 py-3 text-left">20 bars</th>
+              <th className="px-4 py-3 text-left">Current</th>
+              <th className="px-4 py-3 text-left">Current P/L</th>
+              <th className="px-4 py-3 text-left">Best</th>
+              <th className="px-4 py-3 text-left">Worst</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Runner stop</th>
+              <th className="px-4 py-3 text-left">Last seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={12} className="px-4 py-4 text-slate-400">{emptyText}</td>
+              </tr>
+            ) : (
+              rows.map((row) => {
+                const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
+                return (
+                  <tr key={key} className="border-t border-white/10">
+                    <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                    <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
+                    <td className="px-4 py-3">{shortSide(row.side)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                    <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                    <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
+                    <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
+                    <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function BarEvolutionSection({
+  title,
+  subtitle,
+  rows,
+  emptyText,
+}: {
+  title: string;
+  subtitle: string;
+  rows: any[];
+  emptyText: string;
+}) {
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <span className="text-[10px] text-slate-400">{subtitle}</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">{emptyText}</div>
+      ) : (
+        <div className="space-y-4">
+          {rows.map(({ key, row, progress, trackedBars, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
+            const width = 1200;
+            const height = 260;
+            const paddingX = 18;
+            const paddingTop = 18;
+            const paddingBottom = 28;
+            const plotWidth = width - paddingX * 2;
+            const plotHeight = height - paddingTop - paddingBottom;
+            const priceRange = minPrice != null && maxPrice != null ? Math.max(maxPrice - minPrice, (maxPrice || 1) * 0.002) : 1;
+            const valueToY = (value: number) => paddingTop + ((maxPrice ?? value) - value) / priceRange * plotHeight;
+            const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(maxScans - 1, 1)) * plotWidth;
+            const linePoints = scanSeries.map((point: any) => `${scanToX(point.scanIndex)},${valueToY(point.price)}`).join(" ");
+            const entryY = row.entryPrice != null && minPrice != null && maxPrice != null ? valueToY(row.entryPrice) : null;
+            const barMarkers = Array.from({ length: trackedBars }, (_, index) => {
+              const scanIndex = index * Math.max(slotsPerBar, 1) + 1;
+              return { bar: index + 1, x: scanToX(scanIndex) };
+            });
+
+            return (
+              <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                  <span className="font-semibold text-white">{row.symbol}</span>
+                  <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
+                  <span>{shortSide(row.side)}</span>
+                  <span>Entry {formatPrice(row.entryPrice)}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{maxScans} scans max</span>
+                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestPoint?.pl != null && bestPoint.pl > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestPoint ? `B${bestPoint.bar} ${formatPercent(bestPoint.pl)}` : "-"}</span>
+                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstPoint?.pl != null && worstPoint.pl < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstPoint ? `B${worstPoint.bar} ${formatPercent(worstPoint.pl)}` : "-"}</span>
+                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${percentTextClass(currentPoint?.pl)}`}>Current {currentPoint ? formatPercent(currentPoint.pl) : "-"}</span>
+                </div>
+                <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
+                  <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
+                    <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
+                    {entryY != null ? <rect x={paddingX} y={paddingTop} width={plotWidth} height={Math.max(0, entryY - paddingTop)} fill={row.side === "SHORT" ? "rgba(244,63,94,0.05)" : "rgba(16,185,129,0.05)"} /> : null}
+                    {entryY != null ? <rect x={paddingX} y={entryY} width={plotWidth} height={Math.max(0, paddingTop + plotHeight - entryY)} fill={row.side === "SHORT" ? "rgba(16,185,129,0.05)" : "rgba(244,63,94,0.05)"} /> : null}
+                    {barMarkers.map((marker) => (
+                      <g key={`${key}-marker-${marker.bar}`}>
+                        <line x1={marker.x} y1={paddingTop} x2={marker.x} y2={paddingTop + plotHeight} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 5" />
+                        <text x={marker.x + 2} y={height - 8} fill="rgba(148,163,184,0.8)" fontSize="10">B{marker.bar}</text>
+                      </g>
+                    ))}
+                    {entryY != null ? <g><line x1={paddingX} y1={entryY} x2={paddingX + plotWidth} y2={entryY} stroke="rgba(250,204,21,0.8)" strokeDasharray="6 4" /><text x={paddingX + 6} y={Math.max(12, entryY - 6)} fill="rgba(250,204,21,0.95)" fontSize="11">Entry {formatPrice(row.entryPrice)}</text></g> : null}
+                    {linePoints ? <polyline fill="none" stroke="rgba(125,211,252,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
+                    {scanSeries.map((point: any) => <circle key={`${key}-scan-${point.scanIndex}`} cx={scanToX(point.scanIndex)} cy={valueToY(point.price)} r="2.5" fill={point.pl != null && point.pl >= 0 ? "rgba(52,211,153,0.9)" : "rgba(251,113,133,0.9)"} />)}
+                    {bestPoint ? <circle cx={scanToX(bestPoint.scanIndex)} cy={valueToY(bestPoint.price)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" /> : null}
+                    {worstPoint ? <circle cx={scanToX(worstPoint.scanIndex)} cy={valueToY(worstPoint.price)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" /> : null}
+                    {currentPoint ? <circle cx={scanToX(currentPoint.scanIndex)} cy={valueToY(currentPoint.price)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" /> : null}
+                  </svg>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
+                    <div>Scans captured: <span className="font-semibold text-slate-100">{scanSeries.length}/{maxScans}</span></div>
+                    <div>Price range: <span className="font-semibold text-slate-100">{minPrice != null && maxPrice != null ? `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}` : "-"}</span></div>
+                    <div>Best point: <span className="font-semibold text-emerald-200">{bestPoint ? `scan ${bestPoint.scanIndex} - ${formatPrice(bestPoint.price)}` : "-"}</span></div>
+                    <div>Worst point: <span className="font-semibold text-rose-200">{worstPoint ? `scan ${worstPoint.scanIndex} - ${formatPrice(worstPoint.price)}` : "-"}</span></div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function CryptoDashboardPage() {
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
   const [paperPositionHistory, setPaperPositionHistory] = useState<OpenPaperPosition[]>([]);
@@ -672,306 +831,53 @@ export default function CryptoDashboardPage() {
           </div>
         </div>
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1D — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI now</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Detected</th>
-                  <th className="px-4 py-3 text-left">V0</th>
-                  <th className="px-4 py-3 text-left">V1</th>
-                  <th className="px-4 py-3 text-left">V2</th>
-                  <th className="px-4 py-3 text-left">V3</th>
-                  <th className="px-4 py-3 text-left">Anchor RSI</th>
-                  <th className="px-4 py-3 text-left">Anchor price</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Prev RSI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versionSummaryRows1d.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1D RSI versions right now.</td>
-                  </tr>
-                ) : (
-                  versionSummaryRows1d.map((row) => (
-                    <tr key={`1d-${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
-                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <ActivePositionsSection
+          title="S1D - Paper Positions - Active"
+          subtitle="numai pozitiile din sistemul S1D"
+          rows={activePaperPositions1d}
+          updatedAt={updatedAt}
+          paperPositionLabels={paperPositionLabels}
+          emptyText="No active S1D paper positions."
+        />
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1D — Paper Positions — Active</h2>
-            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S1D</span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Momentan nu există poziții active S1D.</div>
-        </section>
+        <BarEvolutionSection
+          title="S1D - Bar Evolution"
+          subtitle="doar pozitiile din sistemul S1D"
+          rows={openPositionEvolutionRows1d}
+          emptyText="No open S1D positions to track yet."
+        />
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1D — Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S1D</span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Momentan nu există evoluții S1D de afișat.</div>
-        </section>
+        <ActivePositionsSection
+          title="S4h - Paper Positions - Active"
+          subtitle="numai pozitiile din sistemul S4h"
+          rows={activePaperPositions4h}
+          updatedAt={updatedAt}
+          paperPositionLabels={paperPositionLabels}
+          emptyText="No active S4h paper positions."
+        />
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S4h — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI now</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Detected</th>
-                  <th className="px-4 py-3 text-left">V0</th>
-                  <th className="px-4 py-3 text-left">V1</th>
-                  <th className="px-4 py-3 text-left">V2</th>
-                  <th className="px-4 py-3 text-left">V3</th>
-                  <th className="px-4 py-3 text-left">Anchor RSI</th>
-                  <th className="px-4 py-3 text-left">Anchor price</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Prev RSI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versionSummaryRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked RSI versions right now.</td>
-                  </tr>
-                ) : (
-                  versionSummaryRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
-                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <BarEvolutionSection
+          title="S4h - Bar Evolution"
+          subtitle="doar pozitiile din sistemul S4h"
+          rows={openPositionEvolutionRows4h}
+          emptyText="No open S4h positions to track yet."
+        />
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S4h — Paper Positions — Active</h2>
-            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S4h</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">System</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">20 bars</th>
-                  <th className="px-4 py-3 text-left">Current</th>
-                  <th className="px-4 py-3 text-left">Current P/L</th>
-                  <th className="px-4 py-3 text-left">Best</th>
-                  <th className="px-4 py-3 text-left">Worst</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Runner stop</th>
-                  <th className="px-4 py-3 text-left">Last seen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activePaperPositions4h.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No active S4h paper positions.</td>
-                  </tr>
-                ) : (
-                  activePaperPositions4h.map((row) => {
-                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
-                    return (
-                      <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
-                        <td className="px-4 py-3">{shortSide(row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
-                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <ActivePositionsSection
+          title="S1h - Paper Positions - Active"
+          subtitle="numai pozitiile din sistemul S1h"
+          rows={activePaperPositions1h}
+          updatedAt={updatedAt}
+          paperPositionLabels={paperPositionLabels}
+          emptyText="No active S1h paper positions."
+        />
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S4h — Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S4h</span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Graficul S4h rămâne în pasul următor; am mutat deja ordinea dashboard-ului.</div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1h — RSI Version Matrix</h2>
-            <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeași monedă</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">RSI now</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Zone</th>
-                  <th className="px-4 py-3 text-left">Detected</th>
-                  <th className="px-4 py-3 text-left">V0</th>
-                  <th className="px-4 py-3 text-left">V1</th>
-                  <th className="px-4 py-3 text-left">V2</th>
-                  <th className="px-4 py-3 text-left">V3</th>
-                  <th className="px-4 py-3 text-left">Anchor RSI</th>
-                  <th className="px-4 py-3 text-left">Anchor price</th>
-                  <th className="px-4 py-3 text-left">Anchor time</th>
-                  <th className="px-4 py-3 text-left">Prev RSI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versionSummaryRows1h.length === 0 ? (
-                  <tr>
-                    <td colSpan={13} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI versions right now.</td>
-                  </tr>
-                ) : (
-                  versionSummaryRows1h.map((row) => (
-                    <tr key={`1h-${row.symbol}-${row.zone}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
-                      <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
-                      <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1h — Paper Positions — Active</h2>
-            <span className="text-[10px] text-slate-400">numai pozițiile din sistemul S1h</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">System</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">20 bars</th>
-                  <th className="px-4 py-3 text-left">Current</th>
-                  <th className="px-4 py-3 text-left">Current P/L</th>
-                  <th className="px-4 py-3 text-left">Best</th>
-                  <th className="px-4 py-3 text-left">Worst</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Runner stop</th>
-                  <th className="px-4 py-3 text-left">Last seen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activePaperPositions1h.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="px-4 py-4 text-slate-400">No active S1h paper positions.</td>
-                  </tr>
-                ) : (
-                  activePaperPositions1h.map((row) => {
-                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
-                    return (
-                      <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
-                        <td className="px-4 py-3">{shortSide(row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
-                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">S1h — Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">doar pozițiile din sistemul S1h</span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Graficul S1h rămâne în pasul următor; am mutat deja ordinea dashboard-ului.</div>
-        </section>
+        <BarEvolutionSection
+          title="S1h - Bar Evolution"
+          subtitle="doar pozitiile din sistemul S1h"
+          rows={openPositionEvolutionRows1h}
+          emptyText="No open S1h positions to track yet."
+        />
 
         <section className="mb-4 grid gap-2 md:grid-cols-3">
           <div className={`${shellClass} p-2.5`}>
@@ -1003,155 +909,9 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Paper Positions — Active</h2>
-            <span className="text-[10px] text-slate-400">history-backed when live engine is off</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">System</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">20 bars</th>
-                  <th className="px-4 py-3 text-left">Current</th>
-                  <th className="px-4 py-3 text-left">Current P/L</th>
-                  <th className="px-4 py-3 text-left">Best</th>
-                  <th className="px-4 py-3 text-left">Worst</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Runner stop</th>
-                  <th className="px-4 py-3 text-left">Last seen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activePaperPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-4 text-slate-400">No active paper positions.</td>
-                  </tr>
-                ) : (
-                  activePaperPositions.map((row) => {
-                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                    const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
-                    return (
-                      <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
-                        <td className="px-4 py-3">{shortSide(row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
-                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        
 
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Bar Evolution</h2>
-            <span className="text-[10px] text-slate-400">all 30m scans plotted across tracked bars after entry (S1h = 40, others = 20)</span>
-          </div>
-          {openPositionEvolutionRows.length === 0 ? (
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No open positions to track yet.</div>
-          ) : (
-            <div className="space-y-4">
-              {openPositionEvolutionRows.map(({ key, row, progress, trackedBars, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
-                const width = 1200;
-                const height = 260;
-                const paddingX = 18;
-                const paddingTop = 18;
-                const paddingBottom = 28;
-                const plotWidth = width - paddingX * 2;
-                const plotHeight = height - paddingTop - paddingBottom;
-                const priceRange = minPrice != null && maxPrice != null ? Math.max(maxPrice - minPrice, (maxPrice || 1) * 0.002) : 1;
-                const valueToY = (value: number) => paddingTop + ((maxPrice ?? value) - value) / priceRange * plotHeight;
-                const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(maxScans - 1, 1)) * plotWidth;
-                const linePoints = scanSeries.map((point) => `${scanToX(point.scanIndex)},${valueToY(point.price)}`).join(" ");
-                const entryY = row.entryPrice != null && minPrice != null && maxPrice != null ? valueToY(row.entryPrice) : null;
-                const barMarkers = Array.from({ length: trackedBars }, (_, index) => {
-                  const scanIndex = index * Math.max(slotsPerBar, 1) + 1;
-                  return { bar: index + 1, x: scanToX(scanIndex) };
-                });
-
-                return (
-                  <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
-                    <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                      <span className="font-semibold text-white">{row.symbol}</span>
-                      <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
-                      <span>{shortSide(row.side)}</span>
-                      <span>Entry {formatPrice(row.entryPrice)}</span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{maxScans} scans max</span>
-                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestPoint?.pl != null && bestPoint.pl > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestPoint ? `B${bestPoint.bar} ${formatPercent(bestPoint.pl)}` : "-"}</span>
-                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstPoint?.pl != null && worstPoint.pl < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstPoint ? `B${worstPoint.bar} ${formatPercent(worstPoint.pl)}` : "-"}</span>
-                      <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${percentTextClass(currentPoint?.pl)}`}>Current {currentPoint ? formatPercent(currentPoint.pl) : "-"}</span>
-                    </div>
-                    <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
-                      <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
-                        <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
-                        {entryY != null ? (
-                          <rect
-                            x={paddingX}
-                            y={paddingTop}
-                            width={plotWidth}
-                            height={Math.max(0, entryY - paddingTop)}
-                            fill={row.side === "SHORT" ? "rgba(244,63,94,0.05)" : "rgba(16,185,129,0.05)"}
-                          />
-                        ) : null}
-                        {entryY != null ? (
-                          <rect
-                            x={paddingX}
-                            y={entryY}
-                            width={plotWidth}
-                            height={Math.max(0, paddingTop + plotHeight - entryY)}
-                            fill={row.side === "SHORT" ? "rgba(16,185,129,0.05)" : "rgba(244,63,94,0.05)"}
-                          />
-                        ) : null}
-                        {barMarkers.map((marker) => (
-                          <g key={`${key}-marker-${marker.bar}`}>
-                            <line x1={marker.x} y1={paddingTop} x2={marker.x} y2={paddingTop + plotHeight} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 5" />
-                            <text x={marker.x + 2} y={height - 8} fill="rgba(148,163,184,0.8)" fontSize="10">B{marker.bar}</text>
-                          </g>
-                        ))}
-                        {entryY != null ? (
-                          <g>
-                            <line x1={paddingX} y1={entryY} x2={paddingX + plotWidth} y2={entryY} stroke="rgba(250,204,21,0.8)" strokeDasharray="6 4" />
-                            <text x={paddingX + 6} y={Math.max(12, entryY - 6)} fill="rgba(250,204,21,0.95)" fontSize="11">Entry {formatPrice(row.entryPrice)}</text>
-                          </g>
-                        ) : null}
-                        {linePoints ? <polyline fill="none" stroke="rgba(125,211,252,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
-                        {scanSeries.map((point) => (
-                          <circle key={`${key}-scan-${point.scanIndex}`} cx={scanToX(point.scanIndex)} cy={valueToY(point.price)} r="2.5" fill={point.pl != null && point.pl >= 0 ? "rgba(52,211,153,0.9)" : "rgba(251,113,133,0.9)"} />
-                        ))}
-                        {bestPoint ? <circle cx={scanToX(bestPoint.scanIndex)} cy={valueToY(bestPoint.price)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" /> : null}
-                        {worstPoint ? <circle cx={scanToX(worstPoint.scanIndex)} cy={valueToY(worstPoint.price)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" /> : null}
-                        {currentPoint ? <circle cx={scanToX(currentPoint.scanIndex)} cy={valueToY(currentPoint.price)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" /> : null}
-                      </svg>
-                      <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
-                        <div>Scans captured: <span className="font-semibold text-slate-100">{scanSeries.length}/{maxScans}</span></div>
-                        <div>Price range: <span className="font-semibold text-slate-100">{minPrice != null && maxPrice != null ? `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}` : "-"}</span></div>
-                        <div>Best point: <span className="font-semibold text-emerald-200">{bestPoint ? `scan ${bestPoint.scanIndex} · ${formatPrice(bestPoint.price)}` : "-"}</span></div>
-                        <div>Worst point: <span className="font-semibold text-rose-200">{worstPoint ? `scan ${worstPoint.scanIndex} · ${formatPrice(worstPoint.price)}` : "-"}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        
 
         <section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
