@@ -159,8 +159,29 @@ function snapshotDisplayPrice(snapshot?: PositionSnapshot | null) {
   return null;
 }
 
+const ASSUMED_MARGIN_USD = 10;
+const ASSUMED_LEVERAGE = 5;
+const ASSUMED_NOTIONAL_USD = ASSUMED_MARGIN_USD * ASSUMED_LEVERAGE;
+
 function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
   return formatPercent(computePlValue(entryPrice, currentPrice, side));
+}
+
+function plUsdFromPercent(percent?: number | null) {
+  if (percent == null || !Number.isFinite(percent)) return null;
+  return (ASSUMED_NOTIONAL_USD * percent) / 100;
+}
+
+function equityUsdFromPercent(percent?: number | null) {
+  const pnlUsd = plUsdFromPercent(percent);
+  if (pnlUsd == null) return null;
+  return ASSUMED_MARGIN_USD + pnlUsd;
+}
+
+function formatUsd(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}$${value.toFixed(2)}`;
 }
 
 function formatCompactDate(value?: string | null) {
@@ -347,6 +368,100 @@ function entrySignalBadge(row: OpenPaperPosition) {
 
 const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
+function MatrixSection({
+  title,
+  rows,
+  emptyText,
+}: {
+  title: string;
+  rows: any[];
+  emptyText: string;
+}) {
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeasi moneda</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+        <table className="min-w-full text-xs text-slate-300">
+          <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-4 py-3 text-left">Coin</th>
+              <th className="px-4 py-3 text-left">RSI now</th>
+              <th className="px-4 py-3 text-left">Price</th>
+              <th className="px-4 py-3 text-left">Zone</th>
+              <th className="px-4 py-3 text-left">Detected</th>
+              <th className="px-4 py-3 text-left">V0</th>
+              <th className="px-4 py-3 text-left">V1</th>
+              <th className="px-4 py-3 text-left">V2</th>
+              <th className="px-4 py-3 text-left">V3</th>
+              <th className="px-4 py-3 text-left">Anchor RSI</th>
+              <th className="px-4 py-3 text-left">Anchor price</th>
+              <th className="px-4 py-3 text-left">Anchor time</th>
+              <th className="px-4 py-3 text-left">Prev RSI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={13} className="px-4 py-4 text-slate-400">{emptyText}</td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
+                  <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                  <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
+                  <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                  <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
+                  <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
+                  <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
+                  <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
+                  <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function VersionsLegendSection() {
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">RSI Versions - Legend</h2>
+        <span className="text-[10px] text-slate-400">cum se citeste V0 / V1 / V2 / V3</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+        <table className="min-w-full text-xs text-slate-300">
+          <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-4 py-3 text-left">Version</th>
+              <th className="px-4 py-3 text-left">Meaning</th>
+              <th className="px-4 py-3 text-left">Upper zone</th>
+              <th className="px-4 py-3 text-left">Lower zone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V0</td><td className="px-4 py-3">coin in tracked RSI interest context</td><td className="px-4 py-3">upper interest context</td><td className="px-4 py-3">lower interest context</td></tr>
+            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V1</td><td className="px-4 py-3">valid anchor exists</td><td className="px-4 py-3">anchor RSI &gt; 77</td><td className="px-4 py-3">anchor RSI &lt; 23</td></tr>
+            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V2</td><td className="px-4 py-3">anchor - reset - return confirmed</td><td className="px-4 py-3">drops under 60 then returns to 68-72</td><td className="px-4 py-3">rises above 40 then returns to 28-32</td></tr>
+            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V3</td><td className="px-4 py-3">V2 + live price vs anchor price</td><td className="px-4 py-3">price now &gt; anchor price</td><td className="px-4 py-3">price now &lt; anchor price</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function ActivePositionsSection({
   title,
   subtitle,
@@ -379,6 +494,8 @@ function ActivePositionsSection({
               <th className="px-4 py-3 text-left">20 bars</th>
               <th className="px-4 py-3 text-left">Current</th>
               <th className="px-4 py-3 text-left">Current P/L</th>
+              <th className="px-4 py-3 text-left">P/L $</th>
+              <th className="px-4 py-3 text-left">Money on pos.</th>
               <th className="px-4 py-3 text-left">Best</th>
               <th className="px-4 py-3 text-left">Worst</th>
               <th className="px-4 py-3 text-left">Status</th>
@@ -389,7 +506,7 @@ function ActivePositionsSection({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-4 text-slate-400">{emptyText}</td>
+                <td colSpan={14} className="px-4 py-4 text-slate-400">{emptyText}</td>
               </tr>
             ) : (
               rows.map((row) => {
@@ -404,6 +521,8 @@ function ActivePositionsSection({
                     <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
                     <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
                     <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatUsd(plUsdFromPercent(currentPl))}</td>
+                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatUsd(equityUsdFromPercent(currentPl))}</td>
                     <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
                     <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
                     <td className="px-4 py-3">{shortStatus(row.status)}</td>
@@ -635,6 +754,31 @@ export default function CryptoDashboardPage() {
     return orderedHistoryPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
   }, [orderedHistoryPaperPositions]);
 
+  const openMoneySummary = useMemo(() => {
+    const pnlUsd = activePaperPositions.reduce((sum, row) => {
+      const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
+      return sum + (plUsdFromPercent(currentPl) ?? 0);
+    }, 0);
+    return {
+      positions: activePaperPositions.length,
+      marginUsd: activePaperPositions.length * ASSUMED_MARGIN_USD,
+      notionalUsd: activePaperPositions.length * ASSUMED_NOTIONAL_USD,
+      pnlUsd,
+      equityUsd: activePaperPositions.length * ASSUMED_MARGIN_USD + pnlUsd,
+    };
+  }, [activePaperPositions]);
+
+  const closedMoneySummary = useMemo(() => {
+    const pnlUsd = closedPaperPositions.reduce((sum, row) => sum + (plUsdFromPercent(row.closePlPercent ?? null) ?? 0), 0);
+    return {
+      positions: closedPaperPositions.length,
+      marginUsd: closedPaperPositions.length * ASSUMED_MARGIN_USD,
+      notionalUsd: closedPaperPositions.length * ASSUMED_NOTIONAL_USD,
+      pnlUsd,
+      equityUsd: closedPaperPositions.length * ASSUMED_MARGIN_USD + pnlUsd,
+    };
+  }, [closedPaperPositions]);
+
   const paperPositionLabels = useMemo(() => {
     const bySymbol = new Map<string, OpenPaperPosition[]>();
     for (const row of [...orderedOpenPaperPositions, ...orderedHistoryPaperPositions]) {
@@ -831,6 +975,49 @@ export default function CryptoDashboardPage() {
           </div>
         </div>
 
+        <section className="mb-4 grid gap-2 md:grid-cols-4">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open notional</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsd(openMoneySummary.notionalUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">{openMoneySummary.positions} pozitii x $50</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open P/L $</p>
+            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.pnlUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">marja initiala {formatUsd(openMoneySummary.marginUsd)}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open money now</p>
+            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.equityUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">capital activ estimat</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed P/L $</p>
+            <p className={`mt-2 text-lg font-semibold ${percentTextClass(closedMoneySummary.pnlUsd)}`}>{formatUsd(closedMoneySummary.pnlUsd)}</p>
+            <p className="mt-1 text-[11px] text-slate-400">{closedMoneySummary.positions} pozitii inchise</p>
+          </div>
+        </section>
+
+        <VersionsLegendSection />
+
+        <MatrixSection
+          title="S1D - RSI Version Matrix"
+          rows={versionSummaryRows1d}
+          emptyText="No coins in tracked S1D RSI versions right now."
+        />
+
+        <MatrixSection
+          title="S4h - RSI Version Matrix"
+          rows={versionSummaryRows}
+          emptyText="No coins in tracked S4h RSI versions right now."
+        />
+
+        <MatrixSection
+          title="S1h - RSI Version Matrix"
+          rows={versionSummaryRows1h}
+          emptyText="No coins in tracked S1h RSI versions right now."
+        />
+
         <ActivePositionsSection
           title="S1D - Paper Positions - Active"
           subtitle="numai pozitiile din sistemul S1D"
@@ -879,41 +1066,19 @@ export default function CryptoDashboardPage() {
           emptyText="No open S1h positions to track yet."
         />
 
-        <section className="mb-4 grid gap-2 md:grid-cols-3">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{v0InterestRows.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V1 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{interestRows.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V2 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{v2InterestRows.length}</p>
-          </div>
-        </section>
+        
 
-        <section className="mb-4 grid gap-2 md:grid-cols-3">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Paper history</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedHistoryPaperPositions.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active positions</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{activePaperPositions.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed positions</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{closedPaperPositions.length}</p>
-          </div>
-        </section>
+        
 
         
 
         
 
-        <section className={`${shellClass} mb-4`}>
+        
+
+        
+
+<section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">Paper Positions — Closed</h2>
             <span className="text-[10px] text-slate-400">kept visible for learning continuity</span>
@@ -930,6 +1095,8 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Exit</th>
                   <th className="px-4 py-3 text-left">Partial</th>
                   <th className="px-4 py-3 text-left">Close P/L</th>
+                  <th className="px-4 py-3 text-left">P/L $</th>
+                  <th className="px-4 py-3 text-left">Money end</th>
                   <th className="px-4 py-3 text-left">Best</th>
                   <th className="px-4 py-3 text-left">Worst</th>
                   <th className="px-4 py-3 text-left">Status</th>
@@ -939,7 +1106,7 @@ export default function CryptoDashboardPage() {
               <tbody>
                 {closedPaperPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
+                    <td colSpan={14} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
                   </tr>
                 ) : (
                   closedPaperPositions.map((row) => {
@@ -954,6 +1121,8 @@ export default function CryptoDashboardPage() {
                         <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
                         <td className="px-4 py-3">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
                         <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatPercent(row.closePlPercent)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatUsd(plUsdFromPercent(row.closePlPercent ?? null))}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatUsd(equityUsdFromPercent(row.closePlPercent ?? null))}</td>
                         <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
                         <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
                         <td className="px-4 py-3">{shortStatus(row.status)}</td>
@@ -967,7 +1136,37 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <section className={`${shellClass} mb-4`}>
+<section className="mb-4 grid gap-2 md:grid-cols-3">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{v0InterestRows.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V1 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{interestRows.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V2 rows</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{v2InterestRows.length}</p>
+          </div>
+        </section>
+
+<section className="mb-4 grid gap-2 md:grid-cols-3">
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Paper history</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedHistoryPaperPositions.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active positions</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{activePaperPositions.length}</p>
+          </div>
+          <div className={`${shellClass} p-2.5`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed positions</p>
+            <p className="mt-2 text-lg font-semibold text-slate-100">{closedPaperPositions.length}</p>
+          </div>
+        </section>
+
+<section className={`${shellClass} mb-4`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">BTC Context</h2>
             <span className="text-[10px] text-slate-400">macro filter</span>
