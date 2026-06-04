@@ -540,8 +540,12 @@ function ActivePositionsSection({
 }
 
 function TotalPlEvolutionSection({
+  title,
+  subtitle,
   rows,
 }: {
+  title: string;
+  subtitle: string;
   rows: { scanAt: string; scanIndex: number; pnlUsd: number; activePositions: number }[];
 }) {
   if (rows.length === 0) {
@@ -569,8 +573,8 @@ function TotalPlEvolutionSection({
   return (
     <section className={`${shellClass} mb-4`}>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">Portfolio P/L Evolution</h2>
-        <span className="text-[10px] text-slate-400">un singur grafic total, la fiecare scanare</span>
+        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <span className="text-[10px] text-slate-400">{subtitle}</span>
       </div>
       <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
         <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
@@ -1023,9 +1027,9 @@ export default function CryptoDashboardPage() {
   const openPositionEvolutionRows4h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S4h"), [openPositionEvolutionRows]);
   const openPositionEvolutionRows1h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1h"), [openPositionEvolutionRows]);
 
-  const portfolioPlEvolutionRows = useMemo(() => {
+  const buildPortfolioPlEvolutionRows = (rows: typeof openPositionEvolutionRows) => {
     const totals = new Map<string, { scanAt: string; pnlUsd: number; activePositions: number }>();
-    openPositionEvolutionRows.forEach(({ scanSeries }) => {
+    rows.forEach(({ scanSeries }) => {
       scanSeries.forEach((point: any) => {
         if (point.pl == null) return;
         const current = totals.get(point.scanAt) || { scanAt: point.scanAt, pnlUsd: 0, activePositions: 0 };
@@ -1037,7 +1041,12 @@ export default function CryptoDashboardPage() {
     return [...totals.values()]
       .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0))
       .map((row, index) => ({ ...row, scanIndex: index + 1 }));
-  }, [openPositionEvolutionRows]);
+  };
+
+  const portfolioPlEvolutionRows = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows), [openPositionEvolutionRows]);
+  const portfolioPlEvolutionRows1d = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows1d), [openPositionEvolutionRows1d]);
+  const portfolioPlEvolutionRows4h = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows4h), [openPositionEvolutionRows4h]);
+  const portfolioPlEvolutionRows1h = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows1h), [openPositionEvolutionRows1h]);
 
   const btcContextDisplayRows = useMemo(() => {
     return btcContextRows;
@@ -1091,7 +1100,29 @@ export default function CryptoDashboardPage() {
           </div>
         </section>
 
-        <TotalPlEvolutionSection rows={portfolioPlEvolutionRows} />
+        <TotalPlEvolutionSection
+          title="Portfolio P/L Evolution"
+          subtitle="un singur grafic total, la fiecare scanare"
+          rows={portfolioPlEvolutionRows}
+        />
+
+        <section className="mb-4 grid gap-4 md:grid-cols-3">
+          <TotalPlEvolutionSection
+            title="S1D - P/L Evolution"
+            subtitle="evolutia totala pentru sistemul S1D"
+            rows={portfolioPlEvolutionRows1d}
+          />
+          <TotalPlEvolutionSection
+            title="S4h - P/L Evolution"
+            subtitle="evolutia totala pentru sistemul S4h"
+            rows={portfolioPlEvolutionRows4h}
+          />
+          <TotalPlEvolutionSection
+            title="S1h - P/L Evolution"
+            subtitle="evolutia totala pentru sistemul S1h"
+            rows={portfolioPlEvolutionRows1h}
+          />
+        </section>
 
         <VersionsLegendSection />
 
