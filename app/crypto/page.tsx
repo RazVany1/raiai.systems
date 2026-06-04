@@ -133,7 +133,8 @@ type BoxChecklistRow = BoxDailyData & {
   candidateSide: "LONG" | "SHORT" | null;
   checks: {
     boxBuilt: boolean;
-    zoneReady: boolean;
+    smallTfExtreme: boolean;
+    openingAdjusted: boolean;
     leftContext: boolean;
     reaction: boolean;
     stopDefined: boolean;
@@ -148,9 +149,8 @@ type BoxChecklistRow = BoxDailyData & {
 };
 
 const BOX_TEST_SYMBOLS = ["BTCUSDT", "ETHUSDT", "NEARUSDT", "WLDUSDT", "ARBUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT"];
-const BOX_ZONE_EDGE = 0.2;
-const BOX_REACTION_RETRACE_PCT = 0.002;
-const BOX_STOP_BUFFER_PCT = 0.0025;
+const BOX_EXTREME_TOUCH_PCT = 0.0015;
+const BOX_STOP_BUFFER_PCT = 0.001;
 
 function formatPrice(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
@@ -773,7 +773,7 @@ function BoxChecklistSection({
     <section className={`${shellClass} mb-4`}>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-base font-semibold text-white">Box v.01 - Pre-Entry Checklist</h2>
-        <span className="text-[10px] text-slate-400">primii 5 pasi: box, zone, left context, reaction, stop</span>
+        <span className="text-[10px] text-slate-400">daily box + 5m extreme + opening adjust + left context + reaction + stop</span>
       </div>
       {loading ? (
         <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box checklist...</div>
@@ -788,7 +788,8 @@ function BoxChecklistSection({
                 <th className="px-4 py-3 text-left">Zone</th>
                 <th className="px-4 py-3 text-left">Side</th>
                 <th className="px-4 py-3 text-left">Box</th>
-                <th className="px-4 py-3 text-left">Zone check</th>
+                <th className="px-4 py-3 text-left">5m extreme</th>
+                <th className="px-4 py-3 text-left">Open adj</th>
                 <th className="px-4 py-3 text-left">Left context</th>
                 <th className="px-4 py-3 text-left">Reaction</th>
                 <th className="px-4 py-3 text-left">Stop</th>
@@ -808,7 +809,8 @@ function BoxChecklistSection({
                     <td className="px-4 py-3">{row.currentZone}</td>
                     <td className="px-4 py-3">{row.candidateSide || "-"}</td>
                     <td className="px-4 py-3">{checkCell(row.checks.boxBuilt)}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.zoneReady)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.smallTfExtreme)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.openingAdjusted, "DONE", "BASE")}</td>
                     <td className="px-4 py-3">{checkCell(row.checks.leftContext)}</td>
                     <td className="px-4 py-3">{checkCell(row.checks.reaction)}</td>
                     <td className="px-4 py-3">{checkCell(row.checks.stopDefined, row.stopPrice != null ? formatPrice(row.stopPrice) : "YES", row.stopPrice != null ? formatPrice(row.stopPrice) : "NO")}</td>
@@ -1366,14 +1368,27 @@ export default function CryptoDashboardPage() {
     if (!selectedBoxSymbol) return;
     let cancelled = false;
 
-    const buildBoxData = (symbol: string, klines: any[], currentPrice: number): BoxDailyData => {
-      const previous = klines[klines.length - 2];
-      const previousHigh = Number(previous?.[2]);
-      const previousLow = Number(previous?.[3]);
+    const buildBoxData = (symbol: string, dailyKlines: any[], fiveMinKlines: any[], currentPrice: number): BoxDailyData => {
+      const previous = dailyKlines[dailyKlines.length - 2];
+      const currentDay = dailyKlines[dailyKlines.length - 1];
+      let previousHigh = Number(previous?.[2]);
+      let previousLow = Number(previous?.[3]);
+      const currentDayOpenTime = Number(currentDay?.[0]);
+      const openingCandles = fiveMinKlines.filter((row: any) => {
+        const openTime = Number(row?.[0]);
+        return Number.isFinite(openTime) && Number.isFinite(currentDayOpenTime) && openTime >= currentDayOpenTime && openTime < currentDayOpenTime + 20 * 60 * 1000;
+      });
+      const openingHighs = openingCandles.map((row: any) => Number(row?.[2])).filter((value: number) => Number.isFinite(value));
+      const openingLows = openingCandles.map((row: any) => Number(row?.[3])).filter((value: number) => Number.isFinite(value));
+      const adjustedHigh = openingHighs.length ? Math.max(previousHigh, ...openingHighs) : previousHigh;
+      const adjustedLow = openingLows.length ? Math.min(previousLow, ...openingLows) : previousLow;
+      const adjusted = adjustedHigh !== previousHigh || adjustedLow !== previousLow;
+      previousHigh = adjustedHigh;
+      previousLow = adjustedLow;
       const mid = (previousHigh + previousLow) / 2;
-      const range = Math.max(previousHigh - previousLow, 0.00000001);
-      const normalized = (currentPrice - previousLow) / range;
-      const currentZone: BoxDailyData["currentZone"] = normalized > 1 ? "above" : normalized < 0 ? "below" : normalized >= 1 - BOX_ZONE_EDGE ? "top" : normalized <= BOX_ZONE_EDGE ? "bottom" : "middle";
+      const nearTop = currentPrice >= previousHigh * (1 - BOX_EXTREME_TOUCH_PCT);
+      const nearBottom = currentPrice <= previousLow * (1 + BOX_EXTREME_TOUCH_PCT);
+      const currentZone: BoxDailyData["currentZone"] = currentPrice > previousHigh ? "above" : currentPrice < previousLow ? "below" : nearTop ? "top" : nearBottom ? "bottom" : "middle";
       return {
         symbol,
         previousHigh,
@@ -1382,36 +1397,51 @@ export default function CryptoDashboardPage() {
         currentPrice,
         currentZone,
         distanceFromMidPercent: ((currentPrice - mid) / mid) * 100,
-        source: "Binance 1D previous candle + live ticker",
+        source: adjusted ? "Binance daily box + first 20m opening adjustment + live ticker" : "Binance daily box + live ticker",
       };
     };
 
-    const buildChecklist = (data: BoxDailyData, klines: any[]): BoxChecklistRow => {
-      const currentDay = klines[klines.length - 1];
-      const older = klines.slice(Math.max(0, klines.length - 7), klines.length - 2);
+    const buildChecklist = (data: BoxDailyData, dailyKlines: any[], fiveMinKlines: any[]): BoxChecklistRow => {
+      const older = dailyKlines.slice(Math.max(0, dailyKlines.length - 7), dailyKlines.length - 2);
       const olderHighs = older.map((row) => Number(row?.[2])).filter((value) => Number.isFinite(value));
       const olderLows = older.map((row) => Number(row?.[3])).filter((value) => Number.isFinite(value));
       const recentMax = olderHighs.length ? Math.max(...olderHighs) : data.previousHigh;
       const recentMin = olderLows.length ? Math.min(...olderLows) : data.previousLow;
-      const currentDayHigh = Number(currentDay?.[2]);
-      const currentDayLow = Number(currentDay?.[3]);
-      const normalized = (data.currentPrice - data.previousLow) / Math.max(data.previousHigh - data.previousLow, 0.00000001);
-      const candidateSide = data.currentZone === "top" ? "SHORT" : data.currentZone === "bottom" ? "LONG" : null;
-      const zoneReady = normalized >= 1 - BOX_ZONE_EDGE || normalized <= BOX_ZONE_EDGE;
-      const leftContext = data.currentZone === "top"
+      const currentDay = dailyKlines[dailyKlines.length - 1];
+      const currentDayOpenTime = Number(currentDay?.[0]);
+      const openingCandles = fiveMinKlines.filter((row: any) => {
+        const openTime = Number(row?.[0]);
+        return Number.isFinite(openTime) && Number.isFinite(currentDayOpenTime) && openTime >= currentDayOpenTime && openTime < currentDayOpenTime + 20 * 60 * 1000;
+      });
+      const recentFive = fiveMinKlines.slice(-6);
+      const recentHigh = recentFive.map((row: any) => Number(row?.[2])).filter((value: number) => Number.isFinite(value));
+      const recentLow = recentFive.map((row: any) => Number(row?.[3])).filter((value: number) => Number.isFinite(value));
+      const lastFive = recentFive[recentFive.length - 1];
+      const lastOpen = Number(lastFive?.[1]);
+      const lastClose = Number(lastFive?.[4]);
+      const latestHigh = recentHigh.length ? Math.max(...recentHigh) : null;
+      const latestLow = recentLow.length ? Math.min(...recentLow) : null;
+      const candidateSide = data.currentZone === "top" || data.currentZone === "above" ? "SHORT" : data.currentZone === "bottom" || data.currentZone === "below" ? "LONG" : null;
+      const smallTfExtreme = candidateSide === "SHORT"
+        ? latestHigh != null && latestHigh >= data.previousHigh * (1 - BOX_EXTREME_TOUCH_PCT)
+        : candidateSide === "LONG"
+          ? latestLow != null && latestLow <= data.previousLow * (1 + BOX_EXTREME_TOUCH_PCT)
+          : false;
+      const openingAdjusted = openingCandles.length > 0;
+      const leftContext = candidateSide === "SHORT"
         ? data.previousHigh >= recentMax * 0.997
-        : data.currentZone === "bottom"
+        : candidateSide === "LONG"
           ? data.previousLow <= recentMin * 1.003
           : false;
-      const reaction = data.currentZone === "top"
-        ? Number.isFinite(currentDayHigh) && currentDayHigh >= data.previousHigh * (1 - BOX_REACTION_RETRACE_PCT) && data.currentPrice <= data.previousHigh * (1 - BOX_REACTION_RETRACE_PCT)
-        : data.currentZone === "bottom"
-          ? Number.isFinite(currentDayLow) && currentDayLow <= data.previousLow * (1 + BOX_REACTION_RETRACE_PCT) && data.currentPrice >= data.previousLow * (1 + BOX_REACTION_RETRACE_PCT)
+      const reaction = candidateSide === "SHORT"
+        ? smallTfExtreme && Number.isFinite(lastOpen) && Number.isFinite(lastClose) && lastClose < lastOpen && lastClose < data.previousHigh
+        : candidateSide === "LONG"
+          ? smallTfExtreme && Number.isFinite(lastOpen) && Number.isFinite(lastClose) && lastClose > lastOpen && lastClose > data.previousLow
           : false;
       const stopPrice = candidateSide === "SHORT"
-        ? (Number.isFinite(currentDayHigh) ? Math.max(data.previousHigh, currentDayHigh) * (1 + BOX_STOP_BUFFER_PCT) : data.previousHigh * (1 + BOX_STOP_BUFFER_PCT))
+        ? data.previousHigh * (1 + BOX_STOP_BUFFER_PCT)
         : candidateSide === "LONG"
-          ? (Number.isFinite(currentDayLow) ? Math.min(data.previousLow, currentDayLow) * (1 - BOX_STOP_BUFFER_PCT) : data.previousLow * (1 - BOX_STOP_BUFFER_PCT))
+          ? data.previousLow * (1 - BOX_STOP_BUFFER_PCT)
           : null;
       const targetPrice = candidateSide ? data.mid : null;
       const risk = candidateSide === "SHORT"
@@ -1428,15 +1458,17 @@ export default function CryptoDashboardPage() {
       const stopDefined = stopPrice != null && Number.isFinite(stopPrice);
       const checks = {
         boxBuilt: Number.isFinite(data.previousHigh) && Number.isFinite(data.previousLow) && Number.isFinite(data.mid),
-        zoneReady,
+        smallTfExtreme,
+        openingAdjusted,
         leftContext,
         reaction,
         stopDefined,
       };
       const notes: string[] = [];
-      if (!checks.zoneReady) notes.push("not in edge zone");
+      if (!checks.smallTfExtreme) notes.push("5m not at extreme");
+      if (!checks.openingAdjusted) notes.push("open window not evaluated");
       if (!checks.leftContext) notes.push("left context missing");
-      if (!checks.reaction) notes.push("reaction not confirmed");
+      if (!checks.reaction) notes.push("5m reaction missing");
       if (!checks.stopDefined) notes.push("stop missing");
       const checksDone = Object.values(checks).filter(Boolean).length;
       const checksTotal = Object.keys(checks).length;
@@ -1462,15 +1494,18 @@ export default function CryptoDashboardPage() {
       try {
         const batchSymbols = BOX_TEST_SYMBOLS;
         const tickerResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { cache: "no-store" })));
-        const klinesResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=8`, { cache: "no-store" })));
+        const dailyResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=8`, { cache: "no-store" })));
+        const fiveMinResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=48`, { cache: "no-store" })));
         const tickers = await Promise.all(tickerResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_ticker_failed"))));
-        const klinesList = await Promise.all(klinesResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_klines_failed"))));
+        const dailyList = await Promise.all(dailyResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_klines_failed"))));
+        const fiveMinList = await Promise.all(fiveMinResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_5m_failed"))));
         const builtRows: BoxChecklistRow[] = batchSymbols.map((symbol, index) => {
           const currentPrice = Number(tickers[index]?.price);
-          const klines = klinesList[index];
-          if (!Array.isArray(klines) || klines.length < 2 || !Number.isFinite(currentPrice)) throw new Error(`box_invalid_${symbol}`);
-          const data = buildBoxData(symbol, klines, currentPrice);
-          return buildChecklist(data, klines);
+          const dailyKlines = dailyList[index];
+          const fiveMinKlines = fiveMinList[index];
+          if (!Array.isArray(dailyKlines) || dailyKlines.length < 2 || !Array.isArray(fiveMinKlines) || !Number.isFinite(currentPrice)) throw new Error(`box_invalid_${symbol}`);
+          const data = buildBoxData(symbol, dailyKlines, fiveMinKlines, currentPrice);
+          return buildChecklist(data, dailyKlines, fiveMinKlines);
         });
         const selectedRow = builtRows.find((row) => row.symbol === selectedBoxSymbol) || null;
         if (!cancelled) {
