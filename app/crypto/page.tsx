@@ -148,6 +148,43 @@ type BoxChecklistRow = BoxDailyData & {
   notes: string[];
 };
 
+type CheckMarkMeta = {
+  sessionAnchor?: string;
+  publishCadenceMinutes?: number;
+  openingRangeTimeframe?: string;
+  triggerTimeframe?: string;
+};
+
+type CheckMarkRow = {
+  symbol: string;
+  sessionAnchor?: string;
+  openingRangeTimeframe?: string;
+  triggerTimeframe?: string;
+  detectedAt?: string;
+  openingCandleAt?: string | null;
+  side?: string;
+  status?: string;
+  openingOpen?: number | null;
+  openingHigh?: number | null;
+  openingLow?: number | null;
+  openingClose?: number | null;
+  openingRange?: number | null;
+  atr1d?: number | null;
+  atrRatio?: number | null;
+  referenceLevel?: number | null;
+  referenceLevelType?: string | null;
+  reclaimValid?: boolean;
+  retestValid?: boolean;
+  triggerValid?: boolean;
+  retestAt?: string | null;
+  triggerAt?: string | null;
+  entry?: number | null;
+  stop?: number | null;
+  tp1?: number | null;
+  tp2?: number | null;
+  sourceVenue?: string;
+};
+
 const BOX_TEST_SYMBOLS = ["BTCUSDT", "ETHUSDT", "NEARUSDT", "WLDUSDT", "ARBUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT"];
 const BOX_EXTREME_TOUCH_PCT = 0.0015;
 const BOX_STOP_BUFFER_PCT = 0.001;
@@ -318,6 +355,14 @@ function trendBadgeClasses(trend: string) {
   if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
   if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
   if (trend === "SIDEWAYS") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
+}
+
+function checkMarkStatusClasses(status?: string | null) {
+  if (status === "triggered") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (status === "retest") return "border-sky-200/70 bg-sky-300/20 text-sky-50";
+  if (status === "candidate") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
+  if (status === "invalidated") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
@@ -994,6 +1039,8 @@ export default function CryptoDashboardPage() {
   const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
   const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
+  const [checkMarkRows, setCheckMarkRows] = useState<CheckMarkRow[]>([]);
+  const [checkMarkMeta, setCheckMarkMeta] = useState<CheckMarkMeta | null>(null);
   const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
@@ -1032,6 +1079,8 @@ export default function CryptoDashboardPage() {
         setFormationRows(data.formationRows || []);
         setTrendRows(data.trendRows || []);
         setBtcContextRows(data.btcContextRows || []);
+        setCheckMarkRows(data.checkMarkRows || []);
+        setCheckMarkMeta(data.checkMarkMeta || null);
         setPositionSnapshots(data.positionSnapshots || {});
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
@@ -1055,6 +1104,8 @@ export default function CryptoDashboardPage() {
         setFormationRows([]);
         setTrendRows([]);
         setBtcContextRows([]);
+        setCheckMarkRows([]);
+        setCheckMarkMeta(null);
         setPositionSnapshots({});
         setScanUniverseExpected(0);
       }
@@ -1087,6 +1138,15 @@ export default function CryptoDashboardPage() {
       range: trendRows.filter((row) => row.finalMarketDirection === "SIDEWAYS" || row.finalMarketDirection === "UNCLEAR").length,
     };
   }, [trendRows]);
+
+  const orderedCheckMarkRows = useMemo(() => {
+    const statusRank: Record<string, number> = { triggered: 0, retest: 1, candidate: 2, invalidated: 3 };
+    return [...checkMarkRows].sort((a, b) => {
+      const statusDiff = (statusRank[a.status || ""] ?? 99) - (statusRank[b.status || ""] ?? 99);
+      if (statusDiff !== 0) return statusDiff;
+      return (b.atrRatio || 0) - (a.atrRatio || 0);
+    });
+  }, [checkMarkRows]);
 
   const orderedOpenPaperPositions = useMemo(() => {
     return [...openPaperPositions].sort((a, b) => {
@@ -1578,6 +1638,82 @@ export default function CryptoDashboardPage() {
             <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.equityUsd)}</p>
             <p className="mt-1 text-[11px] text-slate-400">Cat ar valora acum toate pozitiile deschise, cu P/L inclus.</p>
             <p className="mt-1 text-[11px] text-slate-500">Formula: money in play + open P/L.</p>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4 border-sky-400/30 bg-sky-950/25`}>
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Check Mark v0.1</h2>
+              <p className="mt-1 text-sm text-slate-300">strategia nouă este aici: sweep + reclaim + retest + trigger</p>
+            </div>
+            <div className="text-xs text-slate-300 md:text-right">
+              <p>Anchor: {checkMarkMeta?.sessionAnchor || "00:00 UTC"}</p>
+              <p>OR: {checkMarkMeta?.openingRangeTimeframe || "-"} · Trigger: {checkMarkMeta?.triggerTimeframe || "-"}</p>
+              <p>Publish: {checkMarkMeta?.publishCadenceMinutes ? `${checkMarkMeta.publishCadenceMinutes}m` : "-"}</p>
+            </div>
+          </div>
+
+          <div className="mb-3 grid gap-2 md:grid-cols-4">
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Rows</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{orderedCheckMarkRows.length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Triggered</p>
+              <p className="mt-2 text-lg font-semibold text-emerald-200">{orderedCheckMarkRows.filter((row) => row.status === "triggered").length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Retest</p>
+              <p className="mt-2 text-lg font-semibold text-sky-200">{orderedCheckMarkRows.filter((row) => row.status === "retest").length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Candidate</p>
+              <p className="mt-2 text-lg font-semibold text-amber-200">{orderedCheckMarkRows.filter((row) => row.status === "candidate").length}</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">OR / ATR</th>
+                  <th className="px-4 py-3 text-left">Ref</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">Stop</th>
+                  <th className="px-4 py-3 text-left">TP1</th>
+                  <th className="px-4 py-3 text-left">TP2</th>
+                  <th className="px-4 py-3 text-left">Retest</th>
+                  <th className="px-4 py-3 text-left">Trigger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderedCheckMarkRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-4 py-4 text-slate-400">Niciun setup Check Mark v0.1 in snapshotul curent.</td>
+                  </tr>
+                ) : (
+                  orderedCheckMarkRows.map((row) => (
+                    <tr key={`${row.symbol}-${row.openingCandleAt}-${row.side}`} className="border-t border-white/10">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3">{row.side ? <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${row.side === "LONG" ? "border-emerald-200/70 bg-emerald-300/20 text-emerald-50" : "border-rose-200/70 bg-rose-300/20 text-rose-50"}`}>{row.side}</span> : "-"}</td>
+                      <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${checkMarkStatusClasses(row.status)}`}>{row.status || "-"}</span></td>
+                      <td className="px-4 py-3">{row.openingRange != null ? `${formatPrice(row.openingRange)} / ${row.atrRatio?.toFixed(3) || "-"}` : "-"}</td>
+                      <td className="px-4 py-3">{row.referenceLevelType ? `${row.referenceLevelType} · ${formatPrice(row.referenceLevel)}` : "-"}</td>
+                      <td className="px-4 py-3">{formatPrice(row.entry)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.stop)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.tp1)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.tp2)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.retestAt)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
 
