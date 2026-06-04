@@ -4,6 +4,17 @@ from datetime import datetime, timezone, timedelta
 RSI_LOOKBACK_BARS = 50
 RSI_BAR_HOURS = 4
 RSI_LOOKBACK_WINDOW = timedelta(hours=RSI_LOOKBACK_BARS * RSI_BAR_HOURS)
+CHECK_MARK_SESSION_HOUR_UTC = 0
+CHECK_MARK_SESSION_MINUTE_UTC = 0
+CHECK_MARK_OPENING_RANGE_INTERVAL = "15m"
+CHECK_MARK_TRIGGER_INTERVAL = "5m"
+CHECK_MARK_ATR_PERIOD = 14
+CHECK_MARK_MANIPULATION_THRESHOLD = 0.20
+CHECK_MARK_MIN_RECLAIM_FRACTION = 0.25
+CHECK_MARK_RETEST_ZONE_FRACTION = 0.20
+CHECK_MARK_STOP_BUFFER_FRACTION = 0.05
+CHECK_MARK_MAX_RETEST_CANDLES = 12
+CHECK_MARK_MAX_TRIGGER_CANDLES = 6
 from pathlib import Path
 import sys
 from urllib.request import urlopen
@@ -944,6 +955,222 @@ def rounded(value, digits: int = 6):
     return None
 
 
+def midpoint(high: float, low: float) -> float:
+    return (float(high) + float(low)) / 2.0
+
+
+def iso_from_ms(timestamp_ms: int | float | None) -> str | None:
+    if not isinstance(timestamp_ms, (int, float)):
+        return None
+    return datetime.fromtimestamp(float(timestamp_ms) / 1000, tz=timezone.utc).isoformat()
+
+
+def find_session_opening_index(klines: list, target_date: datetime) -> int | None:
+    for index, candle in enumerate(klines):
+        candle_time = datetime.fromtimestamp(int(candle[0]) / 1000, tz=timezone.utc)
+        if (
+            candle_time.year == target_date.year
+            and candle_time.month == target_date.month
+            and candle_time.day == target_date.day
+            and candle_time.hour == CHECK_MARK_SESSION_HOUR_UTC
+            and candle_time.minute == CHECK_MARK_SESSION_MINUTE_UTC
+        ):
+            return index
+    return None
+
+
+def detect_check_mark_setup(
+    symbol: str,
+    layer: RAICryptoSignalOutputLayerV3,
+    kline_cache: dict[tuple[str, str, int], list],
+    updated_at: str,
+) -> dict | None:
+    now_dt = datetime.fromisoformat(updated_at)
+    klines_1d = get_klines_cached(layer, kline_cache, symbol, "1d", 60)
+    klines_15m = get_klines_cached(layer, kline_cache, symbol, CHECK_MARK_OPENING_RANGE_INTERVAL, 160)
+    klines_5m = get_klines_cached(layer, kline_cache, symbol, CHECK_MARK_TRIGGER_INTERVAL, 220)
+
+    if len(klines_1d) < CHECK_MARK_ATR_PERIOD + 2 or len(klines_15m) < 20 or len(klines_5m) < 20:
+        return None
+
+    opening_index = find_session_opening_index(klines_15m, now_dt)
+    if opening_index is None:
+        return None
+
+    opening_candle = klines_15m[opening_index]
+    opening_open = float(opening_candle[1])
+    opening_high = float(opening_candle[2])
+    opening_low = float(opening_candle[3])
+    opening_close = float(opening_candle[4])
+    opening_range = opening_high - opening_low
+    if opening_range <= 0:
+        return None
+
+    _, highs_1d, lows_1d, closes_1d = layer.extract_ohlc(klines_1d)
+    atr_values_1d = atr(highs_1d, lows_1d, closes_1d, CHECK_MARK_ATR_PERIOD)
+    atr_1d = atr_values_1d[-1]
+    if not isinstance(atr_1d, (int, float)) or atr_1d <= 0:
+        return None
+
+    atr_ratio = opening_range / float(atr_1d)
+    if atr_ratio < CHECK_MARK_MANIPULATION_THRESHOLD:
+        return None
+
+    previous_day_high = float(highs_1d[-2])
+    previous_day_low = float(lows_1d[-2])
+
+    prior_15m = klines_15m[max(0, opening_index - 12):opening_index]
+    prior_15m_highs = [float(c[2]) for c in prior_15m]
+    prior_15m_lows = [float(c[3]) for c in prior_15m]
+    recent_local_high = max(prior_15m_highs) if prior_15m_highs else previous_day_high
+    recent_local_low = min(prior_15m_lows) if prior_15m_lows else previous_day_low
+
+    side = None
+    reference_level = None
+    reference_level_type = None
+    reclaim_valid = False
+
+    if opening_close < opening_open:
+        if opening_low < previous_day_low:
+            reference_level = previous_day_low
+            reference_level_type = "prev_day"
+        elif opening_low < recent_local_low:
+            reference_level = recent_local_low
+            reference_level_type = "recent_local"
+        if reference_level is not None:
+            reclaim_valid = opening_close >= opening_low + (CHECK_MARK_MIN_RECLAIM_FRACTION * opening_range)
+            if reclaim_valid:
+                side = "LONG"
+    elif opening_close > opening_open:
+        if opening_high > previous_day_high:
+            reference_level = previous_day_high
+            reference_level_type = "prev_day"
+        elif opening_high > recent_local_high:
+            reference_level = recent_local_high
+            reference_level_type = "recent_local"
+        if reference_level is not None:
+            reclaim_valid = opening_close <= opening_high - (CHECK_MARK_MIN_RECLAIM_FRACTION * opening_range)
+            if reclaim_valid:
+                side = "SHORT"
+
+    if side is None:
+        return None
+
+    opening_start_ms = int(opening_candle[0])
+    opening_close_ms = opening_start_ms + (15 * 60 * 1000)
+    post_open_5m = [c for c in klines_5m if int(c[0]) >= opening_close_ms]
+    retest_window = post_open_5m[:CHECK_MARK_MAX_RETEST_CANDLES]
+
+    retest_index = None
+    retest_candle = None
+    invalidated_early = False
+    for idx, candle in enumerate(retest_window):
+        candle_high = float(candle[2])
+        candle_low = float(candle[3])
+        candle_close = float(candle[4])
+        reaction_ok = False
+        if side == "LONG":
+            in_zone = candle_low <= opening_low + (CHECK_MARK_RETEST_ZONE_FRACTION * opening_range)
+            not_lost = candle_close >= opening_low
+            if candle_close < opening_low:
+                invalidated_early = True
+                break
+            if idx + 1 < len(retest_window):
+                next_close = float(retest_window[idx + 1][4])
+                reaction_ok = candle_close > midpoint(candle_high, candle_low) or next_close > midpoint(candle_high, candle_low)
+            else:
+                reaction_ok = candle_close > midpoint(candle_high, candle_low)
+            if in_zone and not_lost and reaction_ok:
+                retest_index = idx
+                retest_candle = candle
+                break
+        else:
+            in_zone = candle_high >= opening_high - (CHECK_MARK_RETEST_ZONE_FRACTION * opening_range)
+            not_lost = candle_close <= opening_high
+            if candle_close > opening_high:
+                invalidated_early = True
+                break
+            if idx + 1 < len(retest_window):
+                next_close = float(retest_window[idx + 1][4])
+                reaction_ok = candle_close < midpoint(candle_high, candle_low) or next_close < midpoint(candle_high, candle_low)
+            else:
+                reaction_ok = candle_close < midpoint(candle_high, candle_low)
+            if in_zone and not_lost and reaction_ok:
+                retest_index = idx
+                retest_candle = candle
+                break
+
+    status = "candidate"
+    trigger_candle = None
+    entry_price = None
+
+    if invalidated_early:
+        status = "invalidated"
+    elif retest_candle is not None and retest_index is not None:
+        status = "retest"
+        trigger_window = retest_window[retest_index + 1:retest_index + 1 + CHECK_MARK_MAX_TRIGGER_CANDLES]
+        for trigger_idx, candle in enumerate(trigger_window):
+            candle_open = float(candle[1])
+            candle_high = float(candle[2])
+            candle_low = float(candle[3])
+            candle_close = float(candle[4])
+            previous_candle = retest_window[retest_index + trigger_idx] if retest_index + trigger_idx < len(retest_window) else None
+            if previous_candle is None:
+                continue
+            if side == "LONG":
+                if candle_close < opening_low:
+                    status = "invalidated"
+                    break
+                if candle_close > candle_open and candle_high > float(previous_candle[2]):
+                    trigger_candle = candle
+                    entry_price = candle_high
+                    status = "triggered"
+                    break
+            else:
+                if candle_close > opening_high:
+                    status = "invalidated"
+                    break
+                if candle_close < candle_open and candle_low < float(previous_candle[3]):
+                    trigger_candle = candle
+                    entry_price = candle_low
+                    status = "triggered"
+                    break
+
+    stop_price = opening_low - (CHECK_MARK_STOP_BUFFER_FRACTION * opening_range) if side == "LONG" else opening_high + (CHECK_MARK_STOP_BUFFER_FRACTION * opening_range)
+    tp1 = opening_high if side == "LONG" else opening_low
+    tp2 = (entry_price + opening_range) if side == "LONG" and isinstance(entry_price, (int, float)) else (entry_price - opening_range) if side == "SHORT" and isinstance(entry_price, (int, float)) else None
+
+    return {
+        "symbol": symbol,
+        "sessionAnchor": "00:00 UTC",
+        "openingRangeTimeframe": CHECK_MARK_OPENING_RANGE_INTERVAL,
+        "triggerTimeframe": CHECK_MARK_TRIGGER_INTERVAL,
+        "detectedAt": updated_at,
+        "openingCandleAt": iso_from_ms(opening_start_ms),
+        "side": side,
+        "status": status,
+        "openingOpen": rounded(opening_open),
+        "openingHigh": rounded(opening_high),
+        "openingLow": rounded(opening_low),
+        "openingClose": rounded(opening_close),
+        "openingRange": rounded(opening_range),
+        "atr1d": rounded(atr_1d),
+        "atrRatio": rounded(atr_ratio, 4),
+        "referenceLevel": rounded(reference_level),
+        "referenceLevelType": reference_level_type,
+        "reclaimValid": reclaim_valid,
+        "retestValid": retest_candle is not None,
+        "triggerValid": trigger_candle is not None,
+        "retestAt": iso_from_ms(int(retest_candle[0])) if retest_candle is not None else None,
+        "triggerAt": iso_from_ms(int(trigger_candle[0])) if trigger_candle is not None else None,
+        "entry": rounded(entry_price),
+        "stop": rounded(stop_price),
+        "tp1": rounded(tp1),
+        "tp2": rounded(tp2),
+        "sourceVenue": "binance",
+    }
+
+
 def fetch_btc_dominance_context(previous_rows: list[dict] | None, updated_at: str) -> dict | None:
     try:
         with urlopen("https://api.coingecko.com/api/v3/global", timeout=10) as response:
@@ -1080,6 +1307,7 @@ def main():
     v3_interest_rows_1d = []
     formation_rows = []
     trend_rows = []
+    check_mark_rows = []
     market_scan_map = {}
     updated_at = datetime.now(timezone.utc).isoformat()
     try:
@@ -1438,6 +1666,10 @@ def main():
                         })
 
             formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi, price_cache))
+
+            check_mark_setup = detect_check_mark_setup(symbol, layer, kline_cache, updated_at)
+            if isinstance(check_mark_setup, dict):
+                check_mark_rows.append(check_mark_setup)
 
             trend_rows.append(detect_market_direction(symbol, layer, price_cache, kline_cache))
         except Exception as exc:
@@ -2266,7 +2498,7 @@ def main():
         if isinstance(row, dict) and row.get("entrySignal") != "RSI_V0"
     ]
 
-    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=15)).isoformat()
+    next_scan_at = (datetime.fromisoformat(updated_at) + timedelta(minutes=30)).isoformat()
 
     btc_context_rows = []
     btc_row = next((row for row in trend_rows if row.get("symbol") == "BTCUSDT"), None)
@@ -2351,6 +2583,13 @@ def main():
         "formationRows": formation_rows,
         "trendRows": trend_rows,
         "btcContextRows": btc_context_rows,
+        "checkMarkMeta": {
+            "sessionAnchor": "00:00 UTC",
+            "publishCadenceMinutes": 30,
+            "openingRangeTimeframe": CHECK_MARK_OPENING_RANGE_INTERVAL,
+            "triggerTimeframe": CHECK_MARK_TRIGGER_INTERVAL,
+        },
+        "checkMarkRows": check_mark_rows,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_V0_PATH.write_text(json.dumps({"updatedAt": updated_at, "interestRows": v0_interest_rows}, indent=2, ensure_ascii=False), encoding="utf-8")
