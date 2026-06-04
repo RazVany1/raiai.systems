@@ -543,10 +543,12 @@ function TotalPlEvolutionSection({
   title,
   subtitle,
   rows,
+  detailed = false,
 }: {
   title: string;
   subtitle: string;
   rows: { scanAt: string; scanIndex: number; pnlUsd: number; activePositions: number }[];
+  detailed?: boolean;
 }) {
   if (rows.length === 0) {
     return <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No portfolio P/L scan history yet.</div>;
@@ -569,6 +571,7 @@ function TotalPlEvolutionSection({
   const bestRow = rows.reduce((best, row) => (row.pnlUsd > best.pnlUsd ? row : best), rows[0]);
   const worstRow = rows.reduce((worst, row) => (row.pnlUsd < worst.pnlUsd ? row : worst), rows[0]);
   const currentRow = rows[rows.length - 1];
+  const avgCurrentPerPosition = currentRow.activePositions > 0 ? currentRow.pnlUsd / currentRow.activePositions : 0;
 
   return (
     <section className={`${shellClass} mb-4`}>
@@ -587,12 +590,29 @@ function TotalPlEvolutionSection({
             <circle cx={scanToX(bestRow.scanIndex)} cy={pnlToY(bestRow.pnlUsd)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" />
             <circle cx={scanToX(worstRow.scanIndex)} cy={pnlToY(worstRow.pnlUsd)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" />
             <circle cx={scanToX(currentRow.scanIndex)} cy={pnlToY(currentRow.pnlUsd)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(168,85,247,0.9)" strokeWidth="1.5" />
+            {detailed ? (
+              <>
+                <text x={Math.min(width - 120, scanToX(bestRow.scanIndex) + 8)} y={Math.max(14, pnlToY(bestRow.pnlUsd) - 8)} fill="rgba(167,243,208,0.95)" fontSize="11">Best {formatUsd(bestRow.pnlUsd)}</text>
+                <text x={Math.min(width - 120, scanToX(worstRow.scanIndex) + 8)} y={Math.max(14, pnlToY(worstRow.pnlUsd) - 8)} fill="rgba(254,205,211,0.95)" fontSize="11">Worst {formatUsd(worstRow.pnlUsd)}</text>
+                <text x={Math.min(width - 120, scanToX(currentRow.scanIndex) + 8)} y={Math.max(14, pnlToY(currentRow.pnlUsd) - 8)} fill="rgba(233,213,255,0.95)" fontSize="11">Now {formatUsd(currentRow.pnlUsd)}</text>
+              </>
+            ) : null}
           </svg>
-          <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
+          <div className={`mt-3 grid gap-2 text-xs text-slate-300 ${detailed ? "md:grid-cols-6" : "md:grid-cols-4"}`}>
             <div>Scans: <span className="font-semibold text-slate-100">{rows.length}</span></div>
             <div>Best total P/L: <span className="font-semibold text-emerald-200">{formatUsd(bestRow.pnlUsd)}</span></div>
             <div>Worst total P/L: <span className="font-semibold text-rose-200">{formatUsd(worstRow.pnlUsd)}</span></div>
             <div>Current total P/L: <span className={`font-semibold ${percentTextClass(currentRow.pnlUsd)}`}>{formatUsd(currentRow.pnlUsd)}</span></div>
+            {detailed ? (
+              <>
+                <div>Last scan: <span className="font-semibold text-slate-100">{formatCompactDate(currentRow.scanAt)}</span></div>
+                <div>Now / position: <span className={`font-semibold ${percentTextClass(avgCurrentPerPosition)}`}>{formatUsd(avgCurrentPerPosition)}</span></div>
+                <div>Active positions now: <span className="font-semibold text-slate-100">{currentRow.activePositions}</span></div>
+                <div>Best scan time: <span className="font-semibold text-emerald-200">{formatCompactDate(bestRow.scanAt)}</span></div>
+                <div>Worst scan time: <span className="font-semibold text-rose-200">{formatCompactDate(worstRow.scanAt)}</span></div>
+                <div>P/L range: <span className="font-semibold text-slate-100">{formatUsd(minPnl)} - {formatUsd(maxPnl)}</span></div>
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1116,11 +1136,13 @@ export default function CryptoDashboardPage() {
             title="S4h - P/L Evolution"
             subtitle="evolutia totala pentru sistemul S4h"
             rows={portfolioPlEvolutionRows4h}
+            detailed
           />
           <TotalPlEvolutionSection
             title="S1h - P/L Evolution"
             subtitle="evolutia totala pentru sistemul S1h"
             rows={portfolioPlEvolutionRows1h}
+            detailed
           />
         </section>
 
