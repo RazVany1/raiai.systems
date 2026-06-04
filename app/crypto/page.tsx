@@ -118,6 +118,17 @@ type PositionSnapshotBucket = {
   snapshots?: PositionSnapshot[];
 };
 
+type BoxDailyData = {
+  symbol: string;
+  previousHigh: number;
+  previousLow: number;
+  mid: number;
+  currentPrice: number;
+  currentZone: "top" | "bottom" | "middle" | "above" | "below";
+  distanceFromMidPercent: number;
+  source: string;
+};
+
 function formatPrice(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
   const abs = Math.abs(value);
@@ -620,6 +631,112 @@ function TotalPlEvolutionSection({
   );
 }
 
+function BoxStrategySection({
+  symbol,
+  data,
+  loading,
+  error,
+  onSymbolChange,
+  symbolOptions,
+}: {
+  symbol: string;
+  data: BoxDailyData | null;
+  loading: boolean;
+  error: string;
+  onSymbolChange: (value: string) => void;
+  symbolOptions: string[];
+}) {
+  const boxRange = data ? Math.max(data.previousHigh - data.previousLow, 0.00000001) : 1;
+  const normalized = data ? (data.currentPrice - data.previousLow) / boxRange : 0.5;
+  const clamped = Math.max(-0.12, Math.min(1.12, normalized));
+  const markerY = 22 + (1 - clamped) * 236;
+  const zoneLabel = data
+    ? data.currentZone === "top"
+      ? "top zone / short area"
+      : data.currentZone === "bottom"
+        ? "bottom zone / long area"
+        : data.currentZone === "middle"
+          ? "middle / avoid"
+          : data.currentZone === "above"
+            ? "above box"
+            : "below box"
+    : "-";
+
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-white">Box v.01 - Daily Box Visual</h2>
+          <p className="text-xs text-slate-400">high / low din ziua precedenta + current price plasat vizual in box</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-300">
+          <span>Coin</span>
+          <select value={symbol} onChange={(e) => onSymbolChange(e.target.value)} className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 text-xs text-slate-100 outline-none">
+            {symbolOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {loading ? (
+        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box...</div>
+      ) : error ? (
+        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
+      ) : !data ? (
+        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No box data yet.</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-[260px,1fr]">
+          <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+            <svg viewBox="0 0 120 280" className="mx-auto h-72 w-full max-w-[180px]">
+              <rect x="32" y="22" width="56" height="236" rx="10" fill="rgba(15,23,42,0.7)" stroke="rgba(148,163,184,0.35)" />
+              <rect x="32" y="22" width="56" height="70" fill="rgba(248,113,113,0.12)" />
+              <rect x="32" y="92" width="56" height="96" fill="rgba(148,163,184,0.08)" />
+              <rect x="32" y="188" width="56" height="70" fill="rgba(52,211,153,0.12)" />
+              <line x1="26" y1="140" x2="94" y2="140" stroke="rgba(250,204,21,0.9)" strokeDasharray="5 4" />
+              <circle cx="60" cy={markerY} r="6" fill="rgba(255,255,255,0.98)" stroke="rgba(59,130,246,0.95)" strokeWidth="2" />
+              <line x1="60" y1={markerY} x2="104" y2={markerY} stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" />
+              <text x="8" y="28" fill="rgba(148,163,184,0.9)" fontSize="10">High</text>
+              <text x="8" y="144" fill="rgba(250,204,21,0.95)" fontSize="10">Mid</text>
+              <text x="8" y="264" fill="rgba(148,163,184,0.9)" fontSize="10">Low</text>
+            </svg>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Previous day high</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.previousHigh)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Previous day low</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.previousLow)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Box mid</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.mid)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Current price</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.currentPrice)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Current zone</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{zoneLabel}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Distance from mid</p>
+              <p className={`mt-2 text-lg font-semibold ${percentTextClass(data.distanceFromMidPercent)}`}>{formatPercent(data.distanceFromMidPercent)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3 md:col-span-2 xl:col-span-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Read</p>
+              <p className="mt-2 text-sm text-slate-300">Box v.01: sus cauti short, jos cauti long, in middle eviti. Markerul alb iti arata exact unde sta pretul acum fata de boxul zilei precedente.</p>
+              <p className="mt-2 text-[11px] text-slate-500">Source: {data.source}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function BarEvolutionSection({
   title,
   subtitle,
@@ -730,6 +847,10 @@ export default function CryptoDashboardPage() {
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
   const [scanUniverseExpected, setScanUniverseExpected] = useState<number>(0);
+  const [selectedBoxSymbol, setSelectedBoxSymbol] = useState<string>("BTCUSDT");
+  const [boxData, setBoxData] = useState<BoxDailyData | null>(null);
+  const [boxLoading, setBoxLoading] = useState<boolean>(false);
+  const [boxError, setBoxError] = useState<string>("");
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1072,6 +1193,77 @@ export default function CryptoDashboardPage() {
     return btcContextRows;
   }, [btcContextRows]);
 
+  const boxSymbolOptions = useMemo(() => {
+    const set = new Set<string>([
+      ...openPaperPositions.map((row) => row.symbol).filter(Boolean),
+      ...trendRows.map((row) => row.symbol).filter((symbol) => symbol && symbol !== "BTC.D"),
+      "BTCUSDT",
+      "ETHUSDT",
+      "NEARUSDT",
+    ]);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [openPaperPositions, trendRows]);
+
+  useEffect(() => {
+    if (!boxSymbolOptions.includes(selectedBoxSymbol) && boxSymbolOptions.length > 0) {
+      setSelectedBoxSymbol(boxSymbolOptions[0]);
+    }
+  }, [boxSymbolOptions, selectedBoxSymbol]);
+
+  useEffect(() => {
+    if (!selectedBoxSymbol) return;
+    let cancelled = false;
+
+    const loadBox = async () => {
+      setBoxLoading(true);
+      setBoxError("");
+      try {
+        const [klinesRes, tickerRes] = await Promise.all([
+          fetch(`https://api.binance.com/api/v3/klines?symbol=${selectedBoxSymbol}&interval=1d&limit=3`, { cache: "no-store" }),
+          fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${selectedBoxSymbol}`, { cache: "no-store" }),
+        ]);
+        if (!klinesRes.ok || !tickerRes.ok) throw new Error("box_fetch_failed");
+        const klines = await klinesRes.json();
+        const ticker = await tickerRes.json();
+        if (!Array.isArray(klines) || klines.length < 2) throw new Error("box_klines_missing");
+        const previous = klines[klines.length - 2];
+        const previousHigh = Number(previous?.[2]);
+        const previousLow = Number(previous?.[3]);
+        const currentPrice = Number(ticker?.price);
+        if (![previousHigh, previousLow, currentPrice].every((value) => Number.isFinite(value))) throw new Error("box_values_invalid");
+        const mid = (previousHigh + previousLow) / 2;
+        const range = Math.max(previousHigh - previousLow, 0.00000001);
+        const normalized = (currentPrice - previousLow) / range;
+        const currentZone: BoxDailyData["currentZone"] = normalized > 1 ? "above" : normalized < 0 ? "below" : normalized >= 0.66 ? "top" : normalized <= 0.34 ? "bottom" : "middle";
+        const distanceFromMidPercent = ((currentPrice - mid) / mid) * 100;
+        if (!cancelled) {
+          setBoxData({
+            symbol: selectedBoxSymbol,
+            previousHigh,
+            previousLow,
+            mid,
+            currentPrice,
+            currentZone,
+            distanceFromMidPercent,
+            source: "Binance 1D previous candle + live ticker",
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setBoxData(null);
+          setBoxError(`Nu am putut incarca boxul pentru ${selectedBoxSymbol}.`);
+        }
+      } finally {
+        if (!cancelled) setBoxLoading(false);
+      }
+    };
+
+    loadBox();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBoxSymbol]);
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
@@ -1119,6 +1311,15 @@ export default function CryptoDashboardPage() {
             <p className="mt-1 text-[11px] text-slate-500">Formula: money in play + open P/L.</p>
           </div>
         </section>
+
+        <BoxStrategySection
+          symbol={selectedBoxSymbol}
+          data={boxData}
+          loading={boxLoading}
+          error={boxError}
+          onSymbolChange={setSelectedBoxSymbol}
+          symbolOptions={boxSymbolOptions}
+        />
 
         <TotalPlEvolutionSection
           title="Portfolio P/L Evolution"
