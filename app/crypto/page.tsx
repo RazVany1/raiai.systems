@@ -129,6 +129,29 @@ type BoxDailyData = {
   source: string;
 };
 
+type BoxChecklistRow = BoxDailyData & {
+  candidateSide: "LONG" | "SHORT" | null;
+  checks: {
+    boxBuilt: boolean;
+    zoneReady: boolean;
+    leftContext: boolean;
+    reaction: boolean;
+    stopDefined: boolean;
+  };
+  checksDone: number;
+  checksTotal: number;
+  readyToOpen: boolean;
+  stopPrice: number | null;
+  targetPrice: number | null;
+  riskRewardRatio: number | null;
+  notes: string[];
+};
+
+const BOX_TEST_SYMBOLS = ["BTCUSDT", "ETHUSDT", "NEARUSDT", "WLDUSDT", "ARBUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT"];
+const BOX_ZONE_EDGE = 0.2;
+const BOX_REACTION_RETRACE_PCT = 0.002;
+const BOX_STOP_BUFFER_PCT = 0.0025;
+
 function formatPrice(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
   const abs = Math.abs(value);
@@ -737,6 +760,132 @@ function BoxStrategySection({
   );
 }
 
+function BoxChecklistSection({
+  rows,
+  loading,
+  error,
+}: {
+  rows: BoxChecklistRow[];
+  loading: boolean;
+  error: string;
+}) {
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">Box v.01 - Pre-Entry Checklist</h2>
+        <span className="text-[10px] text-slate-400">primii 5 pasi: box, zone, left context, reaction, stop</span>
+      </div>
+      {loading ? (
+        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box checklist...</div>
+      ) : error ? (
+        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+          <table className="min-w-full text-xs text-slate-300">
+            <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left">Coin</th>
+                <th className="px-4 py-3 text-left">Zone</th>
+                <th className="px-4 py-3 text-left">Side</th>
+                <th className="px-4 py-3 text-left">Box</th>
+                <th className="px-4 py-3 text-left">Zone check</th>
+                <th className="px-4 py-3 text-left">Left context</th>
+                <th className="px-4 py-3 text-left">Reaction</th>
+                <th className="px-4 py-3 text-left">Stop</th>
+                <th className="px-4 py-3 text-left">Checks</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Missing</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const checkCell = (ok: boolean, trueLabel = "YES", falseLabel = "NO") => (
+                  <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${ok ? "bg-emerald-500/15 text-emerald-200" : "bg-slate-700/40 text-slate-300"}`}>{ok ? trueLabel : falseLabel}</span>
+                );
+                return (
+                  <tr key={`box-check-${row.symbol}`} className="border-t border-white/5 align-top">
+                    <td className="px-4 py-3 font-medium text-white">{row.symbol}</td>
+                    <td className="px-4 py-3">{row.currentZone}</td>
+                    <td className="px-4 py-3">{row.candidateSide || "-"}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.boxBuilt)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.zoneReady)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.leftContext)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.reaction)}</td>
+                    <td className="px-4 py-3">{checkCell(row.checks.stopDefined, row.stopPrice != null ? formatPrice(row.stopPrice) : "YES", row.stopPrice != null ? formatPrice(row.stopPrice) : "NO")}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-100">{row.checksDone}/{row.checksTotal}</td>
+                    <td className="px-4 py-3">{row.readyToOpen ? <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-200">READY</span> : <span className="inline-flex rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-semibold text-amber-200">WAIT</span>}</td>
+                    <td className="px-4 py-3 text-[11px] text-slate-400">{row.notes.length ? row.notes.join(", ") : "-"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BoxPaperPositionsSection({
+  rows,
+  loading,
+  error,
+}: {
+  rows: BoxChecklistRow[];
+  loading: boolean;
+  error: string;
+}) {
+  const readyRows = rows.filter((row) => row.readyToOpen);
+  return (
+    <section className={`${shellClass} mb-4`}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-white">Box v.01 - Paper Positions</h2>
+        <span className="text-[10px] text-slate-400">aici intra doar coinurile care au toate conditiile bifate</span>
+      </div>
+      {loading ? (
+        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box paper positions...</div>
+      ) : error ? (
+        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+          <table className="min-w-full text-xs text-slate-300">
+            <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left">Coin</th>
+                <th className="px-4 py-3 text-left">Side</th>
+                <th className="px-4 py-3 text-left">Current</th>
+                <th className="px-4 py-3 text-left">Stop</th>
+                <th className="px-4 py-3 text-left">Target</th>
+                <th className="px-4 py-3 text-left">R/R (info)</th>
+                <th className="px-4 py-3 text-left">Checks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readyRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-4 text-slate-400">Nicio pozitie Box v.01 nu este ready acum. Aici vor aparea automat doar cele cu toate conditiile bifate.</td>
+                </tr>
+              ) : (
+                readyRows.map((row) => (
+                  <tr key={`box-paper-${row.symbol}`} className="border-t border-white/5">
+                    <td className="px-4 py-3 font-medium text-white">{row.symbol}</td>
+                    <td className="px-4 py-3">{row.candidateSide}</td>
+                    <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.stopPrice)}</td>
+                    <td className="px-4 py-3">{formatPrice(row.targetPrice)}</td>
+                    <td className="px-4 py-3">{row.riskRewardRatio != null ? `${row.riskRewardRatio.toFixed(2)}R` : "-"}</td>
+                    <td className="px-4 py-3 font-semibold text-emerald-200">{row.checksDone}/{row.checksTotal}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function BarEvolutionSection({
   title,
   subtitle,
@@ -851,6 +1000,9 @@ export default function CryptoDashboardPage() {
   const [boxData, setBoxData] = useState<BoxDailyData | null>(null);
   const [boxLoading, setBoxLoading] = useState<boolean>(false);
   const [boxError, setBoxError] = useState<string>("");
+  const [boxChecklistRows, setBoxChecklistRows] = useState<BoxChecklistRow[]>([]);
+  const [boxChecklistLoading, setBoxChecklistLoading] = useState<boolean>(false);
+  const [boxChecklistError, setBoxChecklistError] = useState<string>("");
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1214,47 +1366,129 @@ export default function CryptoDashboardPage() {
     if (!selectedBoxSymbol) return;
     let cancelled = false;
 
+    const buildBoxData = (symbol: string, klines: any[], currentPrice: number): BoxDailyData => {
+      const previous = klines[klines.length - 2];
+      const previousHigh = Number(previous?.[2]);
+      const previousLow = Number(previous?.[3]);
+      const mid = (previousHigh + previousLow) / 2;
+      const range = Math.max(previousHigh - previousLow, 0.00000001);
+      const normalized = (currentPrice - previousLow) / range;
+      const currentZone: BoxDailyData["currentZone"] = normalized > 1 ? "above" : normalized < 0 ? "below" : normalized >= 1 - BOX_ZONE_EDGE ? "top" : normalized <= BOX_ZONE_EDGE ? "bottom" : "middle";
+      return {
+        symbol,
+        previousHigh,
+        previousLow,
+        mid,
+        currentPrice,
+        currentZone,
+        distanceFromMidPercent: ((currentPrice - mid) / mid) * 100,
+        source: "Binance 1D previous candle + live ticker",
+      };
+    };
+
+    const buildChecklist = (data: BoxDailyData, klines: any[]): BoxChecklistRow => {
+      const currentDay = klines[klines.length - 1];
+      const older = klines.slice(Math.max(0, klines.length - 7), klines.length - 2);
+      const olderHighs = older.map((row) => Number(row?.[2])).filter((value) => Number.isFinite(value));
+      const olderLows = older.map((row) => Number(row?.[3])).filter((value) => Number.isFinite(value));
+      const recentMax = olderHighs.length ? Math.max(...olderHighs) : data.previousHigh;
+      const recentMin = olderLows.length ? Math.min(...olderLows) : data.previousLow;
+      const currentDayHigh = Number(currentDay?.[2]);
+      const currentDayLow = Number(currentDay?.[3]);
+      const normalized = (data.currentPrice - data.previousLow) / Math.max(data.previousHigh - data.previousLow, 0.00000001);
+      const candidateSide = data.currentZone === "top" ? "SHORT" : data.currentZone === "bottom" ? "LONG" : null;
+      const zoneReady = normalized >= 1 - BOX_ZONE_EDGE || normalized <= BOX_ZONE_EDGE;
+      const leftContext = data.currentZone === "top"
+        ? data.previousHigh >= recentMax * 0.997
+        : data.currentZone === "bottom"
+          ? data.previousLow <= recentMin * 1.003
+          : false;
+      const reaction = data.currentZone === "top"
+        ? Number.isFinite(currentDayHigh) && currentDayHigh >= data.previousHigh * (1 - BOX_REACTION_RETRACE_PCT) && data.currentPrice <= data.previousHigh * (1 - BOX_REACTION_RETRACE_PCT)
+        : data.currentZone === "bottom"
+          ? Number.isFinite(currentDayLow) && currentDayLow <= data.previousLow * (1 + BOX_REACTION_RETRACE_PCT) && data.currentPrice >= data.previousLow * (1 + BOX_REACTION_RETRACE_PCT)
+          : false;
+      const stopPrice = candidateSide === "SHORT"
+        ? (Number.isFinite(currentDayHigh) ? Math.max(data.previousHigh, currentDayHigh) * (1 + BOX_STOP_BUFFER_PCT) : data.previousHigh * (1 + BOX_STOP_BUFFER_PCT))
+        : candidateSide === "LONG"
+          ? (Number.isFinite(currentDayLow) ? Math.min(data.previousLow, currentDayLow) * (1 - BOX_STOP_BUFFER_PCT) : data.previousLow * (1 - BOX_STOP_BUFFER_PCT))
+          : null;
+      const targetPrice = candidateSide ? data.mid : null;
+      const risk = candidateSide === "SHORT"
+        ? Math.max((stopPrice ?? data.currentPrice) - data.currentPrice, 0)
+        : candidateSide === "LONG"
+          ? Math.max(data.currentPrice - (stopPrice ?? data.currentPrice), 0)
+          : 0;
+      const reward = candidateSide === "SHORT"
+        ? Math.max(data.currentPrice - data.mid, 0)
+        : candidateSide === "LONG"
+          ? Math.max(data.mid - data.currentPrice, 0)
+          : 0;
+      const riskRewardRatio = risk > 0 ? reward / risk : null;
+      const stopDefined = stopPrice != null && Number.isFinite(stopPrice);
+      const checks = {
+        boxBuilt: Number.isFinite(data.previousHigh) && Number.isFinite(data.previousLow) && Number.isFinite(data.mid),
+        zoneReady,
+        leftContext,
+        reaction,
+        stopDefined,
+      };
+      const notes: string[] = [];
+      if (!checks.zoneReady) notes.push("not in edge zone");
+      if (!checks.leftContext) notes.push("left context missing");
+      if (!checks.reaction) notes.push("reaction not confirmed");
+      if (!checks.stopDefined) notes.push("stop missing");
+      const checksDone = Object.values(checks).filter(Boolean).length;
+      const checksTotal = Object.keys(checks).length;
+      return {
+        ...data,
+        candidateSide,
+        checks,
+        checksDone,
+        checksTotal,
+        readyToOpen: checksDone === checksTotal && candidateSide != null,
+        stopPrice,
+        targetPrice,
+        riskRewardRatio,
+        notes,
+      };
+    };
+
     const loadBox = async () => {
       setBoxLoading(true);
+      setBoxChecklistLoading(true);
       setBoxError("");
+      setBoxChecklistError("");
       try {
-        const [klinesRes, tickerRes] = await Promise.all([
-          fetch(`https://api.binance.com/api/v3/klines?symbol=${selectedBoxSymbol}&interval=1d&limit=3`, { cache: "no-store" }),
-          fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${selectedBoxSymbol}`, { cache: "no-store" }),
-        ]);
-        if (!klinesRes.ok || !tickerRes.ok) throw new Error("box_fetch_failed");
-        const klines = await klinesRes.json();
-        const ticker = await tickerRes.json();
-        if (!Array.isArray(klines) || klines.length < 2) throw new Error("box_klines_missing");
-        const previous = klines[klines.length - 2];
-        const previousHigh = Number(previous?.[2]);
-        const previousLow = Number(previous?.[3]);
-        const currentPrice = Number(ticker?.price);
-        if (![previousHigh, previousLow, currentPrice].every((value) => Number.isFinite(value))) throw new Error("box_values_invalid");
-        const mid = (previousHigh + previousLow) / 2;
-        const range = Math.max(previousHigh - previousLow, 0.00000001);
-        const normalized = (currentPrice - previousLow) / range;
-        const currentZone: BoxDailyData["currentZone"] = normalized > 1 ? "above" : normalized < 0 ? "below" : normalized >= 0.66 ? "top" : normalized <= 0.34 ? "bottom" : "middle";
-        const distanceFromMidPercent = ((currentPrice - mid) / mid) * 100;
+        const batchSymbols = BOX_TEST_SYMBOLS;
+        const tickerResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { cache: "no-store" })));
+        const klinesResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=8`, { cache: "no-store" })));
+        const tickers = await Promise.all(tickerResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_ticker_failed"))));
+        const klinesList = await Promise.all(klinesResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_klines_failed"))));
+        const builtRows: BoxChecklistRow[] = batchSymbols.map((symbol, index) => {
+          const currentPrice = Number(tickers[index]?.price);
+          const klines = klinesList[index];
+          if (!Array.isArray(klines) || klines.length < 2 || !Number.isFinite(currentPrice)) throw new Error(`box_invalid_${symbol}`);
+          const data = buildBoxData(symbol, klines, currentPrice);
+          return buildChecklist(data, klines);
+        });
+        const selectedRow = builtRows.find((row) => row.symbol === selectedBoxSymbol) || null;
         if (!cancelled) {
-          setBoxData({
-            symbol: selectedBoxSymbol,
-            previousHigh,
-            previousLow,
-            mid,
-            currentPrice,
-            currentZone,
-            distanceFromMidPercent,
-            source: "Binance 1D previous candle + live ticker",
-          });
+          setBoxChecklistRows(builtRows);
+          setBoxData(selectedRow);
         }
       } catch (error) {
         if (!cancelled) {
           setBoxData(null);
+          setBoxChecklistRows([]);
           setBoxError(`Nu am putut incarca boxul pentru ${selectedBoxSymbol}.`);
+          setBoxChecklistError("Nu am putut calcula checklist-ul Box v.01 pentru lotul curent.");
         }
       } finally {
-        if (!cancelled) setBoxLoading(false);
+        if (!cancelled) {
+          setBoxLoading(false);
+          setBoxChecklistLoading(false);
+        }
       }
     };
 
@@ -1320,6 +1554,10 @@ export default function CryptoDashboardPage() {
           onSymbolChange={setSelectedBoxSymbol}
           symbolOptions={boxSymbolOptions}
         />
+
+        <BoxChecklistSection rows={boxChecklistRows} loading={boxChecklistLoading} error={boxChecklistError} />
+
+        <BoxPaperPositionsSection rows={boxChecklistRows} loading={boxChecklistLoading} error={boxChecklistError} />
 
         <TotalPlEvolutionSection
           title="Portfolio P/L Evolution"
