@@ -29,6 +29,16 @@ type OpenPaperPosition = {
   partialClosePrice?: number | null;
   partialClosePlPercent?: number | null;
   runnerStopPrice?: number | null;
+  targetPrice?: number | null;
+  targetPrice2?: number | null;
+  retestAt?: string | null;
+  triggerAt?: string | null;
+  openingRange?: number | null;
+  atr1d?: number | null;
+  atrRatio?: number | null;
+  sessionAnchor?: string | null;
+  openingRangeTimeframe?: string | null;
+  triggerTimeframe?: string | null;
 };
 
 type InterestRow = {
@@ -364,6 +374,12 @@ function checkMarkStatusClasses(status?: string | null) {
   if (status === "candidate") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
   if (status === "invalidated") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
+}
+
+function isCheckMarkPosition(row: OpenPaperPosition) {
+  const entrySystem = (row.entrySystem || "").toUpperCase();
+  const entrySignal = (row.entrySignal || "").toUpperCase();
+  return entrySystem.includes("CHECK_MARK") || entrySignal.includes("CHECK_MARK");
 }
 
 function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[], v2Rows: InterestRow[], v3Rows: InterestRow[] = []) {
@@ -1164,6 +1180,10 @@ export default function CryptoDashboardPage() {
     });
   }, [paperPositionHistory]);
 
+  const checkMarkOpenPositions = useMemo(() => {
+    return orderedOpenPaperPositions.filter((row) => isCheckMarkPosition(row) && !row.closedAt);
+  }, [orderedOpenPaperPositions]);
+
   const activePaperPositions = useMemo(() => {
     return orderedOpenPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
   }, [orderedOpenPaperPositions]);
@@ -1711,6 +1731,71 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
                     </tr>
                   ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4`}>
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-white">Check Mark v0.1 — Open Positions</h2>
+              <p className="mt-1 text-xs text-slate-400">aici apar toate pozițiile deschise de această strategie, cu detaliile aferente</p>
+            </div>
+            <span className="text-[10px] text-slate-400">{checkMarkOpenPositions.length} open</span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">System</th>
+                  <th className="px-4 py-3 text-left">Signal</th>
+                  <th className="px-4 py-3 text-left">Side</th>
+                  <th className="px-4 py-3 text-left">Entry</th>
+                  <th className="px-4 py-3 text-left">Current</th>
+                  <th className="px-4 py-3 text-left">P/L</th>
+                  <th className="px-4 py-3 text-left">Stop</th>
+                  <th className="px-4 py-3 text-left">TP1</th>
+                  <th className="px-4 py-3 text-left">TP2</th>
+                  <th className="px-4 py-3 text-left">OR / ATR</th>
+                  <th className="px-4 py-3 text-left">Trigger</th>
+                  <th className="px-4 py-3 text-left">State</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Opened</th>
+                  <th className="px-4 py-3 text-left">Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checkMarkOpenPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={14} className="px-4 py-4 text-slate-400">Încă nu există poziții deschise pe Check Mark v0.1.</td>
+                  </tr>
+                ) : (
+                  checkMarkOpenPositions.map((row) => {
+                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
+                    return (
+                      <tr key={key} className="border-t border-white/10">
+                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
+                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
+                        <td className="px-4 py-3">{row.entrySignal || "-"}</td>
+                        <td className="px-4 py-3">{shortSide(row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                        <td className={`px-4 py-3 font-semibold ${percentTextClass(computePlValue(row.entryPrice, row.currentPrice, row.side))}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.targetPrice)}</td>
+                        <td className="px-4 py-3">{formatPrice(row.targetPrice2)}</td>
+                        <td className="px-4 py-3">{row.openingRange != null ? `${formatPrice(row.openingRange)} / ${row.atrRatio?.toFixed(3) || "-"}` : "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
+                        <td className="px-4 py-3">{shortEntryState(row.entryState)}</td>
+                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.entryAt)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

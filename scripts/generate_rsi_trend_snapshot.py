@@ -221,6 +221,10 @@ def compute_pl_percent(entry_price: float | None, current_price: float | None, s
     return ((current_price - entry_price) / entry_price) * 100.0
 
 
+def signal_uses_entry_system(entry_signal: str | None) -> bool:
+    return entry_signal in {"RSI_V3", "CHECK_MARK_V0_1"}
+
+
 def partial_runner_stop_hit(side: str | None, current_price: float | None, runner_stop_price: float | None) -> bool:
     if current_price is None or runner_stop_price is None:
         return False
@@ -2138,7 +2142,7 @@ def main():
                     pair_key = (
                         pos.get("symbol"),
                         pos.get("side"),
-                        pos.get("entrySystem") if pos.get("entrySignal") == "RSI_V3" else None,
+                        pos.get("entrySystem") if signal_uses_entry_system(pos.get("entrySignal")) else None,
                     )
                     existing_by_entry[entry_key] = pos
                     existing_by_pair.setdefault(pair_key, []).append(pos)
@@ -2192,6 +2196,40 @@ def main():
                         "anchorPrice": row.get("anchorPrice"),
                         "previousRsi": row.get("previousRsi"),
                     })
+            for row in check_mark_rows:
+                if not isinstance(row, dict) or row.get("status") != "triggered":
+                    continue
+                side = row.get("side")
+                entry_price = row.get("entry")
+                trigger_at = row.get("triggerAt") or row.get("detectedAt")
+                if side not in {"LONG", "SHORT"} or not isinstance(entry_price, (int, float)) or not trigger_at:
+                    continue
+                entry_candidates.append({
+                    "symbol": row.get("symbol"),
+                    "side": side,
+                    "state": "confirmed",
+                    "confirmedAt": trigger_at,
+                    "detectedAt": row.get("detectedAt") or trigger_at,
+                    "firstDetectedAt": row.get("openingCandleAt") or trigger_at,
+                    "price": entry_price,
+                    "formationType": "CHECK_MARK_V0_1",
+                    "entrySignal": "CHECK_MARK_V0_1",
+                    "entrySystem": "CHECK_MARK",
+                    "signalZone": row.get("referenceLevelType"),
+                    "anchorTime": row.get("openingCandleAt"),
+                    "anchorPrice": row.get("referenceLevel"),
+                    "invalidationLevel": row.get("stop"),
+                    "targetPrice": row.get("tp1"),
+                    "targetPrice2": row.get("tp2"),
+                    "retestAt": row.get("retestAt"),
+                    "triggerAt": row.get("triggerAt"),
+                    "atr1d": row.get("atr1d"),
+                    "atrRatio": row.get("atrRatio"),
+                    "openingRange": row.get("openingRange"),
+                    "sessionAnchor": row.get("sessionAnchor"),
+                    "openingRangeTimeframe": row.get("openingRangeTimeframe"),
+                    "triggerTimeframe": row.get("triggerTimeframe"),
+                })
         else:
             entry_candidates = formation_rows
 
@@ -2225,7 +2263,7 @@ def main():
             if state not in {"forming", "confirmed"} or not allowed:
                 continue
 
-            pair_key = (symbol, side, row.get("entrySystem") if row.get("entrySignal") == "RSI_V3" else None)
+            pair_key = (symbol, side, row.get("entrySystem") if signal_uses_entry_system(row.get("entrySignal")) else None)
             entry_time = row.get("confirmedAt") if state == "confirmed" else row.get("detectedAt")
             entry_price = row.get("price")
             existing_candidates = existing_by_pair.get(pair_key, [])
@@ -2254,13 +2292,27 @@ def main():
                 if isinstance(current_pl, (int, float)):
                     max_pl = max(max_pl, current_pl)
                     min_pl = min(min_pl, current_pl)
-                if existing.get("entrySignal") == "RSI_V3":
+                if existing.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"}:
+                    current_signal = existing.get("entrySignal", row.get("entrySignal"))
+                    current_invalidation = existing.get("invalidationLevel")
+                    if current_signal == "CHECK_MARK_V0_1":
+                        current_invalidation = existing.get("invalidationLevel", row.get("invalidationLevel"))
+                    current_status = "open"
+                    current_closed_at = None
+                    current_close_price = None
+                    current_close_pl = None
+                    if current_signal == "CHECK_MARK_V0_1" and isinstance(current_invalidation, (int, float)) and isinstance(entry_price, (int, float)):
+                        if (side == "LONG" and entry_price <= current_invalidation) or (side == "SHORT" and entry_price >= current_invalidation):
+                            current_status = "closed_invalidated"
+                            current_closed_at = updated_at
+                            current_close_price = entry_price
+                            current_close_pl = current_pl
                     paper_positions.append({
                         **existing,
                         "lastSeenAt": updated_at,
                         "currentPrice": entry_price,
                         "entryState": existing.get("entryState", state),
-                        "entrySignal": existing.get("entrySignal", row.get("entrySignal")),
+                        "entrySignal": current_signal,
                         "entrySystem": existing.get("entrySystem", row.get("entrySystem")),
                         "signalZone": existing.get("signalZone", row.get("signalZone")),
                         "anchorRsi": existing.get("anchorRsi", row.get("anchorRsi")),
@@ -2270,11 +2322,21 @@ def main():
                         "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
                         "trendDirection": None,
                         "tradePermission": None,
-                        "invalidationLevel": None,
-                        "status": "open",
-                        "closedAt": None,
-                        "closePrice": None,
-                        "closePlPercent": None,
+                        "invalidationLevel": None if current_signal == "RSI_V3" else current_invalidation,
+                        "targetPrice": existing.get("targetPrice", row.get("targetPrice")),
+                        "targetPrice2": existing.get("targetPrice2", row.get("targetPrice2")),
+                        "retestAt": existing.get("retestAt", row.get("retestAt")),
+                        "triggerAt": existing.get("triggerAt", row.get("triggerAt")),
+                        "openingRange": existing.get("openingRange", row.get("openingRange")),
+                        "atr1d": existing.get("atr1d", row.get("atr1d")),
+                        "atrRatio": existing.get("atrRatio", row.get("atrRatio")),
+                        "sessionAnchor": existing.get("sessionAnchor", row.get("sessionAnchor")),
+                        "openingRangeTimeframe": existing.get("openingRangeTimeframe", row.get("openingRangeTimeframe")),
+                        "triggerTimeframe": existing.get("triggerTimeframe", row.get("triggerTimeframe")),
+                        "status": current_status,
+                        "closedAt": current_closed_at,
+                        "closePrice": current_close_price,
+                        "closePlPercent": current_close_pl,
                         "remainingSizePercent": 100.0,
                         "partialClosedAt": None,
                         "partialClosePrice": None,
@@ -2324,9 +2386,9 @@ def main():
                     "anchorPrice": row.get("anchorPrice"),
                     "previousRsi": row.get("previousRsi"),
                     "firstDetectedAt": row.get("firstDetectedAt"),
-                    "trendDirection": None if row.get("entrySignal") == "RSI_V3" else trend.get("finalMarketDirection"),
-                    "tradePermission": None if row.get("entrySignal") == "RSI_V3" else trend.get("tradePermission"),
-                    "invalidationLevel": None if row.get("entrySignal") == "RSI_V3" else trend.get("invalidationLevel"),
+                    "trendDirection": None if row.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"} else trend.get("finalMarketDirection"),
+                    "tradePermission": None if row.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"} else trend.get("tradePermission"),
+                    "invalidationLevel": row.get("invalidationLevel") if row.get("entrySignal") == "CHECK_MARK_V0_1" else None if row.get("entrySignal") == "RSI_V3" else trend.get("invalidationLevel"),
                     "formationType": row.get("formationType"),
                     "detectedAt": row.get("detectedAt"),
                     "lastSeenAt": updated_at,
@@ -2340,6 +2402,16 @@ def main():
                     "runnerStopPrice": None,
                     "closePrice": None,
                     "closePlPercent": None,
+                    "targetPrice": row.get("targetPrice"),
+                    "targetPrice2": row.get("targetPrice2"),
+                    "retestAt": row.get("retestAt"),
+                    "triggerAt": row.get("triggerAt"),
+                    "openingRange": row.get("openingRange"),
+                    "atr1d": row.get("atr1d"),
+                    "atrRatio": row.get("atrRatio"),
+                    "sessionAnchor": row.get("sessionAnchor"),
+                    "openingRangeTimeframe": row.get("openingRangeTimeframe"),
+                    "triggerTimeframe": row.get("triggerTimeframe"),
                     "exitSignals": {},
                     "maxPlPercent": 0.0,
                     "minPlPercent": 0.0,
@@ -2351,7 +2423,7 @@ def main():
                 continue
             symbol, side, _entry_at = key
             trend = trend_map.get(symbol)
-            if existing.get("entrySignal") == "RSI_V3":
+            if existing.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"}:
                 current_price = trend.get("price") if trend else existing.get("currentPrice")
                 current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
                 previous_max_pl = existing.get("maxPlPercent")
@@ -2366,17 +2438,30 @@ def main():
                     max_pl = max(max_pl, current_pl)
                     min_pl = min(min_pl, current_pl)
 
+                current_signal = existing.get("entrySignal")
+                current_invalidation = existing.get("invalidationLevel")
+                current_status = "open"
+                current_closed_at = None
+                current_close_price = None
+                current_close_pl = None
+                if current_signal == "CHECK_MARK_V0_1" and isinstance(current_invalidation, (int, float)) and isinstance(current_price, (int, float)):
+                    if (side == "LONG" and current_price <= current_invalidation) or (side == "SHORT" and current_price >= current_invalidation):
+                        current_status = "closed_invalidated"
+                        current_closed_at = updated_at
+                        current_close_price = current_price
+                        current_close_pl = current_pl
+
                 paper_positions.append({
                     **existing,
                     "currentPrice": current_price,
                     "lastSeenAt": updated_at,
                     "trendDirection": None,
                     "tradePermission": None,
-                    "invalidationLevel": None,
-                    "status": "open",
-                    "closedAt": None,
-                    "closePrice": None,
-                    "closePlPercent": None,
+                    "invalidationLevel": None if current_signal == "RSI_V3" else current_invalidation,
+                    "status": current_status,
+                    "closedAt": current_closed_at,
+                    "closePrice": current_close_price,
+                    "closePlPercent": current_close_pl,
                     "remainingSizePercent": 100.0,
                     "partialClosedAt": None,
                     "partialClosePrice": None,
