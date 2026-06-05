@@ -2,45 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type OpenPaperPosition = {
-  symbol: string;
-  side: string;
-  entryPrice: number | null;
-  entryAt: string;
-  entryState: string;
-  entrySignal?: string;
-  entrySystem?: string;
-  signalZone?: string;
-  trendDirection: string;
-  tradePermission: string;
-  invalidationLevel: number | null;
-  formationType: string;
-  detectedAt: string;
-  lastSeenAt: string;
-  currentPrice: number | null;
-  status: string;
-  maxPlPercent?: number | null;
-  minPlPercent?: number | null;
-  closedAt?: string | null;
-  closePrice?: number | null;
-  closePlPercent?: number | null;
-  remainingSizePercent?: number | null;
-  partialClosedAt?: string | null;
-  partialClosePrice?: number | null;
-  partialClosePlPercent?: number | null;
-  runnerStopPrice?: number | null;
-  targetPrice?: number | null;
-  targetPrice2?: number | null;
-  retestAt?: string | null;
-  triggerAt?: string | null;
-  openingRange?: number | null;
-  atr1d?: number | null;
-  atrRatio?: number | null;
-  sessionAnchor?: string | null;
-  openingRangeTimeframe?: string | null;
-  triggerTimeframe?: string | null;
-};
-
 type InterestRow = {
   symbol: string;
   rsi: number;
@@ -50,199 +11,75 @@ type InterestRow = {
   anchorRsi: number | null;
   anchorTime: string | null;
   anchorPrice?: number | null;
-  timeframe: string;
-  sourceVenue: string;
   previousRsi?: number | null;
   strategySide?: string | null;
   firstDetectedAt?: string;
   lastSeenAt?: string;
-  currentlyInZone?: boolean;
 };
 
-type FormationRow = {
+type OpenPaperPosition = {
   symbol: string;
   side: string;
-  formationType: string;
-  trendStatus: string;
-  state: string;
-  majorLevel: number;
-  currentLevel: number;
-  reaction: string;
-  emaZone: string;
-  rsiDivergence: string;
-  price: number | null;
-  detectedAt: string;
-  confirmedAt?: string | null;
-};
-
-type TrendRow = {
-  symbol: string;
-  timeframe: string;
-  dailyBias: string;
-  emaDirection4h: string;
-  marketStructure: string;
-  adxTrendStrength: string;
-  adxValue: number | null;
-  bullishScore: number;
-  bearishScore: number;
-  finalMarketDirection: string;
-  invalidationLevel: number | null;
-  tradePermission: string;
-  price: number | null;
-  lastUpdate: string;
-  sourceVenue: string;
-  dailyClose?: number;
-  dailyEma50?: number;
-  dailyEma200?: number;
-  altContextLabel?: string;
-  altContextScore?: number;
-  error?: string;
-};
-
-type BtcContextRow = {
-  symbol: string;
-  price?: number | null;
-  value?: number | null;
-  trend?: string;
-  bias?: string;
-  ema?: string;
-  structure?: string;
-  adx?: number | null;
-  permission?: string;
-  lastUpdate?: string;
-  sourceVenue?: string;
+  entryPrice: number | null;
+  entryAt: string;
+  entrySignal?: string;
+  entrySystem?: string;
+  currentPrice?: number | null;
+  status: string;
+  lastSeenAt?: string;
 };
 
 type PositionSnapshot = {
   scanAt: string;
   currentPrice?: number | null;
   currentPlPercent?: number | null;
-  candleClose4h?: number | null;
   candleClose1h?: number | null;
+  candleClose4h?: number | null;
 };
 
 type PositionSnapshotBucket = {
-  symbol: string;
-  side: string;
-  entryAt: string;
-  entryPrice?: number | null;
   snapshots?: PositionSnapshot[];
 };
 
-type BoxDailyData = {
+type DashboardPayload = {
+  updatedAt?: string;
+  nextScanAt?: string;
+  rsiTopRows1h?: InterestRow[];
+  openPaperPositions?: OpenPaperPosition[];
+  positionSnapshots?: Record<string, PositionSnapshotBucket>;
+};
+
+type VersionSummaryRow = {
+  key: string;
   symbol: string;
-  previousHigh: number;
-  previousLow: number;
-  mid: number;
-  currentPrice: number;
-  currentZone: "top" | "bottom" | "middle" | "above" | "below";
-  distanceFromMidPercent: number;
-  source: string;
+  zone: string;
+  rsi: number;
+  price: number | null;
+  detectedAt: string;
+  v0: boolean;
+  v1: boolean;
+  v2: boolean;
+  v3: boolean;
+  previousRsi: number | null;
+  anchorRsi: number | null;
+  anchorTime: string | null;
+  anchorPrice: number | null;
+  strategySide: string | null;
 };
 
-type BoxChecklistRow = BoxDailyData & {
-  candidateSide: "LONG" | "SHORT" | null;
-  checks: {
-    boxBuilt: boolean;
-    smallTfExtreme: boolean;
-    openingAdjusted: boolean;
-    leftContext: boolean;
-    reaction: boolean;
-    stopDefined: boolean;
-  };
-  checksDone: number;
-  checksTotal: number;
-  readyToOpen: boolean;
-  stopPrice: number | null;
-  targetPrice: number | null;
-  riskRewardRatio: number | null;
-  notes: string[];
-};
-
-type CheckMarkMeta = {
-  sessionAnchor?: string;
-  publishCadenceMinutes?: number;
-  openingRangeTimeframe?: string;
-  triggerTimeframe?: string;
-};
-
-type CheckMarkRow = {
+type BarEvolutionRow = {
+  key: string;
   symbol: string;
-  sessionAnchor?: string;
-  openingRangeTimeframe?: string;
-  triggerTimeframe?: string;
-  detectedAt?: string;
-  openingCandleAt?: string | null;
-  side?: string;
-  status?: string;
-  openingOpen?: number | null;
-  openingHigh?: number | null;
-  openingLow?: number | null;
-  openingClose?: number | null;
-  openingRange?: number | null;
-  atr1d?: number | null;
-  atrRatio?: number | null;
-  referenceLevel?: number | null;
-  referenceLevelType?: string | null;
-  reclaimValid?: boolean;
-  retestValid?: boolean;
-  triggerValid?: boolean;
-  retestAt?: string | null;
-  triggerAt?: string | null;
-  entry?: number | null;
-  stop?: number | null;
-  tp1?: number | null;
-  tp2?: number | null;
-  sourceVenue?: string;
+  side: string;
+  entryPrice: number | null;
+  currentPrice: number | null;
+  currentPl: number | null;
+  entryAt: string;
+  lastSeenAt: string | null;
+  scans: PositionSnapshot[];
 };
 
-type VStrategyMeta = {
-  timeframe?: string;
-  symbols?: string[];
-  flipZoneSpread?: number[];
-  eventFreshBars?: number;
-};
-
-type VStrategyEvent = {
-  at?: string;
-  event?: string;
-  direction?: string;
-  price?: number | null;
-  spreadAtr?: number | null;
-  bullishOrderScore?: number;
-  bearishOrderScore?: number;
-  prevBullishOrderScore?: number;
-  prevBearishOrderScore?: number;
-  barsAgo?: number;
-};
-
-type VStrategyRow = {
-  symbol: string;
-  timeframe?: string;
-  price?: number | null;
-  ema21?: number | null;
-  ema55?: number | null;
-  currentSpreadAtr?: number | null;
-  currentBullishOrderScore?: number;
-  currentBearishOrderScore?: number;
-  lastEvent?: VStrategyEvent | null;
-  lastEventAt?: string | null;
-  lastEventDirection?: string | null;
-  lastEventPrice?: number | null;
-  lastEventSpreadAtr?: number | null;
-  lastEventBullishOrderScore?: number;
-  lastEventBearishOrderScore?: number;
-  lastEventPrevBullishOrderScore?: number;
-  lastEventPrevBearishOrderScore?: number;
-  lastEventBarsAgo?: number | null;
-  isFreshEvent?: boolean;
-  recentEvents?: VStrategyEvent[];
-  sourceVenue?: string;
-};
-
-const BOX_TEST_SYMBOLS = ["BTCUSDT", "ETHUSDT", "NEARUSDT", "WLDUSDT", "ARBUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT"];
-const BOX_EXTREME_TOUCH_PCT = 0.0015;
-const BOX_STOP_BUFFER_PCT = 0.001;
+const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
 
 function formatPrice(value?: number | null) {
   if (value == null || !Number.isFinite(value)) return "-";
@@ -253,324 +90,100 @@ function formatPrice(value?: number | null) {
   return value.toFixed(4);
 }
 
+function formatPercent(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
+
+function percentTextClass(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "text-slate-200";
+  if (value > 0) return "text-emerald-200";
+  if (value < 0) return "text-rose-200";
+  return "text-slate-200";
+}
+
+function formatCompactDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
 function zoneLabel(zone: string) {
   if (zone === "lower_interest") return "lower interest";
   if (zone === "upper_interest") return "upper interest";
   return zone;
 }
 
-function formatPercent(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) return "-";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
+function versionBadge(active: boolean, label: string) {
+  if (!active) return null;
+  return <span className="inline-flex min-w-[2.25rem] justify-center rounded-full border border-sky-300/70 bg-sky-300/20 px-2 py-1 text-[10px] font-semibold text-sky-50">{label}</span>;
 }
 
-function formatSizePercent(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) return "-";
-  return `${value.toFixed(0)}%`;
-}
-
-function computePlValue(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
-  if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || entryPrice === 0) return null;
-  return side === "SHORT"
-    ? ((entryPrice - currentPrice) / entryPrice) * 100
-    : ((currentPrice - entryPrice) / entryPrice) * 100;
-}
-
-function snapshotDisplayPrice(snapshot?: PositionSnapshot | null) {
-  if (!snapshot) return null;
-  if (typeof snapshot.currentPrice === "number" && Number.isFinite(snapshot.currentPrice)) return snapshot.currentPrice;
-  if (typeof snapshot.candleClose4h === "number" && Number.isFinite(snapshot.candleClose4h)) return snapshot.candleClose4h;
-  if (typeof snapshot.candleClose1h === "number" && Number.isFinite(snapshot.candleClose1h)) return snapshot.candleClose1h;
-  return null;
-}
-
-const ASSUMED_MARGIN_USD = 10;
-const ASSUMED_LEVERAGE = 5;
-const ASSUMED_NOTIONAL_USD = ASSUMED_MARGIN_USD * ASSUMED_LEVERAGE;
-
-function formatPL(entryPrice?: number | null, currentPrice?: number | null, side?: string) {
-  return formatPercent(computePlValue(entryPrice, currentPrice, side));
-}
-
-function plUsdFromPercent(percent?: number | null) {
-  if (percent == null || !Number.isFinite(percent)) return null;
-  return (ASSUMED_NOTIONAL_USD * percent) / 100;
-}
-
-function equityUsdFromPercent(percent?: number | null) {
-  const pnlUsd = plUsdFromPercent(percent);
-  if (pnlUsd == null) return null;
-  return ASSUMED_MARGIN_USD + pnlUsd;
-}
-
-function formatUsd(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) return "-";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}$${value.toFixed(2)}`;
-}
-
-function formatCompactDate(value?: string | null) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "-";
-  const date = d.toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
-  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  return `${date} ${time}`;
-}
-
-const SCAN_INTERVAL_MINUTES = 30;
-
-function systemTrackedBars(system?: string | null) {
-  if (system === "S1h") return 40;
-  return 20;
-}
-
-function systemBarHours(system?: string | null) {
-  if (system === "S1h") return 1;
-  if (system === "S4h") return 4;
-  if (system === "S1D") return 24;
-  return null;
-}
-
-function systemScanSlots(system?: string | null) {
-  const barHours = systemBarHours(system);
-  if (!barHours) return null;
-  return (barHours * 60) / SCAN_INTERVAL_MINUTES;
-}
-
-function barsProgressValue(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
-  const barHours = systemBarHours(system);
-  const entryDate = parseIsoDate(entryAt);
-  const updatedDate = parseIsoDate(updatedAt);
-  if (!barHours || !entryDate || !updatedDate) return null;
-  const elapsedMs = Math.max(0, updatedDate.getTime() - entryDate.getTime());
-  return Math.floor(elapsedMs / (barHours * 60 * 60 * 1000)) + 1;
-}
-
-function barsProgressLabel(entryAt?: string | null, system?: string | null, updatedAt?: string | null) {
-  const bars = barsProgressValue(entryAt, system, updatedAt);
-  if (bars == null) return "-";
-  const trackedBars = systemTrackedBars(system);
-  return `${Math.min(bars, trackedBars)}/${trackedBars}`;
-}
-
-function parseIsoDate(value?: string | null) {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function shortSide(side?: string | null) {
+function strategySideBadge(side?: string | null) {
   if (!side) return "-";
-  return side === "SHORT" ? "SHORT" : side === "LONG" ? "LONG" : side.toUpperCase();
+  const isLong = side.toUpperCase() === "LONG";
+  return <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${isLong ? "border-emerald-200/70 bg-emerald-300/20 text-emerald-50" : "border-rose-200/70 bg-rose-300/20 text-rose-50"}`}>{side}</span>;
 }
 
-function shortEntryState(state?: string | null) {
-  if (!state) return "-";
-  return state.charAt(0).toUpperCase();
-}
-
-function shortStatus(status?: string | null) {
-  if (!status) return "-";
-  const map: Record<string, string> = {
-    open: "OPN",
-    monitoring: "MON",
-    weakened: "WKN",
-    closed_cut: "CUT",
-    closed_full_exit: "FULL",
-    partial_closed_runner: "PART",
-    protected_open: "PROT",
-    closed_invalidated: "INV",
-    closed_runner_stop: "RSL",
-  };
-  return map[status] || status.slice(0, 4).toUpperCase();
-}
-
-function formatPartialCell(price?: number | null, pl?: number | null) {
-  if ((price == null || !Number.isFinite(price)) && (pl == null || !Number.isFinite(pl))) return "-";
-  const parts = [];
-  if (price != null && Number.isFinite(price)) parts.push(formatPrice(price));
-  if (pl != null && Number.isFinite(pl)) parts.push(formatPercent(pl));
-  return parts.join(" · ");
-}
-
-function formatExitCell(price?: number | null, pl?: number | null) {
-  return formatPartialCell(price, pl);
-}
-
-function percentTextClass(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) return "text-slate-300";
-  if (value > 0) return "text-emerald-300";
-  if (value < 0) return "text-rose-300";
-  return "text-slate-300";
-}
-
-function trendBadgeClasses(trend: string) {
-  if (trend.includes("BULLISH")) return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
-  if (trend.includes("BEARISH")) return "border-rose-200/70 bg-rose-300/20 text-rose-50";
-  if (trend === "SIDEWAYS") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
-  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
-}
-
-function checkMarkStatusClasses(status?: string | null) {
-  if (status === "triggered") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
-  if (status === "retest") return "border-sky-200/70 bg-sky-300/20 text-sky-50";
-  if (status === "candidate") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
-  if (status === "invalidated") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
-  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
-}
-
-function vStrategyStateClasses(direction?: string | null) {
-  if (direction === "bullish") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
-  if (direction === "bearish") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
-  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
-}
-
-function shortVStrategyState(direction?: string | null) {
-  const map: Record<string, string> = {
-    bullish: "BULL FLIP",
-    bearish: "BEAR FLIP",
-  };
-  return map[direction || ""] || "NO FLIP";
-}
-
-function vStrategyAgeLabel(barsAgo?: number | null) {
-  if (barsAgo == null || !Number.isFinite(barsAgo)) return "-";
-  if (barsAgo === 0) return "JUST FLIPPED";
-  if (barsAgo === 1) return "1 BAR AGO";
-  return `${barsAgo} BARS AGO`;
-}
-
-function vStrategyElapsedTimer(value?: string | null, nowMs?: number) {
-  if (!value) return "-";
-  const startedAt = new Date(value).getTime();
-  if (!Number.isFinite(startedAt)) return "-";
-  const elapsedMs = Math.max(0, (nowMs ?? Date.now()) - startedAt);
-  const totalSeconds = Math.floor(elapsedMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const hh = String(hours).padStart(2, "0");
-  const mm = String(minutes).padStart(2, "0");
-  const ss = String(seconds).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
-}
-
-function isCheckMarkPosition(row: OpenPaperPosition) {
+function isRsiTopPosition(row: OpenPaperPosition) {
   const entrySystem = (row.entrySystem || "").toUpperCase();
   const entrySignal = (row.entrySignal || "").toUpperCase();
-  return entrySystem.includes("CHECK_MARK") || entrySignal.includes("CHECK_MARK");
+  return entrySystem.includes("RSI_TOP") || entrySignal.includes("RSI_TOP");
 }
 
-function buildVersionSummaryBaseRows(v0Rows: InterestRow[], v1Rows: InterestRow[], v2Rows: InterestRow[], v3Rows: InterestRow[] = []) {
-  const rows = new Map<string, any>();
+function buildVersionSummaryBaseRows(v3Rows: InterestRow[]) {
+  const rows = new Map<string, VersionSummaryRow>();
 
-  const upsert = (row: InterestRow, version: "v0" | "v1" | "v2" | "v3") => {
+  v3Rows.forEach((row) => {
     const key = `${row.symbol}:${row.zone}`;
-    const existing = rows.get(key);
-    const next: any = existing || {
+    rows.set(key, {
       key,
       symbol: row.symbol,
       zone: row.zone,
       rsi: row.rsi,
       price: row.price,
       detectedAt: row.detectedAt,
-      v0: false,
-      v1: false,
-      v2: false,
-      v3: false,
+      v0: true,
+      v1: true,
+      v2: true,
+      v3: true,
       previousRsi: row.previousRsi ?? null,
       anchorRsi: row.anchorRsi ?? null,
       anchorTime: row.anchorTime ?? null,
       anchorPrice: row.anchorPrice ?? null,
-      v0Active: false,
-      v1Active: false,
-      v2Active: false,
-      v3Active: false,
-    };
-    next[version] = true;
-    if (version === "v1" || version === "v2" || version === "v3") next.v0 = true;
+      strategySide: row.strategySide ?? null,
+    });
+  });
 
-    const incomingActive = Boolean(row.currentlyInZone);
-    const existingActive = Boolean(next.v0Active || next.v1Active || next.v2Active || next.v3Active);
-    const incomingSeen = parseIsoDate(row.lastSeenAt ?? row.detectedAt ?? row.firstDetectedAt);
-    const existingSeen = parseIsoDate(next.lastSeenAt ?? next.detectedAt);
-    const shouldReplaceFields = (!existingActive && incomingActive)
-      || !existingSeen
-      || (!!incomingSeen && incomingSeen >= existingSeen);
-
-    if (shouldReplaceFields) {
-      next.rsi = row.rsi;
-      next.price = row.price;
-      next.detectedAt = row.detectedAt;
-      next.lastSeenAt = row.lastSeenAt ?? null;
-      if (row.previousRsi != null) next.previousRsi = row.previousRsi;
-      if (row.anchorRsi != null) next.anchorRsi = row.anchorRsi;
-      if (row.anchorTime != null) next.anchorTime = row.anchorTime;
-      if (row.anchorPrice != null) next.anchorPrice = row.anchorPrice;
-    }
-
-    next[`${version}Active`] = incomingActive;
-    rows.set(key, next);
-  };
-
-  v0Rows.forEach((row) => upsert(row, "v0"));
-  v1Rows.forEach((row) => upsert(row, "v1"));
-  v2Rows.forEach((row) => upsert(row, "v2"));
-  v3Rows.forEach((row) => upsert(row, "v3"));
-
-  return [...rows.values()];
+  return [...rows.values()].sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 
-function versionBadge(active: boolean, label: string) {
-  if (!active) return null;
-  return (
-    <span className="inline-flex min-w-[2.25rem] justify-center rounded-full border border-sky-300/70 bg-sky-300/20 px-2 py-1 text-[10px] font-semibold text-sky-50">
-      {label}
-    </span>
-  );
+function computePlValue(entryPrice?: number | null, currentPrice?: number | null, side?: string | null) {
+  if (entryPrice == null || currentPrice == null || !Number.isFinite(entryPrice) || !Number.isFinite(currentPrice) || !side) return null;
+  if (entryPrice === 0) return null;
+  return side.toUpperCase() === "SHORT"
+    ? ((entryPrice - currentPrice) / entryPrice) * 100
+    : ((currentPrice - entryPrice) / entryPrice) * 100;
 }
 
-function entrySignalBadge(row: OpenPaperPosition) {
-  if (row.entrySignal !== "RSI_V3") return null;
-  const system = row.entrySystem === "S1h" ? "1h" : row.entrySystem === "S4h" ? "4h" : row.entrySystem === "S1D" ? "1d" : (row.entrySystem || "?").replace(/^S/i, "");
-  return (
-    <span className="inline-flex rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
-      {system}
-    </span>
-  );
-}
-
-const shellClass = "rounded-lg border border-slate-100/10 bg-slate-800/65 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.14)] backdrop-blur-sm";
-
-function MatrixSection({
-  title,
-  rows,
-  emptyText,
-}: {
-  title: string;
-  rows: any[];
-  emptyText: string;
-}) {
+function MatrixSection({ rows }: { rows: VersionSummaryRow[] }) {
   return (
     <section className={`${shellClass} mb-4`}>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        <span className="text-[10px] text-slate-400">V0 / V1 / V2 / V3 pe aceeasi moneda</span>
+        <h2 className="text-base font-semibold text-white">S1h - RSI Top Version Matrix</h2>
+        <span className="text-[10px] text-slate-400">doar strategia RSI Top</span>
       </div>
       <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
         <table className="min-w-full text-xs text-slate-300">
           <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left">Coin</th>
+              <th className="px-4 py-3 text-left">Side</th>
               <th className="px-4 py-3 text-left">RSI now</th>
               <th className="px-4 py-3 text-left">Price</th>
               <th className="px-4 py-3 text-left">Zone</th>
               <th className="px-4 py-3 text-left">Detected</th>
-              <th className="px-4 py-3 text-left">V0</th>
-              <th className="px-4 py-3 text-left">V1</th>
-              <th className="px-4 py-3 text-left">V2</th>
               <th className="px-4 py-3 text-left">V3</th>
               <th className="px-4 py-3 text-left">Anchor RSI</th>
               <th className="px-4 py-3 text-left">Anchor price</th>
@@ -581,23 +194,21 @@ function MatrixSection({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={13} className="px-4 py-4 text-slate-400">{emptyText}</td>
+                <td colSpan={11} className="px-4 py-4 text-slate-400">No coins in tracked S1h RSI Top versions right now.</td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={`${row.symbol}-${row.zone}`} className="border-t border-white/10">
+                <tr key={row.key} className="border-t border-white/10">
                   <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                  <td className="px-4 py-3">{strategySideBadge(row.strategySide)}</td>
                   <td className="px-4 py-3">{row.rsi.toFixed(2)}</td>
                   <td className="px-4 py-3">{formatPrice(row.price)}</td>
                   <td className="px-4 py-3">{zoneLabel(row.zone)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.detectedAt)}</td>
-                  <td className="px-4 py-3">{versionBadge(row.v0, "V0")}</td>
-                  <td className="px-4 py-3">{versionBadge(row.v1, "V1")}</td>
-                  <td className="px-4 py-3">{versionBadge(row.v2, "V2")}</td>
-                  <td className="px-4 py-3">{versionBadge(Boolean((row as any).v3), "V3")}</td>
+                  <td className="px-4 py-3">{versionBadge(row.v3, "V3")}</td>
                   <td className="px-4 py-3 font-semibold text-slate-100">{row.anchorRsi != null ? row.anchorRsi.toFixed(2) : "-"}</td>
                   <td className="px-4 py-3 font-semibold text-slate-100">{formatPrice(row.anchorPrice)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{row.anchorTime ? formatCompactDate(row.anchorTime) : "-"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.anchorTime)}</td>
                   <td className="px-4 py-3 font-semibold text-slate-100">{row.previousRsi != null ? row.previousRsi.toFixed(2) : "-"}</td>
                 </tr>
               ))
@@ -609,104 +220,45 @@ function MatrixSection({
   );
 }
 
-function VersionsLegendSection() {
+function BarEvolutionSection({ rows }: { rows: BarEvolutionRow[] }) {
   return (
     <section className={`${shellClass} mb-4`}>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">RSI Versions - Legend</h2>
-        <span className="text-[10px] text-slate-400">cum se citeste V0 / V1 / V2 / V3</span>
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-        <table className="min-w-full text-xs text-slate-300">
-          <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-            <tr>
-              <th className="px-4 py-3 text-left">Version</th>
-              <th className="px-4 py-3 text-left">Meaning</th>
-              <th className="px-4 py-3 text-left">Upper zone</th>
-              <th className="px-4 py-3 text-left">Lower zone</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V0</td><td className="px-4 py-3">coin in tracked RSI interest context</td><td className="px-4 py-3">upper interest context</td><td className="px-4 py-3">lower interest context</td></tr>
-            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V1</td><td className="px-4 py-3">valid anchor exists</td><td className="px-4 py-3">anchor RSI &gt; 77</td><td className="px-4 py-3">anchor RSI &lt; 23</td></tr>
-            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V2</td><td className="px-4 py-3">anchor - reset - return confirmed</td><td className="px-4 py-3">drops under 60 then returns to 68-72</td><td className="px-4 py-3">rises above 40 then returns to 28-32</td></tr>
-            <tr className="border-t border-white/10"><td className="px-4 py-3 font-semibold text-slate-100">V3</td><td className="px-4 py-3">V2 + live price vs anchor price</td><td className="px-4 py-3">price now &gt; anchor price</td><td className="px-4 py-3">price now &lt; anchor price</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function ActivePositionsSection({
-  title,
-  subtitle,
-  rows,
-  updatedAt,
-  paperPositionLabels,
-  emptyText,
-}: {
-  title: string;
-  subtitle: string;
-  rows: OpenPaperPosition[];
-  updatedAt: string;
-  paperPositionLabels: Map<string, string>;
-  emptyText: string;
-}) {
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        <span className="text-[10px] text-slate-400">{subtitle}</span>
+        <h2 className="text-base font-semibold text-white">S1h - RSI Top Bar Evolution</h2>
+        <span className="text-[10px] text-slate-400">doar pozițiile RSI Top</span>
       </div>
       <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
         <table className="min-w-full text-xs text-slate-300">
           <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3 text-left">Coin</th>
-              <th className="px-4 py-3 text-left">System</th>
               <th className="px-4 py-3 text-left">Side</th>
               <th className="px-4 py-3 text-left">Entry</th>
-              <th className="px-4 py-3 text-left">20 bars</th>
               <th className="px-4 py-3 text-left">Current</th>
-              <th className="px-4 py-3 text-left">Current P/L</th>
-              <th className="px-4 py-3 text-left">P/L $</th>
-              <th className="px-4 py-3 text-left">Money on pos.</th>
-              <th className="px-4 py-3 text-left">Best</th>
-              <th className="px-4 py-3 text-left">Worst</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Runner stop</th>
+              <th className="px-4 py-3 text-left">P/L</th>
+              <th className="px-4 py-3 text-left">Opened</th>
               <th className="px-4 py-3 text-left">Last seen</th>
+              <th className="px-4 py-3 text-left">Scans</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-4 py-4 text-slate-400">{emptyText}</td>
+                <td colSpan={8} className="px-4 py-4 text-slate-400">No open RSI Top positions to track yet.</td>
               </tr>
             ) : (
-              rows.map((row) => {
-                const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
-                return (
-                  <tr key={key} className="border-t border-white/10">
-                    <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                    <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
-                    <td className="px-4 py-3">{shortSide(row.side)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                    <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatUsd(plUsdFromPercent(currentPl))}</td>
-                    <td className={`px-4 py-3 font-semibold ${percentTextClass(currentPl)}`}>{formatUsd(equityUsdFromPercent(currentPl))}</td>
-                    <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
-                    <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
-                    <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.runnerStopPrice)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
-                  </tr>
-                );
-              })
+              rows.map((row) => (
+                <tr key={row.key} className="border-t border-white/10">
+                  <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                  <td className="px-4 py-3">{strategySideBadge(row.side)}</td>
+                  <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
+                  <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
+                  <td className={`px-4 py-3 font-semibold ${percentTextClass(row.currentPl)}`}>{formatPercent(row.currentPl)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.entryAt)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
+                  <td className="px-4 py-3">{row.scans.length}</td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -715,1377 +267,87 @@ function ActivePositionsSection({
   );
 }
 
-function TotalPlEvolutionSection({
-  title,
-  subtitle,
-  rows,
-  detailed = false,
-}: {
-  title: string;
-  subtitle: string;
-  rows: { scanAt: string; scanIndex: number; pnlUsd: number; activePositions: number }[];
-  detailed?: boolean;
-}) {
-  if (rows.length === 0) {
-    return <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No portfolio P/L scan history yet.</div>;
-  }
-
-  const width = 1200;
-  const height = 220;
-  const paddingX = 18;
-  const paddingTop = 18;
-  const paddingBottom = 28;
-  const plotWidth = width - paddingX * 2;
-  const plotHeight = height - paddingTop - paddingBottom;
-  const minPnl = Math.min(...rows.map((row) => row.pnlUsd), 0);
-  const maxPnl = Math.max(...rows.map((row) => row.pnlUsd), 0);
-  const pnlRange = Math.max(maxPnl - minPnl, 1);
-  const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(rows.length - 1, 1)) * plotWidth;
-  const pnlToY = (value: number) => paddingTop + (maxPnl - value) / pnlRange * plotHeight;
-  const zeroY = pnlToY(0);
-  const linePoints = rows.map((row) => `${scanToX(row.scanIndex)},${pnlToY(row.pnlUsd)}`).join(" ");
-  const bestRow = rows.reduce((best, row) => (row.pnlUsd > best.pnlUsd ? row : best), rows[0]);
-  const worstRow = rows.reduce((worst, row) => (row.pnlUsd < worst.pnlUsd ? row : worst), rows[0]);
-  const currentRow = rows[rows.length - 1];
-  const avgCurrentPerPosition = currentRow.activePositions > 0 ? currentRow.pnlUsd / currentRow.activePositions : 0;
-
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        <span className="text-[10px] text-slate-400">{subtitle}</span>
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
-        <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
-          <svg viewBox={`0 0 ${width} ${height}`} className="h-56 w-full">
-            <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
-            <line x1={paddingX} y1={zeroY} x2={paddingX + plotWidth} y2={zeroY} stroke="rgba(250,250,250,0.35)" strokeDasharray="5 5" />
-            <text x={paddingX + 6} y={Math.max(12, zeroY - 6)} fill="rgba(226,232,240,0.9)" fontSize="11">$0</text>
-            {linePoints ? <polyline fill="none" stroke="rgba(196,181,253,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
-            {rows.map((row) => <circle key={`portfolio-pl-${row.scanIndex}`} cx={scanToX(row.scanIndex)} cy={pnlToY(row.pnlUsd)} r="2.8" fill={row.pnlUsd >= 0 ? "rgba(52,211,153,0.95)" : "rgba(251,113,133,0.95)"} />)}
-            <circle cx={scanToX(bestRow.scanIndex)} cy={pnlToY(bestRow.pnlUsd)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" />
-            <circle cx={scanToX(worstRow.scanIndex)} cy={pnlToY(worstRow.pnlUsd)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" />
-            <circle cx={scanToX(currentRow.scanIndex)} cy={pnlToY(currentRow.pnlUsd)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(168,85,247,0.9)" strokeWidth="1.5" />
-            {detailed ? (
-              <>
-                <text x={Math.min(width - 120, scanToX(bestRow.scanIndex) + 8)} y={Math.max(14, pnlToY(bestRow.pnlUsd) - 8)} fill="rgba(167,243,208,0.95)" fontSize="11">Best {formatUsd(bestRow.pnlUsd)}</text>
-                <text x={Math.min(width - 120, scanToX(worstRow.scanIndex) + 8)} y={Math.max(14, pnlToY(worstRow.pnlUsd) - 8)} fill="rgba(254,205,211,0.95)" fontSize="11">Worst {formatUsd(worstRow.pnlUsd)}</text>
-                <text x={Math.min(width - 120, scanToX(currentRow.scanIndex) + 8)} y={Math.max(14, pnlToY(currentRow.pnlUsd) - 8)} fill="rgba(233,213,255,0.95)" fontSize="11">Now {formatUsd(currentRow.pnlUsd)}</text>
-              </>
-            ) : null}
-          </svg>
-          <div className={`mt-3 grid gap-2 text-xs text-slate-300 ${detailed ? "md:grid-cols-6" : "md:grid-cols-4"}`}>
-            <div>Scans: <span className="font-semibold text-slate-100">{rows.length}</span></div>
-            <div>Best total P/L: <span className="font-semibold text-emerald-200">{formatUsd(bestRow.pnlUsd)}</span></div>
-            <div>Worst total P/L: <span className="font-semibold text-rose-200">{formatUsd(worstRow.pnlUsd)}</span></div>
-            <div>Current total P/L: <span className={`font-semibold ${percentTextClass(currentRow.pnlUsd)}`}>{formatUsd(currentRow.pnlUsd)}</span></div>
-            {detailed ? (
-              <>
-                <div>Last scan: <span className="font-semibold text-slate-100">{formatCompactDate(currentRow.scanAt)}</span></div>
-                <div>Now / position: <span className={`font-semibold ${percentTextClass(avgCurrentPerPosition)}`}>{formatUsd(avgCurrentPerPosition)}</span></div>
-                <div>Active positions now: <span className="font-semibold text-slate-100">{currentRow.activePositions}</span></div>
-                <div>Best scan time: <span className="font-semibold text-emerald-200">{formatCompactDate(bestRow.scanAt)}</span></div>
-                <div>Worst scan time: <span className="font-semibold text-rose-200">{formatCompactDate(worstRow.scanAt)}</span></div>
-                <div>P/L range: <span className="font-semibold text-slate-100">{formatUsd(minPnl)} - {formatUsd(maxPnl)}</span></div>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function BoxStrategySection({
-  symbol,
-  data,
-  loading,
-  error,
-  onSymbolChange,
-  symbolOptions,
-}: {
-  symbol: string;
-  data: BoxDailyData | null;
-  loading: boolean;
-  error: string;
-  onSymbolChange: (value: string) => void;
-  symbolOptions: string[];
-}) {
-  const boxRange = data ? Math.max(data.previousHigh - data.previousLow, 0.00000001) : 1;
-  const normalized = data ? (data.currentPrice - data.previousLow) / boxRange : 0.5;
-  const clamped = Math.max(-0.12, Math.min(1.12, normalized));
-  const markerY = 22 + (1 - clamped) * 236;
-  const zoneLabel = data
-    ? data.currentZone === "top"
-      ? "top zone / short area"
-      : data.currentZone === "bottom"
-        ? "bottom zone / long area"
-        : data.currentZone === "middle"
-          ? "middle / avoid"
-          : data.currentZone === "above"
-            ? "above box"
-            : "below box"
-    : "-";
-
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-white">Box v.01 - Daily Box Visual</h2>
-          <p className="text-xs text-slate-400">high / low din ziua precedenta + current price plasat vizual in box</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-slate-300">
-          <span>Coin</span>
-          <select value={symbol} onChange={(e) => onSymbolChange(e.target.value)} className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 text-xs text-slate-100 outline-none">
-            {symbolOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      {loading ? (
-        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box...</div>
-      ) : error ? (
-        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
-      ) : !data ? (
-        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">No box data yet.</div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-[260px,1fr]">
-          <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-            <svg viewBox="0 0 120 280" className="mx-auto h-72 w-full max-w-[180px]">
-              <rect x="32" y="22" width="56" height="236" rx="10" fill="rgba(15,23,42,0.7)" stroke="rgba(148,163,184,0.35)" />
-              <rect x="32" y="22" width="56" height="70" fill="rgba(248,113,113,0.12)" />
-              <rect x="32" y="92" width="56" height="96" fill="rgba(148,163,184,0.08)" />
-              <rect x="32" y="188" width="56" height="70" fill="rgba(52,211,153,0.12)" />
-              <line x1="26" y1="140" x2="94" y2="140" stroke="rgba(250,204,21,0.9)" strokeDasharray="5 4" />
-              <circle cx="60" cy={markerY} r="6" fill="rgba(255,255,255,0.98)" stroke="rgba(59,130,246,0.95)" strokeWidth="2" />
-              <line x1="60" y1={markerY} x2="104" y2={markerY} stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" />
-              <text x="8" y="28" fill="rgba(148,163,184,0.9)" fontSize="10">High</text>
-              <text x="8" y="144" fill="rgba(250,204,21,0.95)" fontSize="10">Mid</text>
-              <text x="8" y="264" fill="rgba(148,163,184,0.9)" fontSize="10">Low</text>
-            </svg>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Previous day high</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.previousHigh)}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Previous day low</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.previousLow)}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Box mid</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.mid)}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Current price</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{formatPrice(data.currentPrice)}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Current zone</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{zoneLabel}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Distance from mid</p>
-              <p className={`mt-2 text-lg font-semibold ${percentTextClass(data.distanceFromMidPercent)}`}>{formatPercent(data.distanceFromMidPercent)}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-950/25 p-3 md:col-span-2 xl:col-span-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Read</p>
-              <p className="mt-2 text-sm text-slate-300">Box v.01: sus cauti short, jos cauti long, in middle eviti. Markerul alb iti arata exact unde sta pretul acum fata de boxul zilei precedente.</p>
-              <p className="mt-2 text-[11px] text-slate-500">Source: {data.source}</p>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function BoxChecklistSection({
-  rows,
-  loading,
-  error,
-}: {
-  rows: BoxChecklistRow[];
-  loading: boolean;
-  error: string;
-}) {
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">Box v.01 - Pre-Entry Checklist</h2>
-        <span className="text-[10px] text-slate-400">daily box + 5m extreme + opening adjust + left context + reaction + stop</span>
-      </div>
-      {loading ? (
-        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box checklist...</div>
-      ) : error ? (
-        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-          <table className="min-w-full text-xs text-slate-300">
-            <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 py-3 text-left">Coin</th>
-                <th className="px-4 py-3 text-left">Zone</th>
-                <th className="px-4 py-3 text-left">Side</th>
-                <th className="px-4 py-3 text-left">Box</th>
-                <th className="px-4 py-3 text-left">5m extreme</th>
-                <th className="px-4 py-3 text-left">Open adj</th>
-                <th className="px-4 py-3 text-left">Left context</th>
-                <th className="px-4 py-3 text-left">Reaction</th>
-                <th className="px-4 py-3 text-left">Stop</th>
-                <th className="px-4 py-3 text-left">Checks</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Missing</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const checkCell = (ok: boolean, trueLabel = "YES", falseLabel = "NO") => (
-                  <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${ok ? "bg-emerald-500/15 text-emerald-200" : "bg-slate-700/40 text-slate-300"}`}>{ok ? trueLabel : falseLabel}</span>
-                );
-                return (
-                  <tr key={`box-check-${row.symbol}`} className="border-t border-white/5 align-top">
-                    <td className="px-4 py-3 font-medium text-white">{row.symbol}</td>
-                    <td className="px-4 py-3">{row.currentZone}</td>
-                    <td className="px-4 py-3">{row.candidateSide || "-"}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.boxBuilt)}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.smallTfExtreme)}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.openingAdjusted, "DONE", "BASE")}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.leftContext)}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.reaction)}</td>
-                    <td className="px-4 py-3">{checkCell(row.checks.stopDefined, row.stopPrice != null ? formatPrice(row.stopPrice) : "YES", row.stopPrice != null ? formatPrice(row.stopPrice) : "NO")}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-100">{row.checksDone}/{row.checksTotal}</td>
-                    <td className="px-4 py-3">{row.readyToOpen ? <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-200">READY</span> : <span className="inline-flex rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-semibold text-amber-200">WAIT</span>}</td>
-                    <td className="px-4 py-3 text-[11px] text-slate-400">{row.notes.length ? row.notes.join(", ") : "-"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function BoxPaperPositionsSection({
-  rows,
-  loading,
-  error,
-}: {
-  rows: BoxChecklistRow[];
-  loading: boolean;
-  error: string;
-}) {
-  const readyRows = rows.filter((row) => row.readyToOpen);
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">Box v.01 - Paper Positions</h2>
-        <span className="text-[10px] text-slate-400">aici intra doar coinurile care au toate conditiile bifate</span>
-      </div>
-      {loading ? (
-        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">Loading box paper positions...</div>
-      ) : error ? (
-        <div className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">{error}</div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-          <table className="min-w-full text-xs text-slate-300">
-            <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 py-3 text-left">Coin</th>
-                <th className="px-4 py-3 text-left">Side</th>
-                <th className="px-4 py-3 text-left">Current</th>
-                <th className="px-4 py-3 text-left">Stop</th>
-                <th className="px-4 py-3 text-left">Target</th>
-                <th className="px-4 py-3 text-left">R/R (info)</th>
-                <th className="px-4 py-3 text-left">Checks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {readyRows.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-4 text-slate-400">Nicio pozitie Box v.01 nu este ready acum. Aici vor aparea automat doar cele cu toate conditiile bifate.</td>
-                </tr>
-              ) : (
-                readyRows.map((row) => (
-                  <tr key={`box-paper-${row.symbol}`} className="border-t border-white/5">
-                    <td className="px-4 py-3 font-medium text-white">{row.symbol}</td>
-                    <td className="px-4 py-3">{row.candidateSide}</td>
-                    <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.stopPrice)}</td>
-                    <td className="px-4 py-3">{formatPrice(row.targetPrice)}</td>
-                    <td className="px-4 py-3">{row.riskRewardRatio != null ? `${row.riskRewardRatio.toFixed(2)}R` : "-"}</td>
-                    <td className="px-4 py-3 font-semibold text-emerald-200">{row.checksDone}/{row.checksTotal}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function BarEvolutionSection({
-  title,
-  subtitle,
-  rows,
-  emptyText,
-}: {
-  title: string;
-  subtitle: string;
-  rows: any[];
-  emptyText: string;
-}) {
-  return (
-    <section className={`${shellClass} mb-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        <span className="text-[10px] text-slate-400">{subtitle}</span>
-      </div>
-      {rows.length === 0 ? (
-        <div className="rounded-lg border border-white/10 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">{emptyText}</div>
-      ) : (
-        <div className="space-y-4">
-          {rows.map(({ key, row, progress, trackedBars, maxScans, slotsPerBar, scanSeries, minPrice, maxPrice, bestPoint, worstPoint, currentPoint }) => {
-            const width = 1200;
-            const height = 260;
-            const paddingX = 18;
-            const paddingTop = 18;
-            const paddingBottom = 28;
-            const plotWidth = width - paddingX * 2;
-            const plotHeight = height - paddingTop - paddingBottom;
-            const priceRange = minPrice != null && maxPrice != null ? Math.max(maxPrice - minPrice, (maxPrice || 1) * 0.002) : 1;
-            const valueToY = (value: number) => paddingTop + ((maxPrice ?? value) - value) / priceRange * plotHeight;
-            const scanToX = (scanIndex: number) => paddingX + ((scanIndex - 1) / Math.max(maxScans - 1, 1)) * plotWidth;
-            const linePoints = scanSeries.map((point: any) => `${scanToX(point.scanIndex)},${valueToY(point.price)}`).join(" ");
-            const entryY = row.entryPrice != null && minPrice != null && maxPrice != null ? valueToY(row.entryPrice) : null;
-            const barMarkers = Array.from({ length: trackedBars }, (_, index) => {
-              const scanIndex = index * Math.max(slotsPerBar, 1) + 1;
-              return { bar: index + 1, x: scanToX(scanIndex) };
-            });
-
-            return (
-              <div key={`evolution-${key}`} className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25 p-3">
-                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                  <span className="font-semibold text-white">{row.symbol}</span>
-                  <span>{entrySignalBadge(row) || (row.entrySystem || "-")}</span>
-                  <span>{shortSide(row.side)}</span>
-                  <span>Entry {formatPrice(row.entryPrice)}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{progress}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{maxScans} scans max</span>
-                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${bestPoint?.pl != null && bestPoint.pl > 0 ? "bg-emerald-400/18 text-emerald-100" : "bg-white/[0.05] text-slate-200"}`}>Best {bestPoint ? `B${bestPoint.bar} ${formatPercent(bestPoint.pl)}` : "-"}</span>
-                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${worstPoint?.pl != null && worstPoint.pl < 0 ? "bg-rose-400/18 text-rose-100" : "bg-white/[0.05] text-slate-200"}`}>Worst {worstPoint ? `B${worstPoint.bar} ${formatPercent(worstPoint.pl)}` : "-"}</span>
-                  <span className={`rounded-full border border-white/10 px-3 py-1.5 text-sm font-semibold shadow-sm ${percentTextClass(currentPoint?.pl)}`}>Current {currentPoint ? formatPercent(currentPoint.pl) : "-"}</span>
-                </div>
-                <div className="min-w-[1200px] rounded-lg border border-white/10 bg-slate-900/60 p-3">
-                  <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">Price evolution</div>
-                  <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
-                    <rect x="0" y="0" width={width} height={height} rx="10" fill="rgba(15,23,42,0.35)" />
-                    {entryY != null ? <rect x={paddingX} y={paddingTop} width={plotWidth} height={Math.max(0, entryY - paddingTop)} fill={row.side === "SHORT" ? "rgba(244,63,94,0.05)" : "rgba(16,185,129,0.05)"} /> : null}
-                    {entryY != null ? <rect x={paddingX} y={entryY} width={plotWidth} height={Math.max(0, paddingTop + plotHeight - entryY)} fill={row.side === "SHORT" ? "rgba(16,185,129,0.05)" : "rgba(244,63,94,0.05)"} /> : null}
-                    {barMarkers.map((marker) => (
-                      <g key={`${key}-marker-${marker.bar}`}>
-                        <line x1={marker.x} y1={paddingTop} x2={marker.x} y2={paddingTop + plotHeight} stroke="rgba(148,163,184,0.18)" strokeDasharray="3 5" />
-                        <text x={marker.x + 2} y={height - 8} fill="rgba(148,163,184,0.8)" fontSize="10">B{marker.bar}</text>
-                      </g>
-                    ))}
-                    {entryY != null ? <g><line x1={paddingX} y1={entryY} x2={paddingX + plotWidth} y2={entryY} stroke="rgba(250,204,21,0.8)" strokeDasharray="6 4" /><text x={paddingX + 6} y={Math.max(12, entryY - 6)} fill="rgba(250,204,21,0.95)" fontSize="11">Entry {formatPrice(row.entryPrice)}</text></g> : null}
-                    {linePoints ? <polyline fill="none" stroke="rgba(125,211,252,0.95)" strokeWidth="2.5" points={linePoints} /> : null}
-                    {scanSeries.map((point: any) => <circle key={`${key}-scan-${point.scanIndex}`} cx={scanToX(point.scanIndex)} cy={valueToY(point.price)} r="2.5" fill={point.pl != null && point.pl >= 0 ? "rgba(52,211,153,0.9)" : "rgba(251,113,133,0.9)"} />)}
-                    {bestPoint ? <circle cx={scanToX(bestPoint.scanIndex)} cy={valueToY(bestPoint.price)} r="5" fill="rgba(16,185,129,1)" stroke="white" strokeWidth="1.5" /> : null}
-                    {worstPoint ? <circle cx={scanToX(worstPoint.scanIndex)} cy={valueToY(worstPoint.price)} r="5" fill="rgba(244,63,94,1)" stroke="white" strokeWidth="1.5" /> : null}
-                    {currentPoint ? <circle cx={scanToX(currentPoint.scanIndex)} cy={valueToY(currentPoint.price)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" /> : null}
-                  </svg>
-                  <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-4">
-                    <div>Scans captured: <span className="font-semibold text-slate-100">{scanSeries.length}/{maxScans}</span></div>
-                    <div>Price range: <span className="font-semibold text-slate-100">{minPrice != null && maxPrice != null ? `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}` : "-"}</span></div>
-                    <div>Best point: <span className="font-semibold text-emerald-200">{bestPoint ? `scan ${bestPoint.scanIndex} - ${formatPrice(bestPoint.price)}` : "-"}</span></div>
-                    <div>Worst point: <span className="font-semibold text-rose-200">{worstPoint ? `scan ${worstPoint.scanIndex} - ${formatPrice(worstPoint.price)}` : "-"}</span></div>
-                  </div>
-
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
-
 export default function CryptoDashboardPage() {
+  const [rows, setRows] = useState<InterestRow[]>([]);
   const [openPaperPositions, setOpenPaperPositions] = useState<OpenPaperPosition[]>([]);
-  const [paperPositionHistory, setPaperPositionHistory] = useState<OpenPaperPosition[]>([]);
-  const [v0InterestRows, setV0InterestRows] = useState<InterestRow[]>([]);
-  const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
-  const [v2InterestRows, setV2InterestRows] = useState<InterestRow[]>([]);
-  const [v3InterestRows, setV3InterestRows] = useState<InterestRow[]>([]);
-  const [v0InterestRows1h, setV0InterestRows1h] = useState<InterestRow[]>([]);
-  const [interestRows1h, setInterestRows1h] = useState<InterestRow[]>([]);
-  const [v2InterestRows1h, setV2InterestRows1h] = useState<InterestRow[]>([]);
-  const [v3InterestRows1h, setV3InterestRows1h] = useState<InterestRow[]>([]);
-  const [rsiTopRows1h, setRsiTopRows1h] = useState<InterestRow[]>([]);
-  const [v0InterestRows1d, setV0InterestRows1d] = useState<InterestRow[]>([]);
-  const [interestRows1d, setInterestRows1d] = useState<InterestRow[]>([]);
-  const [v2InterestRows1d, setV2InterestRows1d] = useState<InterestRow[]>([]);
-  const [v3InterestRows1d, setV3InterestRows1d] = useState<InterestRow[]>([]);
-  const [formationRows, setFormationRows] = useState<FormationRow[]>([]);
-  const [trendRows, setTrendRows] = useState<TrendRow[]>([]);
-  const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
-  const [checkMarkRows, setCheckMarkRows] = useState<CheckMarkRow[]>([]);
-  const [checkMarkMeta, setCheckMarkMeta] = useState<CheckMarkMeta | null>(null);
-  const [vStrategyRows, setVStrategyRows] = useState<VStrategyRow[]>([]);
-  const [vStrategyMeta, setVStrategyMeta] = useState<VStrategyMeta | null>(null);
   const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
-  const [updatedAt, setUpdatedAt] = useState<string>("");
-  const [nextScanAt, setNextScanAt] = useState<string>("");
-  const [nowMs, setNowMs] = useState<number>(Date.now());
-  const [scanUniverseExpected, setScanUniverseExpected] = useState<number>(0);
+  const [updatedAt, setUpdatedAt] = useState("");
+  const [nextScanAt, setNextScanAt] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const timerId = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(timerId);
-  }, []);
-
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
 
     const load = async () => {
       try {
-        const res = await fetch(`/api/rsi-trend?t=${Date.now()}`, { cache: "no-store" });
-        if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
-        const data = await res.json();
-        setOpenPaperPositions(data.openPaperPositions || []);
-        setPaperPositionHistory(data.paperPositionHistory || []);
-        setV0InterestRows(data.v0InterestRows || []);
-        setInterestRows(data.interestRows || []);
-        setV2InterestRows(data.v2InterestRows || []);
-        setV3InterestRows(data.v3InterestRows || []);
-        setV0InterestRows1h(data.v0InterestRows1h || []);
-        setInterestRows1h(data.interestRows1h || []);
-        setV2InterestRows1h(data.v2InterestRows1h || []);
-        setV3InterestRows1h(data.v3InterestRows1h || []);
-        setRsiTopRows1h(data.rsiTopRows1h || []);
-        setV0InterestRows1d(data.v0InterestRows1d || []);
-        setInterestRows1d(data.interestRows1d || []);
-        setV2InterestRows1d(data.v2InterestRows1d || []);
-        setV3InterestRows1d(data.v3InterestRows1d || []);
-        setFormationRows(data.formationRows || []);
-        setTrendRows(data.trendRows || []);
-        setBtcContextRows(data.btcContextRows || []);
-        setCheckMarkRows(data.checkMarkRows || []);
-        setCheckMarkMeta(data.checkMarkMeta || null);
-        setVStrategyRows(data.vStrategyRows || []);
-        setVStrategyMeta(data.vStrategyMeta || null);
-        setPositionSnapshots(data.positionSnapshots || {});
+        const response = await fetch(`/data/rsi-trend-dashboard.json?ts=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data: DashboardPayload = await response.json();
+        if (cancelled) return;
+        setRows(Array.isArray(data.rsiTopRows1h) ? data.rsiTopRows1h : []);
+        setOpenPaperPositions(Array.isArray(data.openPaperPositions) ? data.openPaperPositions : []);
+        setPositionSnapshots(data.positionSnapshots && typeof data.positionSnapshots === "object" ? data.positionSnapshots : {});
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
-        setScanUniverseExpected(Number.isFinite(data.scanUniverseExpected) ? data.scanUniverseExpected : 0);
-        scheduleNextLoad(data.nextScanAt);
-      } catch (error) {
-        console.error("crypto dashboard load failed", error);
-        setPaperPositionHistory([]);
-        setV0InterestRows([]);
-        setInterestRows([]);
-        setV2InterestRows([]);
-        setV3InterestRows([]);
-        setV0InterestRows1h([]);
-        setInterestRows1h([]);
-        setV2InterestRows1h([]);
-        setV3InterestRows1h([]);
-        setV0InterestRows1d([]);
-        setInterestRows1d([]);
-        setV2InterestRows1d([]);
-        setV3InterestRows1d([]);
-        setFormationRows([]);
-        setTrendRows([]);
-        setBtcContextRows([]);
-        setCheckMarkRows([]);
-        setCheckMarkMeta(null);
-        setVStrategyRows([]);
-        setVStrategyMeta(null);
-        setPositionSnapshots({});
-        setScanUniverseExpected(0);
+        setError("");
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    };
-
-    const scheduleNextLoad = (nextIso?: string) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      const fallbackMs = 60 * 1000;
-      if (!nextIso) {
-        timeoutId = setTimeout(load, fallbackMs);
-        return;
-      }
-      const targetMs = new Date(nextIso).getTime() - Date.now() + 15000;
-      timeoutId = setTimeout(load, Math.max(15000, targetMs));
     };
 
     load();
-    intervalId = setInterval(load, 60 * 1000);
-
+    const interval = window.setInterval(load, 30000);
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
+      cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 
-  const trendSummary = useMemo(() => {
-    return {
-      uptrend: trendRows.filter((row) => row.finalMarketDirection.includes("BULLISH")).length,
-      downtrend: trendRows.filter((row) => row.finalMarketDirection.includes("BEARISH")).length,
-      range: trendRows.filter((row) => row.finalMarketDirection === "SIDEWAYS" || row.finalMarketDirection === "UNCLEAR").length,
-    };
-  }, [trendRows]);
+  const versionRows = useMemo(() => buildVersionSummaryBaseRows(rows), [rows]);
 
-  const orderedCheckMarkRows = useMemo(() => {
-    const statusRank: Record<string, number> = { triggered: 0, retest: 1, candidate: 2, invalidated: 3 };
-    return [...checkMarkRows].sort((a, b) => {
-      const statusDiff = (statusRank[a.status || ""] ?? 99) - (statusRank[b.status || ""] ?? 99);
-      if (statusDiff !== 0) return statusDiff;
-      return (b.atrRatio || 0) - (a.atrRatio || 0);
-    });
-  }, [checkMarkRows]);
-
-  const orderedVStrategyRows = useMemo(() => {
-    return [...vStrategyRows].sort((a, b) => {
-      const aFresh = a.isFreshEvent ? 0 : 1;
-      const bFresh = b.isFreshEvent ? 0 : 1;
-      if (aFresh !== bFresh) return aFresh - bFresh;
-      const aBars = a.lastEventBarsAgo ?? 999;
-      const bBars = b.lastEventBarsAgo ?? 999;
-      if (aBars !== bBars) return aBars - bBars;
-      const aTime = a.lastEventAt ? new Date(a.lastEventAt).getTime() : 0;
-      const bTime = b.lastEventAt ? new Date(b.lastEventAt).getTime() : 0;
-      return bTime - aTime;
-    });
-  }, [vStrategyRows]);
-
-  const orderedOpenPaperPositions = useMemo(() => {
-    return [...openPaperPositions].sort((a, b) => {
-      const aTime = new Date(a.entryAt).getTime();
-      const bTime = new Date(b.entryAt).getTime();
-      return bTime - aTime;
-    });
-  }, [openPaperPositions]);
-
-  const orderedHistoryPaperPositions = useMemo(() => {
-    return [...paperPositionHistory].sort((a, b) => {
-      const aTime = new Date(a.entryAt).getTime();
-      const bTime = new Date(b.entryAt).getTime();
-      return bTime - aTime;
-    });
-  }, [paperPositionHistory]);
-
-  const checkMarkOpenPositions = useMemo(() => {
-    return orderedOpenPaperPositions.filter((row) => isCheckMarkPosition(row) && !row.closedAt);
-  }, [orderedOpenPaperPositions]);
-
-  const activePaperPositions = useMemo(() => {
-    return orderedOpenPaperPositions.filter((row) => !(row.closedAt || row.status.startsWith("closed")));
-  }, [orderedOpenPaperPositions]);
-
-  const closedPaperPositions = useMemo(() => {
-    return orderedHistoryPaperPositions.filter((row) => row.closedAt || row.status.startsWith("closed"));
-  }, [orderedHistoryPaperPositions]);
-
-  const openMoneySummary = useMemo(() => {
-    const pnlUsd = activePaperPositions.reduce((sum, row) => {
-      const currentPl = computePlValue(row.entryPrice, row.currentPrice, row.side);
-      return sum + (plUsdFromPercent(currentPl) ?? 0);
-    }, 0);
-    return {
-      positions: activePaperPositions.length,
-      marginUsd: activePaperPositions.length * ASSUMED_MARGIN_USD,
-      notionalUsd: activePaperPositions.length * ASSUMED_NOTIONAL_USD,
-      pnlUsd,
-      equityUsd: activePaperPositions.length * ASSUMED_MARGIN_USD + pnlUsd,
-    };
-  }, [activePaperPositions]);
-
-  const closedMoneySummary = useMemo(() => {
-    const pnlUsd = closedPaperPositions.reduce((sum, row) => sum + (plUsdFromPercent(row.closePlPercent ?? null) ?? 0), 0);
-    return {
-      positions: closedPaperPositions.length,
-      marginUsd: closedPaperPositions.length * ASSUMED_MARGIN_USD,
-      notionalUsd: closedPaperPositions.length * ASSUMED_NOTIONAL_USD,
-      pnlUsd,
-      equityUsd: closedPaperPositions.length * ASSUMED_MARGIN_USD + pnlUsd,
-    };
-  }, [closedPaperPositions]);
-
-  const totalMoneySummary = useMemo(() => {
-    const pnlUsd = openMoneySummary.pnlUsd + closedMoneySummary.pnlUsd;
-    return {
-      pnlUsd,
-      isNegative: pnlUsd < 0,
-    };
-  }, [openMoneySummary, closedMoneySummary]);
-
-  const paperPositionLabels = useMemo(() => {
-    const bySymbol = new Map<string, OpenPaperPosition[]>();
-    for (const row of [...orderedOpenPaperPositions, ...orderedHistoryPaperPositions]) {
-      const bucket = bySymbol.get(row.symbol) || [];
-      bucket.push(row);
-      bySymbol.set(row.symbol, bucket);
-    }
-
-    const labelMap = new Map<string, string>();
-    for (const [symbol, rows] of bySymbol.entries()) {
-      const ordered = [...rows].sort((a, b) => new Date(a.entryAt).getTime() - new Date(b.entryAt).getTime());
-      if (ordered.length === 1) {
-        const row = ordered[0];
-        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, row.symbol);
-        continue;
-      }
-      ordered.forEach((row, index) => {
-        labelMap.set(`${row.symbol}-${row.side}-${row.entryAt}`, `${symbol} (${index + 1})`);
-      });
-    }
-    return labelMap;
-  }, [orderedOpenPaperPositions, orderedHistoryPaperPositions]);
-
-  const orderedTrendRows = useMemo(() => {
-    const order: Record<string, number> = {
-      "STRONG BULLISH": 0,
-      "MODERATE BULLISH": 1,
-      "STRONG BEARISH": 2,
-      "MODERATE BEARISH": 3,
-      "SIDEWAYS": 4,
-      "UNCLEAR": 5,
-    };
-
-    return [...trendRows].sort((a, b) => {
-      const trendDiff = (order[a.finalMarketDirection] ?? 99) - (order[b.finalMarketDirection] ?? 99);
-      if (trendDiff !== 0) return trendDiff;
-      return a.symbol.localeCompare(b.symbol);
-    });
-  }, [trendRows]);
-
-  const versionSummaryBaseRows = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows, interestRows, v2InterestRows, v3InterestRows), [v0InterestRows, interestRows, v2InterestRows, v3InterestRows]);
-
-  const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h]);
-
-  const rsiTopSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, rsiTopRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, rsiTopRows1h]);
-
-  const versionSummaryBaseRows1d = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1d, interestRows1d, v2InterestRows1d, v3InterestRows1d), [v0InterestRows1d, interestRows1d, v2InterestRows1d, v3InterestRows1d]);
-
-  const versionSummaryRows = useMemo(() => {
-    return versionSummaryBaseRows
-      .filter((row) => row.v2 || row.v3)
-      .sort((a, b) => {
-        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
-        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
-        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [versionSummaryBaseRows, updatedAt]);
-
-  const versionSummaryRows1h = useMemo(() => {
-    return versionSummaryBaseRows1h
-      .filter((row) => row.v2 || row.v3)
-      .sort((a, b) => {
-        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
-        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
-        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [versionSummaryBaseRows1h, updatedAt]);
-
-  const versionSummaryRows1d = useMemo(() => {
-    return versionSummaryBaseRows1d
-      .filter((row) => row.v2 || row.v3)
-      .sort((a, b) => {
-        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
-        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
-        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [versionSummaryBaseRows1d, updatedAt]);
-
-  const rsiTopSummaryRows1h = useMemo(() => {
-    return rsiTopSummaryBaseRows1h
-      .filter((row) => row.v2 || row.v3)
-      .sort((a, b) => {
-        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
-        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
-        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
-        return a.symbol.localeCompare(b.symbol);
-      });
-  }, [rsiTopSummaryBaseRows1h, updatedAt]);
-
-  const scanSummary = useMemo(() => {
-    const scanned = new Set(
-      trendRows
-        .map((row) => row.symbol)
-        .filter((symbol) => symbol && symbol !== "BTC.D"),
-    ).size;
-
-    const visible = new Set([
-      ...versionSummaryRows.map((row) => row.symbol),
-      ...versionSummaryRows1h.map((row) => row.symbol),
-      ...versionSummaryRows1d.map((row) => row.symbol),
-    ]).size;
-
-    const hiddenV0 = new Set(
-      [...versionSummaryBaseRows, ...versionSummaryBaseRows1h, ...versionSummaryBaseRows1d]
-        .filter((row) => row.v0 && !row.v1 && !row.v2 && !row.v3)
-        .map((row) => row.symbol),
-    ).size;
-
-    const expected = scanUniverseExpected > 0 ? scanUniverseExpected : scanned;
-    return { expected, scanned, visible, hiddenV0, healthy: scanned >= expected };
-  }, [scanUniverseExpected, trendRows, versionSummaryRows, versionSummaryRows1h, versionSummaryRows1d, versionSummaryBaseRows, versionSummaryBaseRows1h, versionSummaryBaseRows1d]);
-
-  const openPositionEvolutionRows = useMemo(() => {
-    return activePaperPositions.map((row) => {
-      const key = `${row.symbol}:${row.side}:${row.entryAt}`;
-      const bucket = positionSnapshots[key];
-      const barHours = systemBarHours(row.entrySystem);
-      const entryDate = parseIsoDate(row.entryAt);
-      const slotsPerBar = systemScanSlots(row.entrySystem) || 0;
-      const trackedBars = systemTrackedBars(row.entrySystem);
-      const maxScans = slotsPerBar * trackedBars;
-      const snapshots = (Array.isArray(bucket?.snapshots) ? bucket.snapshots : [])
-        .filter((snapshot) => snapshotDisplayPrice(snapshot) != null)
-        .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0));
-
-      const scanSeries = snapshots
-        .map((snapshot) => {
-          const scanDate = parseIsoDate(snapshot.scanAt);
-          const price = snapshotDisplayPrice(snapshot);
-          if (!entryDate || !scanDate || price == null || !barHours) return null;
-          const elapsedMinutes = Math.max(0, (scanDate.getTime() - entryDate.getTime()) / (60 * 1000));
-          const scanIndex = Math.floor(elapsedMinutes / SCAN_INTERVAL_MINUTES) + 1;
-          if (scanIndex < 1 || scanIndex > maxScans) return null;
-          const bar = Math.floor((scanIndex - 1) / Math.max(slotsPerBar, 1)) + 1;
-          return {
-            scanAt: snapshot.scanAt,
-            scanIndex,
-            bar,
-            price,
-            pl: computePlValue(row.entryPrice, price, row.side),
-          };
-        })
-        .filter((item): item is { scanAt: string; scanIndex: number; bar: number; price: number; pl: number | null } => Boolean(item));
-
-      const priceValues = [
-        ...(row.entryPrice != null && Number.isFinite(row.entryPrice) ? [row.entryPrice] : []),
-        ...scanSeries.map((point) => point.price),
-      ];
-      const minPrice = priceValues.length ? Math.min(...priceValues) : null;
-      const maxPrice = priceValues.length ? Math.max(...priceValues) : null;
-      const bestPoint = scanSeries.reduce((best, point) => {
-        if (point.pl == null) return best;
-        if (!best || point.pl > best.pl) return point;
-        return best;
-      }, null as (typeof scanSeries)[number] | null);
-      const worstPoint = scanSeries.reduce((worst, point) => {
-        if (point.pl == null) return worst;
-        if (!worst || point.pl < worst.pl) return point;
-        return worst;
-      }, null as (typeof scanSeries)[number] | null);
-      const currentPoint = scanSeries.length ? scanSeries[scanSeries.length - 1] : null;
-
-      return {
-        key,
-        row,
-        progress: barsProgressLabel(row.entryAt, row.entrySystem, row.lastSeenAt || updatedAt),
-        trackedBars,
-        maxScans,
-        slotsPerBar,
-        scanSeries,
-        minPrice,
-        maxPrice,
-        bestPoint,
-        worstPoint,
-        currentPoint,
-      };
-    });
-  }, [activePaperPositions, positionSnapshots, updatedAt]);
-
-  const activePaperPositions1d = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S1D"), [activePaperPositions]);
-  const activePaperPositions4h = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S4h"), [activePaperPositions]);
-  const activePaperPositions1h = useMemo(() => activePaperPositions.filter((row) => row.entrySystem === "S1h"), [activePaperPositions]);
-
-  const openPositionEvolutionRows1d = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1D"), [openPositionEvolutionRows]);
-  const openPositionEvolutionRows4h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S4h"), [openPositionEvolutionRows]);
-  const openPositionEvolutionRows1h = useMemo(() => openPositionEvolutionRows.filter(({ row }) => row.entrySystem === "S1h"), [openPositionEvolutionRows]);
-
-  const buildPortfolioPlEvolutionRows = (rows: typeof openPositionEvolutionRows) => {
-    const totals = new Map<string, { scanAt: string; pnlUsd: number; activePositions: number }>();
-    rows.forEach(({ scanSeries }) => {
-      scanSeries.forEach((point: any) => {
-        if (point.pl == null) return;
-        const current = totals.get(point.scanAt) || { scanAt: point.scanAt, pnlUsd: 0, activePositions: 0 };
-        current.pnlUsd += plUsdFromPercent(point.pl) ?? 0;
-        current.activePositions += 1;
-        totals.set(point.scanAt, current);
-      });
-    });
-    return [...totals.values()]
-      .sort((a, b) => (parseIsoDate(a.scanAt)?.getTime() || 0) - (parseIsoDate(b.scanAt)?.getTime() || 0))
-      .map((row, index) => ({ ...row, scanIndex: index + 1 }));
-  };
-
-  const portfolioPlEvolutionRows = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows), [openPositionEvolutionRows]);
-  const portfolioPlEvolutionRows1d = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows1d), [openPositionEvolutionRows1d]);
-  const portfolioPlEvolutionRows4h = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows4h), [openPositionEvolutionRows4h]);
-  const portfolioPlEvolutionRows1h = useMemo(() => buildPortfolioPlEvolutionRows(openPositionEvolutionRows1h), [openPositionEvolutionRows1h]);
-
-  const btcContextDisplayRows = useMemo(() => {
-    return btcContextRows;
-  }, [btcContextRows]);
+  const barEvolutionRows = useMemo(() => {
+    return openPaperPositions
+      .filter((row) => isRsiTopPosition(row) && row.entrySystem === "S1h" && !(row.status || "").startsWith("closed"))
+      .map((row) => {
+        const key = `${row.symbol}:${row.side}:${row.entryAt}`;
+        const bucket = positionSnapshots[key];
+        return {
+          key,
+          symbol: row.symbol,
+          side: row.side,
+          entryPrice: row.entryPrice ?? null,
+          currentPrice: row.currentPrice ?? null,
+          currentPl: computePlValue(row.entryPrice, row.currentPrice, row.side),
+          entryAt: row.entryAt,
+          lastSeenAt: row.lastSeenAt || null,
+          scans: Array.isArray(bucket?.snapshots) ? bucket!.snapshots! : [],
+        } satisfies BarEvolutionRow;
+      })
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }, [openPaperPositions, positionSnapshots]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RAI Crypto Dashboard</h1>
-            <p className="text-sm text-slate-300">S1D + S4h + S1h radar: version matrix, active paper positions și bar evolution pe fiecare sistem</p>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">RSI Top Dashboard</h1>
+            <p className="text-sm text-slate-300">doar strategia RSI Top, focus pe S1h</p>
           </div>
           <div className="text-xs leading-5 text-slate-200">
-            <p>Status: dashboard simplified</p>
             <p>Feed updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "loading..."}</p>
             <p>Next scan: {nextScanAt ? new Date(nextScanAt).toLocaleString() : "loading..."}</p>
           </div>
         </div>
 
-        <section className="mb-4 grid gap-2 md:grid-cols-5">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Money in play</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsd(openMoneySummary.marginUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Capitalul pus efectiv in joc acum.</p>
-            <p className="mt-1 text-[11px] text-slate-500">{openMoneySummary.positions} pozitii active x $10 marja.</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open notional</p>
-            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.notionalUsd)}`}>{formatUsd(openMoneySummary.notionalUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Valoarea totala controlata in piata acum.</p>
-            <p className="mt-1 text-[11px] text-slate-500">{openMoneySummary.positions} pozitii x $50 notional / pozitie.</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open P/L $</p>
-            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.pnlUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Profitul sau pierderea nerealizata pe pozitiile deschise.</p>
-            <p className="mt-1 text-[11px] text-slate-500">Marja initiala blocata: {formatUsd(openMoneySummary.marginUsd)}.</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Total P/L $</p>
-            <p className={`mt-2 text-lg font-semibold ${percentTextClass(totalMoneySummary.pnlUsd)}`}>{formatUsd(totalMoneySummary.pnlUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Rezultatul total pana acum: open + closed.</p>
-            <p className="mt-1 text-[11px] text-slate-500">Se vede imediat daca esti per total pe plus sau pe minus.</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Open money now</p>
-            <p className={`mt-2 text-lg font-semibold ${percentTextClass(openMoneySummary.pnlUsd)}`}>{formatUsd(openMoneySummary.equityUsd)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Cat ar valora acum toate pozitiile deschise, cu P/L inclus.</p>
-            <p className="mt-1 text-[11px] text-slate-500">Formula: money in play + open P/L.</p>
-          </div>
-        </section>
+        {error ? <div className={`${shellClass} mb-4 text-sm text-rose-200`}>Dashboard load error: {error}</div> : null}
+        {loading ? <div className={`${shellClass} mb-4 text-sm text-slate-300`}>Loading RSI Top dashboard…</div> : null}
 
-        <MatrixSection
-          title="S1h - RSI Top Version Matrix"
-          rows={rsiTopSummaryRows1h}
-          emptyText="No coins in tracked S1h RSI Top versions right now."
-        />
-
-        <section className={`${shellClass} mb-4 border-sky-400/30 bg-sky-950/25`}>
-          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white">Check Mark v0.1</h2>
-              <p className="mt-1 text-sm text-slate-300">strategia nouă este aici: sweep + reclaim + retest + trigger</p>
-            </div>
-            <div className="text-xs text-slate-300 md:text-right">
-              <p>Anchor: {checkMarkMeta?.sessionAnchor || "00:00 UTC"}</p>
-              <p>OR: {checkMarkMeta?.openingRangeTimeframe || "-"} · Trigger: {checkMarkMeta?.triggerTimeframe || "-"}</p>
-              <p>Publish: {checkMarkMeta?.publishCadenceMinutes ? `${checkMarkMeta.publishCadenceMinutes}m` : "-"}</p>
-            </div>
-          </div>
-
-          <div className="mb-3 grid gap-2 md:grid-cols-4">
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Rows</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{orderedCheckMarkRows.length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Triggered</p>
-              <p className="mt-2 text-lg font-semibold text-emerald-200">{orderedCheckMarkRows.filter((row) => row.status === "triggered").length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Retest</p>
-              <p className="mt-2 text-lg font-semibold text-sky-200">{orderedCheckMarkRows.filter((row) => row.status === "retest").length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Candidate</p>
-              <p className="mt-2 text-lg font-semibold text-amber-200">{orderedCheckMarkRows.filter((row) => row.status === "candidate").length}</p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">OR / ATR</th>
-                  <th className="px-4 py-3 text-left">Ref</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">Stop</th>
-                  <th className="px-4 py-3 text-left">TP1</th>
-                  <th className="px-4 py-3 text-left">TP2</th>
-                  <th className="px-4 py-3 text-left">Retest</th>
-                  <th className="px-4 py-3 text-left">Trigger</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderedCheckMarkRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-4 text-slate-400">Niciun setup Check Mark v0.1 in snapshotul curent.</td>
-                  </tr>
-                ) : (
-                  orderedCheckMarkRows.map((row) => (
-                    <tr key={`${row.symbol}-${row.openingCandleAt}-${row.side}`} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.side ? <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${row.side === "LONG" ? "border-emerald-200/70 bg-emerald-300/20 text-emerald-50" : "border-rose-200/70 bg-rose-300/20 text-rose-50"}`}>{row.side}</span> : "-"}</td>
-                      <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${checkMarkStatusClasses(row.status)}`}>{row.status || "-"}</span></td>
-                      <td className="px-4 py-3">{row.openingRange != null ? `${formatPrice(row.openingRange)} / ${row.atrRatio?.toFixed(3) || "-"}` : "-"}</td>
-                      <td className="px-4 py-3">{row.referenceLevelType ? `${row.referenceLevelType} · ${formatPrice(row.referenceLevel)}` : "-"}</td>
-                      <td className="px-4 py-3">{formatPrice(row.entry)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.stop)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.tp1)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.tp2)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.retestAt)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4 border-violet-400/30 bg-violet-950/20`}>
-          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white">V Flip Events 4H</h2>
-              <p className="mt-1 text-sm text-slate-300">momentul exact al trecerii de culoare, nu starea continuă</p>
-            </div>
-            <div className="text-xs text-slate-300 md:text-right">
-              <p>TF: {vStrategyMeta?.timeframe || "4h"}</p>
-              <p>Flip spread: {Array.isArray(vStrategyMeta?.flipZoneSpread) ? `${vStrategyMeta?.flipZoneSpread?.[0]}-${vStrategyMeta?.flipZoneSpread?.[1]}` : "-"}</p>
-              <p>Fresh: {vStrategyMeta?.eventFreshBars ?? "-"} bars</p>
-            </div>
-          </div>
-
-          <div className="mb-3 grid gap-2 md:grid-cols-4">
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Rows</p>
-              <p className="mt-2 text-lg font-semibold text-slate-100">{orderedVStrategyRows.length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fresh flips</p>
-              <p className="mt-2 text-lg font-semibold text-violet-200">{orderedVStrategyRows.filter((row) => row.isFreshEvent).length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bullish</p>
-              <p className="mt-2 text-lg font-semibold text-emerald-200">{orderedVStrategyRows.filter((row) => row.lastEventDirection === "bullish" && row.isFreshEvent).length}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bearish</p>
-              <p className="mt-2 text-lg font-semibold text-rose-200">{orderedVStrategyRows.filter((row) => row.lastEventDirection === "bearish" && row.isFreshEvent).length}</p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">Event</th>
-                  <th className="px-4 py-3 text-left">Age</th>
-                  <th className="px-4 py-3 text-left">Timer</th>
-                  <th className="px-4 py-3 text-left">Event candle</th>
-                  <th className="px-4 py-3 text-left">Price at flip</th>
-                  <th className="px-4 py-3 text-left">Spread</th>
-                  <th className="px-4 py-3 text-left">Score before</th>
-                  <th className="px-4 py-3 text-left">Score after</th>
-                  <th className="px-4 py-3 text-left">Now</th>
-                  <th className="px-4 py-3 text-left">Recent events</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderedVStrategyRows.length === 0 ? (
-                  <tr><td colSpan={11} className="px-4 py-4 text-slate-400">Încă nu există evenimente V Flip în payload.</td></tr>
-                ) : (
-                  orderedVStrategyRows.map((row) => (
-                    <tr key={row.symbol} className="border-t border-white/10 align-top">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(row.lastEventDirection)}`}>
-                          {shortVStrategyState(row.lastEventDirection)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">{vStrategyAgeLabel(row.lastEventBarsAgo)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-violet-200">{vStrategyElapsedTimer(row.lastEventAt, nowMs)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastEventAt)}</td>
-                      <td className="px-4 py-3">{formatPrice(row.lastEventPrice)}</td>
-                      <td className="px-4 py-3">{row.lastEventSpreadAtr != null ? row.lastEventSpreadAtr.toFixed(3) : "-"}</td>
-                      <td className="px-4 py-3">{row.lastEventPrevBullishOrderScore ?? "-"}/{row.lastEventPrevBearishOrderScore ?? "-"}</td>
-                      <td className="px-4 py-3">{row.lastEventBullishOrderScore ?? "-"}/{row.lastEventBearishOrderScore ?? "-"}</td>
-                      <td className="px-4 py-3">{row.currentBullishOrderScore ?? "-"}/{row.currentBearishOrderScore ?? "-"}</td>
-                      <td className="px-4 py-3 min-w-[220px]">
-                        <div className="flex flex-wrap gap-1">
-                          {(row.recentEvents || []).map((item, idx) => (
-                            <span key={`${row.symbol}-${idx}`} title={`${item.at || ""} · ${item.direction || "-"} · ${item.prevBullishOrderScore ?? "-"}/${item.prevBearishOrderScore ?? "-"} -> ${item.bullishOrderScore ?? "-"}/${item.bearishOrderScore ?? "-"}`} className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(item.direction)}`}>{item.barsAgo === 0 ? "NOW" : `${item.barsAgo}b`}</span>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-white">Check Mark v0.1 — Open Positions</h2>
-              <p className="mt-1 text-xs text-slate-400">aici apar toate pozițiile deschise de această strategie, cu detaliile aferente</p>
-            </div>
-            <span className="text-[10px] text-slate-400">{checkMarkOpenPositions.length} open</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">System</th>
-                  <th className="px-4 py-3 text-left">Signal</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">Current</th>
-                  <th className="px-4 py-3 text-left">P/L</th>
-                  <th className="px-4 py-3 text-left">Stop</th>
-                  <th className="px-4 py-3 text-left">TP1</th>
-                  <th className="px-4 py-3 text-left">TP2</th>
-                  <th className="px-4 py-3 text-left">OR / ATR</th>
-                  <th className="px-4 py-3 text-left">Trigger</th>
-                  <th className="px-4 py-3 text-left">State</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Opened</th>
-                  <th className="px-4 py-3 text-left">Last seen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {checkMarkOpenPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={14} className="px-4 py-4 text-slate-400">Încă nu există poziții deschise pe Check Mark v0.1.</td>
-                  </tr>
-                ) : (
-                  checkMarkOpenPositions.map((row) => {
-                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                    return (
-                      <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                        <td className="px-4 py-3">{row.entrySystem || "-"}</td>
-                        <td className="px-4 py-3">{row.entrySignal || "-"}</td>
-                        <td className="px-4 py-3">{shortSide(row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.currentPrice)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(computePlValue(row.entryPrice, row.currentPrice, row.side))}`}>{formatPL(row.entryPrice, row.currentPrice, row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.invalidationLevel)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.targetPrice)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.targetPrice2)}</td>
-                        <td className="px-4 py-3">{row.openingRange != null ? `${formatPrice(row.openingRange)} / ${row.atrRatio?.toFixed(3) || "-"}` : "-"}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
-                        <td className="px-4 py-3">{shortEntryState(row.entryState)}</td>
-                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.entryAt)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastSeenAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <TotalPlEvolutionSection
-          title="Portfolio P/L Evolution"
-          subtitle="un singur grafic total, la fiecare scanare"
-          rows={portfolioPlEvolutionRows}
-        />
-
-        <section className="mb-4 grid gap-4 md:grid-cols-3">
-          <TotalPlEvolutionSection
-            title="S1D - P/L Evolution"
-            subtitle="evolutia totala pentru sistemul S1D"
-            rows={portfolioPlEvolutionRows1d}
-          />
-          <TotalPlEvolutionSection
-            title="S4h - P/L Evolution"
-            subtitle="evolutia totala pentru sistemul S4h"
-            rows={portfolioPlEvolutionRows4h}
-            detailed
-          />
-          <TotalPlEvolutionSection
-            title="S1h - P/L Evolution"
-            subtitle="evolutia totala pentru sistemul S1h"
-            rows={portfolioPlEvolutionRows1h}
-            detailed
-          />
-        </section>
-
-        <VersionsLegendSection />
-
-        <MatrixSection
-          title="S1D - RSI Version Matrix"
-          rows={versionSummaryRows1d}
-          emptyText="No coins in tracked S1D RSI versions right now."
-        />
-
-        <MatrixSection
-          title="S4h - RSI Version Matrix"
-          rows={versionSummaryRows}
-          emptyText="No coins in tracked S4h RSI versions right now."
-        />
-
-        <MatrixSection
-          title="S1h - RSI Version Matrix"
-          rows={versionSummaryRows1h}
-          emptyText="No coins in tracked S1h RSI versions right now."
-        />
-
-        <ActivePositionsSection
-          title="S1D - Paper Positions - Active"
-          subtitle="numai pozitiile din sistemul S1D"
-          rows={activePaperPositions1d}
-          updatedAt={updatedAt}
-          paperPositionLabels={paperPositionLabels}
-          emptyText="No active S1D paper positions."
-        />
-
-        <BarEvolutionSection
-          title="S1D - Bar Evolution"
-          subtitle="doar pozitiile din sistemul S1D"
-          rows={openPositionEvolutionRows1d}
-          emptyText="No open S1D positions to track yet."
-        />
-
-        <ActivePositionsSection
-          title="S4h - Paper Positions - Active"
-          subtitle="numai pozitiile din sistemul S4h"
-          rows={activePaperPositions4h}
-          updatedAt={updatedAt}
-          paperPositionLabels={paperPositionLabels}
-          emptyText="No active S4h paper positions."
-        />
-
-        <BarEvolutionSection
-          title="S4h - Bar Evolution"
-          subtitle="doar pozitiile din sistemul S4h"
-          rows={openPositionEvolutionRows4h}
-          emptyText="No open S4h positions to track yet."
-        />
-
-        <ActivePositionsSection
-          title="S1h - Paper Positions - Active"
-          subtitle="numai pozitiile din sistemul S1h"
-          rows={activePaperPositions1h}
-          updatedAt={updatedAt}
-          paperPositionLabels={paperPositionLabels}
-          emptyText="No active S1h paper positions."
-        />
-
-        <BarEvolutionSection
-          title="S1h - Bar Evolution"
-          subtitle="doar pozitiile din sistemul S1h"
-          rows={openPositionEvolutionRows1h}
-          emptyText="No open S1h positions to track yet."
-        />
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        
-
-<section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">Paper Positions — Closed</h2>
-            <span className="text-[10px] text-slate-400">kept visible for learning continuity</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">System</th>
-                  <th className="px-4 py-3 text-left">Side</th>
-                  <th className="px-4 py-3 text-left">Entry</th>
-                  <th className="px-4 py-3 text-left">20 bars</th>
-                  <th className="px-4 py-3 text-left">Exit</th>
-                  <th className="px-4 py-3 text-left">Partial</th>
-                  <th className="px-4 py-3 text-left">Close P/L</th>
-                  <th className="px-4 py-3 text-left">P/L $</th>
-                  <th className="px-4 py-3 text-left">Money end</th>
-                  <th className="px-4 py-3 text-left">Best</th>
-                  <th className="px-4 py-3 text-left">Worst</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Closed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {closedPaperPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={14} className="px-4 py-4 text-slate-400">No closed paper positions yet.</td>
-                  </tr>
-                ) : (
-                  closedPaperPositions.map((row) => {
-                    const key = `${row.symbol}-${row.side}-${row.entryAt}`;
-                    return (
-                      <tr key={key} className="border-t border-white/10">
-                        <td className="px-4 py-3 font-semibold text-slate-100">{paperPositionLabels.get(key) || row.symbol}</td>
-                        <td className="px-4 py-3">{entrySignalBadge(row) || (row.entrySystem || "-")}</td>
-                        <td className="px-4 py-3">{shortSide(row.side)}</td>
-                        <td className="px-4 py-3">{formatPrice(row.entryPrice)}</td>
-                        <td className="px-4 py-3">{barsProgressLabel(row.entryAt, row.entrySystem, row.closedAt || row.lastSeenAt || updatedAt)}</td>
-                        <td className="px-4 py-3">{formatExitCell(row.closePrice, row.closePlPercent)}</td>
-                        <td className="px-4 py-3">{formatPartialCell(row.partialClosePrice, row.partialClosePlPercent)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatPercent(row.closePlPercent)}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatUsd(plUsdFromPercent(row.closePlPercent ?? null))}</td>
-                        <td className={`px-4 py-3 font-semibold ${percentTextClass(row.closePlPercent ?? null)}`}>{formatUsd(equityUsdFromPercent(row.closePlPercent ?? null))}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.maxPlPercent ?? null)}`}>{formatPercent(row.maxPlPercent)}</td>
-                        <td className={`px-4 py-3 ${percentTextClass(row.minPlPercent ?? null)}`}>{formatPercent(row.minPlPercent)}</td>
-                        <td className="px-4 py-3">{shortStatus(row.status)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.closedAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-<section className="mb-4 grid gap-2 md:grid-cols-3">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{v0InterestRows.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V1 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{interestRows.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V2 rows</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{v2InterestRows.length}</p>
-          </div>
-        </section>
-
-<section className="mb-4 grid gap-2 md:grid-cols-3">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Paper history</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{orderedHistoryPaperPositions.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Active positions</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{activePaperPositions.length}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed positions</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{closedPaperPositions.length}</p>
-          </div>
-        </section>
-
-<section className={`${shellClass} mb-4`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">BTC Context</h2>
-            <span className="text-[10px] text-slate-400">macro filter</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
-            <table className="min-w-full text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Symbol</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Trend</th>
-                  <th className="px-4 py-3 text-left">Daily bias</th>
-                  <th className="px-4 py-3 text-left">4H EMA</th>
-                  <th className="px-4 py-3 text-left">Structure</th>
-                  <th className="px-4 py-3 text-left">ADX</th>
-                  <th className="px-4 py-3 text-left">Permission</th>
-                </tr>
-              </thead>
-              <tbody>
-                {btcContextDisplayRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-4 text-slate-400">No BTC context yet.</td>
-                  </tr>
-                ) : (
-                  btcContextDisplayRows.map((row) => (
-                    <tr key={row.symbol} className="border-t border-white/10">
-                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3">{row.symbol === "BTC.D" ? formatPercent(row.value) : formatPrice(row.price)}</td>
-                      <td className="px-4 py-3">{row.trend ? <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${trendBadgeClasses(row.trend)}`}>{row.trend}</span> : "-"}</td>
-                      <td className="px-4 py-3">{row.bias || "-"}</td>
-                      <td className="px-4 py-3">{row.ema || "-"}</td>
-                      <td className="px-4 py-3">{row.structure || "-"}</td>
-                      <td className="px-4 py-3">{row.adx != null ? row.adx : "-"}</td>
-                      <td className="px-4 py-3">{row.permission || "-"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mb-4 grid gap-2 md:grid-cols-6">
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Scan status</p>
-            <p className={`mt-2 text-lg font-semibold ${scanSummary.healthy ? "text-emerald-200" : "text-rose-200"}`}>{scanSummary.scanned}/{scanSummary.expected}</p>
-            <p className={`mt-1 text-[11px] ${scanSummary.healthy ? "text-emerald-300" : "text-rose-300"}`}>{scanSummary.healthy ? "OK" : "missing scans"}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Visible now</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.visible}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">V0 hidden</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{scanSummary.hiddenV0}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Uptrend</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{trendSummary.uptrend}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Downtrend</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{trendSummary.downtrend}</p>
-          </div>
-          <div className={`${shellClass} p-2.5`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Range</p>
-            <p className="mt-2 text-lg font-semibold text-slate-100">{trendSummary.range}</p>
-          </div>
-        </section>
-
+        <MatrixSection rows={versionRows} />
+        <BarEvolutionSection rows={barEvolutionRows} />
       </div>
     </main>
   );
