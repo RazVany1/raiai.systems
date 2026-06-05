@@ -441,6 +441,21 @@ function vStrategyAgeLabel(barsAgo?: number | null) {
   return `${barsAgo} BARS AGO`;
 }
 
+function vStrategyElapsedTimer(value?: string | null, nowMs?: number) {
+  if (!value) return "-";
+  const startedAt = new Date(value).getTime();
+  if (!Number.isFinite(startedAt)) return "-";
+  const elapsedMs = Math.max(0, (nowMs ?? Date.now()) - startedAt);
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
 function isCheckMarkPosition(row: OpenPaperPosition) {
   const entrySystem = (row.entrySystem || "").toUpperCase();
   const entrySignal = (row.entrySignal || "").toUpperCase();
@@ -1127,6 +1142,7 @@ export default function CryptoDashboardPage() {
   const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
+  const [nowMs, setNowMs] = useState<number>(Date.now());
   const [scanUniverseExpected, setScanUniverseExpected] = useState<number>(0);
   const [selectedBoxSymbol, setSelectedBoxSymbol] = useState<string>("BTCUSDT");
   const [boxData, setBoxData] = useState<BoxDailyData | null>(null);
@@ -1135,6 +1151,11 @@ export default function CryptoDashboardPage() {
   const [boxChecklistRows, setBoxChecklistRows] = useState<BoxChecklistRow[]>([]);
   const [boxChecklistLoading, setBoxChecklistLoading] = useState<boolean>(false);
   const [boxChecklistError, setBoxChecklistError] = useState<string>("");
+
+  useEffect(() => {
+    const timerId = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timerId);
+  }, []);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1861,6 +1882,7 @@ export default function CryptoDashboardPage() {
                   <th className="px-4 py-3 text-left">Coin</th>
                   <th className="px-4 py-3 text-left">Event</th>
                   <th className="px-4 py-3 text-left">Age</th>
+                  <th className="px-4 py-3 text-left">Timer</th>
                   <th className="px-4 py-3 text-left">Event candle</th>
                   <th className="px-4 py-3 text-left">Price at flip</th>
                   <th className="px-4 py-3 text-left">Spread</th>
@@ -1872,7 +1894,7 @@ export default function CryptoDashboardPage() {
               </thead>
               <tbody>
                 {orderedVStrategyRows.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-4 text-slate-400">Încă nu există evenimente V Flip în payload.</td></tr>
+                  <tr><td colSpan={11} className="px-4 py-4 text-slate-400">Încă nu există evenimente V Flip în payload.</td></tr>
                 ) : (
                   orderedVStrategyRows.map((row) => (
                     <tr key={row.symbol} className="border-t border-white/10 align-top">
@@ -1883,6 +1905,7 @@ export default function CryptoDashboardPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">{vStrategyAgeLabel(row.lastEventBarsAgo)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-violet-200">{vStrategyElapsedTimer(row.lastEventAt, nowMs)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastEventAt)}</td>
                       <td className="px-4 py-3">{formatPrice(row.lastEventPrice)}</td>
                       <td className="px-4 py-3">{row.lastEventSpreadAtr != null ? row.lastEventSpreadAtr.toFixed(3) : "-"}</td>
