@@ -1500,6 +1500,7 @@ def main():
     interest_rows_1h = []
     v2_interest_rows_1h = []
     v3_interest_rows_1h = []
+    rsi_top_rows_1h = []
     v0_interest_rows_1d = []
     interest_rows_1d = []
     v2_interest_rows_1d = []
@@ -1744,6 +1745,21 @@ def main():
                         "timeframe": "1h",
                         "sourceVenue": "hyper",
                         "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
+                    })
+
+                    rsi_top_rows_1h.append({
+                        "symbol": symbol,
+                        "rsi": round(float(last_rsi_1h), 2),
+                        "price": price,
+                        "zone": v2_zone_1h,
+                        "detectedAt": detected_at,
+                        "anchorRsi": anchor_1h.get("anchorRsi"),
+                        "anchorTime": anchor_1h.get("anchorTime"),
+                        "anchorPrice": anchor_1h.get("anchorPrice"),
+                        "timeframe": "1h",
+                        "sourceVenue": "hyper",
+                        "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
+                        "strategySide": "LONG" if v2_zone_1h == "upper_interest" else "SHORT",
                     })
 
                     anchor_price_1h = anchor_1h.get("anchorPrice")
@@ -2892,6 +2908,7 @@ def main():
         "interestRows1h": interest_rows_1h,
         "v2InterestRows1h": v2_interest_rows_1h,
         "v3InterestRows1h": v3_interest_rows_1h,
+        "rsiTopRows1h": rsi_top_rows_1h,
         "v0InterestRows1d": v0_interest_rows_1d,
         "interestRows1d": interest_rows_1d,
         "v2InterestRows1d": v2_interest_rows_1d,

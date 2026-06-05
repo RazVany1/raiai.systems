@@ -53,6 +53,7 @@ type InterestRow = {
   timeframe: string;
   sourceVenue: string;
   previousRsi?: number | null;
+  strategySide?: string | null;
   firstDetectedAt?: string;
   lastSeenAt?: string;
   currentlyInZone?: boolean;
@@ -1128,6 +1129,7 @@ export default function CryptoDashboardPage() {
   const [interestRows1h, setInterestRows1h] = useState<InterestRow[]>([]);
   const [v2InterestRows1h, setV2InterestRows1h] = useState<InterestRow[]>([]);
   const [v3InterestRows1h, setV3InterestRows1h] = useState<InterestRow[]>([]);
+  const [rsiTopRows1h, setRsiTopRows1h] = useState<InterestRow[]>([]);
   const [v0InterestRows1d, setV0InterestRows1d] = useState<InterestRow[]>([]);
   const [interestRows1d, setInterestRows1d] = useState<InterestRow[]>([]);
   const [v2InterestRows1d, setV2InterestRows1d] = useState<InterestRow[]>([]);
@@ -1144,13 +1146,6 @@ export default function CryptoDashboardPage() {
   const [nextScanAt, setNextScanAt] = useState<string>("");
   const [nowMs, setNowMs] = useState<number>(Date.now());
   const [scanUniverseExpected, setScanUniverseExpected] = useState<number>(0);
-  const [selectedBoxSymbol, setSelectedBoxSymbol] = useState<string>("BTCUSDT");
-  const [boxData, setBoxData] = useState<BoxDailyData | null>(null);
-  const [boxLoading, setBoxLoading] = useState<boolean>(false);
-  const [boxError, setBoxError] = useState<string>("");
-  const [boxChecklistRows, setBoxChecklistRows] = useState<BoxChecklistRow[]>([]);
-  const [boxChecklistLoading, setBoxChecklistLoading] = useState<boolean>(false);
-  const [boxChecklistError, setBoxChecklistError] = useState<string>("");
 
   useEffect(() => {
     const timerId = setInterval(() => setNowMs(Date.now()), 1000);
@@ -1176,6 +1171,7 @@ export default function CryptoDashboardPage() {
         setInterestRows1h(data.interestRows1h || []);
         setV2InterestRows1h(data.v2InterestRows1h || []);
         setV3InterestRows1h(data.v3InterestRows1h || []);
+        setRsiTopRows1h(data.rsiTopRows1h || []);
         setV0InterestRows1d(data.v0InterestRows1d || []);
         setInterestRows1d(data.interestRows1d || []);
         setV2InterestRows1d(data.v2InterestRows1d || []);
@@ -1375,6 +1371,8 @@ export default function CryptoDashboardPage() {
 
   const versionSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, v3InterestRows1h]);
 
+  const rsiTopSummaryBaseRows1h = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1h, interestRows1h, v2InterestRows1h, rsiTopRows1h), [v0InterestRows1h, interestRows1h, v2InterestRows1h, rsiTopRows1h]);
+
   const versionSummaryBaseRows1d = useMemo(() => buildVersionSummaryBaseRows(v0InterestRows1d, interestRows1d, v2InterestRows1d, v3InterestRows1d), [v0InterestRows1d, interestRows1d, v2InterestRows1d, v3InterestRows1d]);
 
   const versionSummaryRows = useMemo(() => {
@@ -1409,6 +1407,17 @@ export default function CryptoDashboardPage() {
         return a.symbol.localeCompare(b.symbol);
       });
   }, [versionSummaryBaseRows1d, updatedAt]);
+
+  const rsiTopSummaryRows1h = useMemo(() => {
+    return rsiTopSummaryBaseRows1h
+      .filter((row) => row.v2 || row.v3)
+      .sort((a, b) => {
+        const aIsLatest = a.lastSeenAt === updatedAt || a.detectedAt === updatedAt;
+        const bIsLatest = b.lastSeenAt === updatedAt || b.detectedAt === updatedAt;
+        if (aIsLatest !== bIsLatest) return aIsLatest ? -1 : 1;
+        return a.symbol.localeCompare(b.symbol);
+      });
+  }, [rsiTopSummaryBaseRows1h, updatedAt]);
 
   const scanSummary = useMemo(() => {
     const scanned = new Set(
@@ -1533,192 +1542,6 @@ export default function CryptoDashboardPage() {
     return btcContextRows;
   }, [btcContextRows]);
 
-  const boxSymbolOptions = useMemo(() => {
-    const set = new Set<string>([
-      ...openPaperPositions.map((row) => row.symbol).filter(Boolean),
-      ...trendRows.map((row) => row.symbol).filter((symbol) => symbol && symbol !== "BTC.D"),
-      "BTCUSDT",
-      "ETHUSDT",
-      "NEARUSDT",
-    ]);
-    return [...set].sort((a, b) => a.localeCompare(b));
-  }, [openPaperPositions, trendRows]);
-
-  useEffect(() => {
-    if (!boxSymbolOptions.includes(selectedBoxSymbol) && boxSymbolOptions.length > 0) {
-      setSelectedBoxSymbol(boxSymbolOptions[0]);
-    }
-  }, [boxSymbolOptions, selectedBoxSymbol]);
-
-  useEffect(() => {
-    if (!selectedBoxSymbol) return;
-    let cancelled = false;
-
-    const buildBoxData = (symbol: string, dailyKlines: any[], fiveMinKlines: any[], currentPrice: number): BoxDailyData => {
-      const previous = dailyKlines[dailyKlines.length - 2];
-      const currentDay = dailyKlines[dailyKlines.length - 1];
-      let previousHigh = Number(previous?.[2]);
-      let previousLow = Number(previous?.[3]);
-      const currentDayOpenTime = Number(currentDay?.[0]);
-      const openingCandles = fiveMinKlines.filter((row: any) => {
-        const openTime = Number(row?.[0]);
-        return Number.isFinite(openTime) && Number.isFinite(currentDayOpenTime) && openTime >= currentDayOpenTime && openTime < currentDayOpenTime + 20 * 60 * 1000;
-      });
-      const openingHighs = openingCandles.map((row: any) => Number(row?.[2])).filter((value: number) => Number.isFinite(value));
-      const openingLows = openingCandles.map((row: any) => Number(row?.[3])).filter((value: number) => Number.isFinite(value));
-      const adjustedHigh = openingHighs.length ? Math.max(previousHigh, ...openingHighs) : previousHigh;
-      const adjustedLow = openingLows.length ? Math.min(previousLow, ...openingLows) : previousLow;
-      const adjusted = adjustedHigh !== previousHigh || adjustedLow !== previousLow;
-      previousHigh = adjustedHigh;
-      previousLow = adjustedLow;
-      const mid = (previousHigh + previousLow) / 2;
-      const nearTop = currentPrice >= previousHigh * (1 - BOX_EXTREME_TOUCH_PCT);
-      const nearBottom = currentPrice <= previousLow * (1 + BOX_EXTREME_TOUCH_PCT);
-      const currentZone: BoxDailyData["currentZone"] = currentPrice > previousHigh ? "above" : currentPrice < previousLow ? "below" : nearTop ? "top" : nearBottom ? "bottom" : "middle";
-      return {
-        symbol,
-        previousHigh,
-        previousLow,
-        mid,
-        currentPrice,
-        currentZone,
-        distanceFromMidPercent: ((currentPrice - mid) / mid) * 100,
-        source: adjusted ? "Binance daily box + first 20m opening adjustment + live ticker" : "Binance daily box + live ticker",
-      };
-    };
-
-    const buildChecklist = (data: BoxDailyData, dailyKlines: any[], fiveMinKlines: any[]): BoxChecklistRow => {
-      const older = dailyKlines.slice(Math.max(0, dailyKlines.length - 7), dailyKlines.length - 2);
-      const olderHighs = older.map((row) => Number(row?.[2])).filter((value) => Number.isFinite(value));
-      const olderLows = older.map((row) => Number(row?.[3])).filter((value) => Number.isFinite(value));
-      const recentMax = olderHighs.length ? Math.max(...olderHighs) : data.previousHigh;
-      const recentMin = olderLows.length ? Math.min(...olderLows) : data.previousLow;
-      const currentDay = dailyKlines[dailyKlines.length - 1];
-      const currentDayOpenTime = Number(currentDay?.[0]);
-      const openingCandles = fiveMinKlines.filter((row: any) => {
-        const openTime = Number(row?.[0]);
-        return Number.isFinite(openTime) && Number.isFinite(currentDayOpenTime) && openTime >= currentDayOpenTime && openTime < currentDayOpenTime + 20 * 60 * 1000;
-      });
-      const recentFive = fiveMinKlines.slice(-6);
-      const recentHigh = recentFive.map((row: any) => Number(row?.[2])).filter((value: number) => Number.isFinite(value));
-      const recentLow = recentFive.map((row: any) => Number(row?.[3])).filter((value: number) => Number.isFinite(value));
-      const lastFive = recentFive[recentFive.length - 1];
-      const lastOpen = Number(lastFive?.[1]);
-      const lastClose = Number(lastFive?.[4]);
-      const latestHigh = recentHigh.length ? Math.max(...recentHigh) : null;
-      const latestLow = recentLow.length ? Math.min(...recentLow) : null;
-      const candidateSide = data.currentZone === "top" || data.currentZone === "above" ? "SHORT" : data.currentZone === "bottom" || data.currentZone === "below" ? "LONG" : null;
-      const smallTfExtreme = candidateSide === "SHORT"
-        ? latestHigh != null && latestHigh >= data.previousHigh * (1 - BOX_EXTREME_TOUCH_PCT)
-        : candidateSide === "LONG"
-          ? latestLow != null && latestLow <= data.previousLow * (1 + BOX_EXTREME_TOUCH_PCT)
-          : false;
-      const openingAdjusted = openingCandles.length > 0;
-      const leftContext = candidateSide === "SHORT"
-        ? data.previousHigh >= recentMax * 0.997
-        : candidateSide === "LONG"
-          ? data.previousLow <= recentMin * 1.003
-          : false;
-      const reaction = candidateSide === "SHORT"
-        ? smallTfExtreme && Number.isFinite(lastOpen) && Number.isFinite(lastClose) && lastClose < lastOpen && lastClose < data.previousHigh
-        : candidateSide === "LONG"
-          ? smallTfExtreme && Number.isFinite(lastOpen) && Number.isFinite(lastClose) && lastClose > lastOpen && lastClose > data.previousLow
-          : false;
-      const stopPrice = candidateSide === "SHORT"
-        ? data.previousHigh * (1 + BOX_STOP_BUFFER_PCT)
-        : candidateSide === "LONG"
-          ? data.previousLow * (1 - BOX_STOP_BUFFER_PCT)
-          : null;
-      const targetPrice = candidateSide ? data.mid : null;
-      const risk = candidateSide === "SHORT"
-        ? Math.max((stopPrice ?? data.currentPrice) - data.currentPrice, 0)
-        : candidateSide === "LONG"
-          ? Math.max(data.currentPrice - (stopPrice ?? data.currentPrice), 0)
-          : 0;
-      const reward = candidateSide === "SHORT"
-        ? Math.max(data.currentPrice - data.mid, 0)
-        : candidateSide === "LONG"
-          ? Math.max(data.mid - data.currentPrice, 0)
-          : 0;
-      const riskRewardRatio = risk > 0 ? reward / risk : null;
-      const stopDefined = stopPrice != null && Number.isFinite(stopPrice);
-      const checks = {
-        boxBuilt: Number.isFinite(data.previousHigh) && Number.isFinite(data.previousLow) && Number.isFinite(data.mid),
-        smallTfExtreme,
-        openingAdjusted,
-        leftContext,
-        reaction,
-        stopDefined,
-      };
-      const notes: string[] = [];
-      if (!checks.smallTfExtreme) notes.push("5m not at extreme");
-      if (!checks.openingAdjusted) notes.push("open window not evaluated");
-      if (!checks.leftContext) notes.push("left context missing");
-      if (!checks.reaction) notes.push("5m reaction missing");
-      if (!checks.stopDefined) notes.push("stop missing");
-      const checksDone = Object.values(checks).filter(Boolean).length;
-      const checksTotal = Object.keys(checks).length;
-      return {
-        ...data,
-        candidateSide,
-        checks,
-        checksDone,
-        checksTotal,
-        readyToOpen: checksDone === checksTotal && candidateSide != null,
-        stopPrice,
-        targetPrice,
-        riskRewardRatio,
-        notes,
-      };
-    };
-
-    const loadBox = async () => {
-      setBoxLoading(true);
-      setBoxChecklistLoading(true);
-      setBoxError("");
-      setBoxChecklistError("");
-      try {
-        const batchSymbols = BOX_TEST_SYMBOLS;
-        const tickerResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { cache: "no-store" })));
-        const dailyResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=8`, { cache: "no-store" })));
-        const fiveMinResponses = await Promise.all(batchSymbols.map((symbol) => fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=48`, { cache: "no-store" })));
-        const tickers = await Promise.all(tickerResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_ticker_failed"))));
-        const dailyList = await Promise.all(dailyResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_klines_failed"))));
-        const fiveMinList = await Promise.all(fiveMinResponses.map((res) => res.ok ? res.json() : Promise.reject(new Error("box_5m_failed"))));
-        const builtRows: BoxChecklistRow[] = batchSymbols.map((symbol, index) => {
-          const currentPrice = Number(tickers[index]?.price);
-          const dailyKlines = dailyList[index];
-          const fiveMinKlines = fiveMinList[index];
-          if (!Array.isArray(dailyKlines) || dailyKlines.length < 2 || !Array.isArray(fiveMinKlines) || !Number.isFinite(currentPrice)) throw new Error(`box_invalid_${symbol}`);
-          const data = buildBoxData(symbol, dailyKlines, fiveMinKlines, currentPrice);
-          return buildChecklist(data, dailyKlines, fiveMinKlines);
-        });
-        const selectedRow = builtRows.find((row) => row.symbol === selectedBoxSymbol) || null;
-        if (!cancelled) {
-          setBoxChecklistRows(builtRows);
-          setBoxData(selectedRow);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setBoxData(null);
-          setBoxChecklistRows([]);
-          setBoxError(`Nu am putut incarca boxul pentru ${selectedBoxSymbol}.`);
-          setBoxChecklistError("Nu am putut calcula checklist-ul Box v.01 pentru lotul curent.");
-        }
-      } finally {
-        if (!cancelled) {
-          setBoxLoading(false);
-          setBoxChecklistLoading(false);
-        }
-      }
-    };
-
-    loadBox();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedBoxSymbol]);
-
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.14),_transparent_35%),linear-gradient(180deg,_#101826_0%,_#1a2433_100%)] px-3 py-4 md:px-4">
       <div className="mx-auto max-w-7xl">
@@ -1766,6 +1589,12 @@ export default function CryptoDashboardPage() {
             <p className="mt-1 text-[11px] text-slate-500">Formula: money in play + open P/L.</p>
           </div>
         </section>
+
+        <MatrixSection
+          title="S1h - RSI Top Version Matrix"
+          rows={rsiTopSummaryRows1h}
+          emptyText="No coins in tracked S1h RSI Top versions right now."
+        />
 
         <section className={`${shellClass} mb-4 border-sky-400/30 bg-sky-950/25`}>
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -1991,19 +1820,6 @@ export default function CryptoDashboardPage() {
             </table>
           </div>
         </section>
-
-        <BoxStrategySection
-          symbol={selectedBoxSymbol}
-          data={boxData}
-          loading={boxLoading}
-          error={boxError}
-          onSymbolChange={setSelectedBoxSymbol}
-          symbolOptions={boxSymbolOptions}
-        />
-
-        <BoxChecklistSection rows={boxChecklistRows} loading={boxChecklistLoading} error={boxChecklistError} />
-
-        <BoxPaperPositionsSection rows={boxChecklistRows} loading={boxChecklistLoading} error={boxChecklistError} />
 
         <TotalPlEvolutionSection
           title="Portfolio P/L Evolution"
