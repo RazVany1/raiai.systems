@@ -298,7 +298,17 @@ def compute_exit_signals(symbol: str, side: str | None, layer: RAICryptoSignalOu
     return signals
 
 
-def apply_exit_management(existing: dict, side: str | None, current_price: float | None, formation: dict | None, trend: dict | None, updated_at: str, exit_signals: dict | None = None) -> dict:
+def apply_exit_management(
+    existing: dict,
+    side: str | None,
+    current_price: float | None,
+    formation: dict | None,
+    trend: dict | None,
+    updated_at: str,
+    exit_signals: dict | None = None,
+    force_weakness: bool | None = None,
+    hard_stop_percent: float | None = None,
+) -> dict:
     status = existing.get("status", "open")
     closed_at = existing.get("closedAt")
     remaining_size = existing.get("remainingSizePercent")
@@ -323,10 +333,16 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
     formation_state = formation.get("state") if isinstance(formation, dict) else None
     trade_permission = trend.get("tradePermission") if isinstance(trend, dict) else existing.get("tradePermission")
 
-    weakness = formation_state in {"watch", "late"} or trade_permission == "NO TRADE"
+    weakness = force_weakness if isinstance(force_weakness, bool) else (formation_state in {"watch", "late"} or trade_permission == "NO TRADE")
     summary = exit_signals.get("summary", {}) if isinstance(exit_signals, dict) else {}
     mtf_profit_protect = bool(summary.get("mtf_profit_protect"))
     mtf_full_exit = bool(summary.get("mtf_full_exit"))
+    hard_stop_hit = bool(
+        isinstance(current_pl, (int, float))
+        and isinstance(hard_stop_percent, (int, float))
+        and hard_stop_percent > 0
+        and current_pl <= (-1.0 * float(hard_stop_percent))
+    )
 
     top_exhaustion = bool(
         isinstance(current_pl, (int, float))
@@ -353,7 +369,13 @@ def apply_exit_management(existing: dict, side: str | None, current_price: float
         close_price = current_price
         close_pl_percent = current_pl
     elif not str(status).startswith("closed"):
-        if top_exhaustion:
+        if hard_stop_hit:
+            status = "closed_hard_stop"
+            closed_at = closed_at or updated_at
+            close_price = current_price
+            close_pl_percent = current_pl
+            remaining_size = 0.0
+        elif top_exhaustion:
             status = "closed_full_exit"
             closed_at = closed_at or updated_at
             close_price = current_price
@@ -2476,16 +2498,46 @@ def main():
                     current_invalidation = existing.get("invalidationLevel")
                     if current_signal == "CHECK_MARK_V0_1":
                         current_invalidation = existing.get("invalidationLevel", row.get("invalidationLevel"))
-                    current_status = "open"
-                    current_closed_at = None
-                    current_close_price = None
-                    current_close_pl = None
-                    if current_signal == "CHECK_MARK_V0_1" and isinstance(current_invalidation, (int, float)) and isinstance(entry_price, (int, float)):
-                        if (side == "LONG" and entry_price <= current_invalidation) or (side == "SHORT" and entry_price >= current_invalidation):
-                            current_status = "closed_invalidated"
-                            current_closed_at = updated_at
-                            current_close_price = entry_price
-                            current_close_pl = current_pl
+
+                    if current_signal == "RSI_V3":
+                        exit_state = apply_exit_management(
+                            existing,
+                            side,
+                            entry_price,
+                            None,
+                            None,
+                            updated_at,
+                            exit_signals,
+                            force_weakness=False,
+                            hard_stop_percent=3.0,
+                        )
+                        current_status = exit_state["status"]
+                        current_closed_at = exit_state["closedAt"]
+                        current_close_price = exit_state["closePrice"]
+                        current_close_pl = exit_state["closePlPercent"]
+                        current_remaining_size = exit_state["remainingSizePercent"]
+                        current_partial_closed_at = exit_state["partialClosedAt"]
+                        current_partial_close_price = exit_state["partialClosePrice"]
+                        current_partial_close_pl = exit_state["partialClosePlPercent"]
+                        current_runner_stop = exit_state["runnerStopPrice"]
+                    else:
+                        current_status = "open"
+                        current_closed_at = None
+                        current_close_price = None
+                        current_close_pl = None
+                        current_remaining_size = 100.0
+                        current_partial_closed_at = None
+                        current_partial_close_price = None
+                        current_partial_close_pl = None
+                        current_runner_stop = None
+                        if isinstance(current_invalidation, (int, float)) and isinstance(entry_price, (int, float)):
+                            if (side == "LONG" and entry_price <= current_invalidation) or (side == "SHORT" and entry_price >= current_invalidation):
+                                current_status = "closed_invalidated"
+                                current_closed_at = updated_at
+                                current_close_price = entry_price
+                                current_close_pl = current_pl
+                                current_remaining_size = 0.0
+
                     paper_positions.append({
                         **existing,
                         "lastSeenAt": updated_at,
@@ -2516,12 +2568,12 @@ def main():
                         "closedAt": current_closed_at,
                         "closePrice": current_close_price,
                         "closePlPercent": current_close_pl,
-                        "remainingSizePercent": 100.0,
-                        "partialClosedAt": None,
-                        "partialClosePrice": None,
-                        "partialClosePlPercent": None,
-                        "runnerStopPrice": None,
-                        "exitSignals": {},
+                        "remainingSizePercent": current_remaining_size,
+                        "partialClosedAt": current_partial_closed_at,
+                        "partialClosePrice": current_partial_close_price,
+                        "partialClosePlPercent": current_partial_close_pl,
+                        "runnerStopPrice": current_runner_stop,
+                        "exitSignals": exit_signals if current_signal == "RSI_V3" else {},
                         "maxPlPercent": max_pl,
                         "minPlPercent": min_pl,
                     })
