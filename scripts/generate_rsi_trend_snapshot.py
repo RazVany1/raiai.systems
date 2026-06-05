@@ -15,6 +15,13 @@ CHECK_MARK_RETEST_ZONE_FRACTION = 0.20
 CHECK_MARK_STOP_BUFFER_FRACTION = 0.05
 CHECK_MARK_MAX_RETEST_CANDLES = 12
 CHECK_MARK_MAX_TRIGGER_CANDLES = 6
+V_STRATEGY_SYMBOLS = ["WLDUSDT", "ASTERUSDT", "TAOUSDT", "ARBUSDT", "FETUSDT"]
+V_STRATEGY_TIMEFRAME = "4h"
+V_STRATEGY_ATR_PERIOD = 14
+V_STRATEGY_FLIP_ZONE_SPREAD_MIN = 0.03
+V_STRATEGY_FLIP_ZONE_SPREAD_MAX = 0.35
+V_STRATEGY_FLIP_ZONE_RECENT_BARS = 3
+V_STRATEGY_LOOKBACK_BARS = 24
 from pathlib import Path
 import sys
 from urllib.request import urlopen
@@ -969,6 +976,187 @@ def iso_from_ms(timestamp_ms: int | float | None) -> str | None:
     return datetime.fromtimestamp(float(timestamp_ms) / 1000, tz=timezone.utc).isoformat()
 
 
+def classify_v_strategy_state(
+    bullish_order_score: int,
+    bearish_order_score: int,
+    prev_bullish_order_score: int,
+    prev_bearish_order_score: int,
+    ema21_now: float,
+    ema21_prev: float,
+    ema55_now: float,
+    ema55_prev: float,
+    spread_atr: float | None,
+) -> str:
+    if not isinstance(spread_atr, (int, float)):
+        return "none"
+    if not (V_STRATEGY_FLIP_ZONE_SPREAD_MIN <= spread_atr <= V_STRATEGY_FLIP_ZONE_SPREAD_MAX):
+        return "none"
+
+    bullish_cross_now = ema21_now > ema55_now
+    bearish_cross_now = ema21_now < ema55_now
+    bullish_cross_prev = ema21_prev > ema55_prev
+    bearish_cross_prev = ema21_prev < ema55_prev
+    ema21_up = ema21_now > ema21_prev
+    ema21_down = ema21_now < ema21_prev
+
+    if (
+        bullish_order_score >= 4
+        and bullish_cross_now
+        and ema21_up
+        and (
+            not bullish_cross_prev
+            or prev_bearish_order_score >= 4
+            or bullish_order_score > prev_bullish_order_score
+        )
+    ):
+        return "bullish_flip_zone"
+
+    if (
+        bearish_order_score >= 4
+        and bearish_cross_now
+        and ema21_down
+        and (
+            not bearish_cross_prev
+            or prev_bullish_order_score >= 4
+            or bearish_order_score > prev_bearish_order_score
+        )
+    ):
+        return "bearish_flip_zone"
+
+    return "none"
+
+
+def detect_v_strategy_row(symbol: str, layer: RAICryptoSignalOutputLayerV3, kline_cache: dict[tuple[str, str, int], list]) -> dict | None:
+    klines = get_klines_cached(layer, kline_cache, symbol, V_STRATEGY_TIMEFRAME, 160)
+    if len(klines) < 80:
+        return None
+
+    times = [int(c[0]) for c in klines]
+    _, highs, lows, closes = layer.extract_ohlc(klines)
+    atr_values = atr(highs, lows, closes, V_STRATEGY_ATR_PERIOD)
+    ema21 = ema(closes, 21)
+    ema25 = ema(closes, 25)
+    ema30 = ema(closes, 30)
+    ema35 = ema(closes, 35)
+    ema40 = ema(closes, 40)
+    ema45 = ema(closes, 45)
+    ema50 = ema(closes, 50)
+    ema55 = ema(closes, 55)
+
+    raw_history = []
+    start_index = max(1, len(closes) - V_STRATEGY_LOOKBACK_BARS)
+    for idx in range(start_index, len(closes)):
+        bullish_order_score = sum([
+            1 if ema21[idx] > ema25[idx] else 0,
+            1 if ema25[idx] > ema30[idx] else 0,
+            1 if ema30[idx] > ema35[idx] else 0,
+            1 if ema35[idx] > ema40[idx] else 0,
+            1 if ema40[idx] > ema45[idx] else 0,
+            1 if ema45[idx] > ema50[idx] else 0,
+            1 if ema50[idx] > ema55[idx] else 0,
+        ])
+        bearish_order_score = sum([
+            1 if ema21[idx] < ema25[idx] else 0,
+            1 if ema25[idx] < ema30[idx] else 0,
+            1 if ema30[idx] < ema35[idx] else 0,
+            1 if ema35[idx] < ema40[idx] else 0,
+            1 if ema40[idx] < ema45[idx] else 0,
+            1 if ema45[idx] < ema50[idx] else 0,
+            1 if ema50[idx] < ema55[idx] else 0,
+        ])
+        atr_now = atr_values[idx]
+        spread_atr = None if not isinstance(atr_now, (int, float)) or atr_now <= 0 else abs(ema21[idx] - ema55[idx]) / atr_now
+        raw_history.append({
+            "idx": idx,
+            "at": iso_from_ms(times[idx]),
+            "spreadAtr": rounded(spread_atr, 4),
+            "bullishOrderScore": bullish_order_score,
+            "bearishOrderScore": bearish_order_score,
+        })
+
+    history = []
+    recent_flip_idx = None
+    recent_flip_side = None
+    for pos, item in enumerate(raw_history):
+        idx = item["idx"]
+        prev = raw_history[pos - 1] if pos > 0 else None
+        prev_bull = int(prev["bullishOrderScore"]) if prev else 0
+        prev_bear = int(prev["bearishOrderScore"]) if prev else 0
+        event_state = classify_v_strategy_state(
+            int(item["bullishOrderScore"]),
+            int(item["bearishOrderScore"]),
+            prev_bull,
+            prev_bear,
+            ema21[idx],
+            ema21[idx - 1],
+            ema55[idx],
+            ema55[idx - 1],
+            item["spreadAtr"],
+        )
+        if event_state == "bullish_flip_zone":
+            recent_flip_idx = pos
+            recent_flip_side = "bullish"
+        elif event_state == "bearish_flip_zone":
+            recent_flip_idx = pos
+            recent_flip_side = "bearish"
+
+        active_state = "none"
+        if recent_flip_idx is not None and (pos - recent_flip_idx) <= V_STRATEGY_FLIP_ZONE_RECENT_BARS:
+            if isinstance(item["spreadAtr"], (int, float)) and V_STRATEGY_FLIP_ZONE_SPREAD_MIN <= float(item["spreadAtr"]) <= V_STRATEGY_FLIP_ZONE_SPREAD_MAX:
+                if recent_flip_side == "bullish" and int(item["bullishOrderScore"]) >= 4:
+                    active_state = "bullish_flip_zone"
+                elif recent_flip_side == "bearish" and int(item["bearishOrderScore"]) >= 4:
+                    active_state = "bearish_flip_zone"
+
+        history.append({
+            "at": item["at"],
+            "state": active_state,
+            "eventState": event_state,
+            "spreadAtr": item["spreadAtr"],
+            "bullishOrderScore": item["bullishOrderScore"],
+            "bearishOrderScore": item["bearishOrderScore"],
+        })
+
+    if not history:
+        return None
+
+    current = history[-1]
+    current_state = current["state"]
+    state_started_at = current["at"]
+    for item in reversed(history[:-1]):
+        if item["state"] != current_state:
+            break
+        state_started_at = item["at"]
+
+    def latest_at(target: str):
+        for item in reversed(history):
+            if item["state"] == target:
+                return item["at"]
+        return None
+
+    return {
+        "symbol": symbol,
+        "timeframe": V_STRATEGY_TIMEFRAME,
+        "currentState": current_state,
+        "stateStartedAt": state_started_at,
+        "spreadAtr": current.get("spreadAtr"),
+        "bullishOrderScore": current.get("bullishOrderScore"),
+        "bearishOrderScore": current.get("bearishOrderScore"),
+        "price": rounded(closes[-1]),
+        "ema21": rounded(ema21[-1]),
+        "ema55": rounded(ema55[-1]),
+        "lastBullishFlipAt": latest_at("bullish_flip_zone"),
+        "lastBearishFlipAt": latest_at("bearish_flip_zone"),
+        "recentStates": history[-8:],
+        "sourceVenue": "binance",
+    }
+
+
+    if not isinstance(timestamp_ms, (int, float)):
+        return None
+    return datetime.fromtimestamp(float(timestamp_ms) / 1000, tz=timezone.utc).isoformat()
+
+
 def find_session_opening_index(klines: list, target_date: datetime) -> int | None:
     for index, candle in enumerate(klines):
         candle_time = datetime.fromtimestamp(int(candle[0]) / 1000, tz=timezone.utc)
@@ -1312,6 +1500,7 @@ def main():
     formation_rows = []
     trend_rows = []
     check_mark_rows = []
+    v_strategy_rows = []
     market_scan_map = {}
     updated_at = datetime.now(timezone.utc).isoformat()
     try:
@@ -1674,6 +1863,11 @@ def main():
             check_mark_setup = detect_check_mark_setup(symbol, layer, kline_cache, updated_at)
             if isinstance(check_mark_setup, dict):
                 check_mark_rows.append(check_mark_setup)
+
+            if symbol in V_STRATEGY_SYMBOLS:
+                v_strategy_row = detect_v_strategy_row(symbol, layer, kline_cache)
+                if isinstance(v_strategy_row, dict):
+                    v_strategy_rows.append(v_strategy_row)
 
             trend_rows.append(detect_market_direction(symbol, layer, price_cache, kline_cache))
         except Exception as exc:
@@ -2668,6 +2862,13 @@ def main():
         "formationRows": formation_rows,
         "trendRows": trend_rows,
         "btcContextRows": btc_context_rows,
+        "vStrategyMeta": {
+            "timeframe": V_STRATEGY_TIMEFRAME,
+            "symbols": V_STRATEGY_SYMBOLS,
+            "flipZoneSpread": [V_STRATEGY_FLIP_ZONE_SPREAD_MIN, V_STRATEGY_FLIP_ZONE_SPREAD_MAX],
+            "flipZoneRecentBars": V_STRATEGY_FLIP_ZONE_RECENT_BARS,
+        },
+        "vStrategyRows": v_strategy_rows,
         "checkMarkMeta": {
             "sessionAnchor": "00:00 UTC",
             "publishCadenceMinutes": 30,

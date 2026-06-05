@@ -195,6 +195,38 @@ type CheckMarkRow = {
   sourceVenue?: string;
 };
 
+type VStrategyMeta = {
+  timeframe?: string;
+  symbols?: string[];
+  flipZoneSpread?: number[];
+  flipZoneRecentBars?: number;
+};
+
+type VStrategyRecentState = {
+  at?: string;
+  state?: string;
+  spreadAtr?: number | null;
+  bullishOrderScore?: number;
+  bearishOrderScore?: number;
+};
+
+type VStrategyRow = {
+  symbol: string;
+  timeframe?: string;
+  currentState?: string;
+  stateStartedAt?: string | null;
+  spreadAtr?: number | null;
+  bullishOrderScore?: number;
+  bearishOrderScore?: number;
+  price?: number | null;
+  ema21?: number | null;
+  ema55?: number | null;
+  lastBullishFlipAt?: string | null;
+  lastBearishFlipAt?: string | null;
+  recentStates?: VStrategyRecentState[];
+  sourceVenue?: string;
+};
+
 const BOX_TEST_SYMBOLS = ["BTCUSDT", "ETHUSDT", "NEARUSDT", "WLDUSDT", "ARBUSDT", "SOLUSDT", "XRPUSDT", "AAVEUSDT"];
 const BOX_EXTREME_TOUCH_PCT = 0.0015;
 const BOX_STOP_BUFFER_PCT = 0.001;
@@ -374,6 +406,21 @@ function checkMarkStatusClasses(status?: string | null) {
   if (status === "candidate") return "border-amber-200/70 bg-amber-300/20 text-amber-50";
   if (status === "invalidated") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
+}
+
+function vStrategyStateClasses(state?: string | null) {
+  if (state === "bullish_flip_zone") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (state === "bearish_flip_zone") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
+  return "border-slate-200/25 bg-slate-100/10 text-slate-100";
+}
+
+function shortVStrategyState(state?: string | null) {
+  const map: Record<string, string> = {
+    bullish_flip_zone: "B FLIP",
+    bearish_flip_zone: "S FLIP",
+    none: "NONE",
+  };
+  return map[state || ""] || (state || "-");
 }
 
 function isCheckMarkPosition(row: OpenPaperPosition) {
@@ -1057,6 +1104,8 @@ export default function CryptoDashboardPage() {
   const [btcContextRows, setBtcContextRows] = useState<BtcContextRow[]>([]);
   const [checkMarkRows, setCheckMarkRows] = useState<CheckMarkRow[]>([]);
   const [checkMarkMeta, setCheckMarkMeta] = useState<CheckMarkMeta | null>(null);
+  const [vStrategyRows, setVStrategyRows] = useState<VStrategyRow[]>([]);
+  const [vStrategyMeta, setVStrategyMeta] = useState<VStrategyMeta | null>(null);
   const [positionSnapshots, setPositionSnapshots] = useState<Record<string, PositionSnapshotBucket>>({});
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [nextScanAt, setNextScanAt] = useState<string>("");
@@ -1097,6 +1146,8 @@ export default function CryptoDashboardPage() {
         setBtcContextRows(data.btcContextRows || []);
         setCheckMarkRows(data.checkMarkRows || []);
         setCheckMarkMeta(data.checkMarkMeta || null);
+        setVStrategyRows(data.vStrategyRows || []);
+        setVStrategyMeta(data.vStrategyMeta || null);
         setPositionSnapshots(data.positionSnapshots || {});
         setUpdatedAt(data.updatedAt || "");
         setNextScanAt(data.nextScanAt || "");
@@ -1122,6 +1173,8 @@ export default function CryptoDashboardPage() {
         setBtcContextRows([]);
         setCheckMarkRows([]);
         setCheckMarkMeta(null);
+        setVStrategyRows([]);
+        setVStrategyMeta(null);
         setPositionSnapshots({});
         setScanUniverseExpected(0);
       }
@@ -1163,6 +1216,19 @@ export default function CryptoDashboardPage() {
       return (b.atrRatio || 0) - (a.atrRatio || 0);
     });
   }, [checkMarkRows]);
+
+  const orderedVStrategyRows = useMemo(() => {
+    const rank: Record<string, number> = {
+      bullish_flip_zone: 0,
+      bearish_flip_zone: 1,
+      none: 9,
+    };
+    return [...vStrategyRows].sort((a, b) => {
+      const diff = (rank[a.currentState || "none"] ?? 99) - (rank[b.currentState || "none"] ?? 99);
+      if (diff !== 0) return diff;
+      return (b.spreadAtr || 0) - (a.spreadAtr || 0);
+    });
+  }, [vStrategyRows]);
 
   const orderedOpenPaperPositions = useMemo(() => {
     return [...openPaperPositions].sort((a, b) => {
@@ -1729,6 +1795,64 @@ export default function CryptoDashboardPage() {
                       <td className="px-4 py-3">{formatPrice(row.tp2)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.retestAt)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.triggerAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={`${shellClass} mb-4 border-violet-400/30 bg-violet-950/20`}>
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">V Strategy v0.1 — Color Flip Zones</h2>
+              <p className="mt-1 text-sm text-slate-300">preview pe 5 monede pentru calibrarea zonelor de schimbare de culoare</p>
+            </div>
+            <div className="text-xs text-slate-300 md:text-right">
+              <p>TF: {vStrategyMeta?.timeframe || "4h"}</p>
+              <p>Flip spread: {Array.isArray(vStrategyMeta?.flipZoneSpread) ? `${vStrategyMeta?.flipZoneSpread?.[0]}-${vStrategyMeta?.flipZoneSpread?.[1]}` : "-"}</p>
+              <p>Window: {vStrategyMeta?.flipZoneRecentBars ?? "-"} bars</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
+            <table className="min-w-full text-xs text-slate-300">
+              <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Coin</th>
+                  <th className="px-4 py-3 text-left">State</th>
+                  <th className="px-4 py-3 text-left">Since</th>
+                  <th className="px-4 py-3 text-left">Spread ATR</th>
+                  <th className="px-4 py-3 text-left">B score</th>
+                  <th className="px-4 py-3 text-left">S score</th>
+                  <th className="px-4 py-3 text-left">Price</th>
+                  <th className="px-4 py-3 text-left">Last bullish flip</th>
+                  <th className="px-4 py-3 text-left">Last bearish flip</th>
+                  <th className="px-4 py-3 text-left">Recent states</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderedVStrategyRows.length === 0 ? (
+                  <tr><td colSpan={10} className="px-4 py-4 text-slate-400">Încă nu există rânduri V Strategy în payload.</td></tr>
+                ) : (
+                  orderedVStrategyRows.map((row) => (
+                    <tr key={row.symbol} className="border-t border-white/10 align-top">
+                      <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
+                      <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(row.currentState)}`}>{shortVStrategyState(row.currentState)}</span></td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.stateStartedAt)}</td>
+                      <td className="px-4 py-3">{row.spreadAtr != null ? row.spreadAtr.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-3">{row.bullishOrderScore ?? "-"}</td>
+                      <td className="px-4 py-3">{row.bearishOrderScore ?? "-"}</td>
+                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastBullishFlipAt)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastBearishFlipAt)}</td>
+                      <td className="px-4 py-3 min-w-[220px]">
+                        <div className="flex flex-wrap gap-1">
+                          {(row.recentStates || []).map((item, idx) => (
+                            <span key={`${row.symbol}-${idx}`} title={`${item.at || ""} · ${item.state || "none"} · spread ${item.spreadAtr ?? "-"}`} className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(item.state)}`}>{shortVStrategyState(item.state)}</span>
+                          ))}
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
