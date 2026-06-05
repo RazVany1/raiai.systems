@@ -20,7 +20,7 @@ V_STRATEGY_TIMEFRAME = "4h"
 V_STRATEGY_ATR_PERIOD = 14
 V_STRATEGY_FLIP_ZONE_SPREAD_MIN = 0.03
 V_STRATEGY_FLIP_ZONE_SPREAD_MAX = 0.35
-V_STRATEGY_FLIP_ZONE_RECENT_BARS = 3
+V_STRATEGY_EVENT_FRESH_BARS = 3
 V_STRATEGY_LOOKBACK_BARS = 24
 from pathlib import Path
 import sys
@@ -1069,14 +1069,16 @@ def detect_v_strategy_row(symbol: str, layer: RAICryptoSignalOutputLayerV3, klin
         raw_history.append({
             "idx": idx,
             "at": iso_from_ms(times[idx]),
+            "price": rounded(closes[idx]),
             "spreadAtr": rounded(spread_atr, 4),
             "bullishOrderScore": bullish_order_score,
             "bearishOrderScore": bearish_order_score,
         })
 
-    history = []
-    recent_flip_idx = None
-    recent_flip_side = None
+    if not raw_history:
+        return None
+
+    events = []
     for pos, item in enumerate(raw_history):
         idx = item["idx"]
         prev = raw_history[pos - 1] if pos > 0 else None
@@ -1093,61 +1095,44 @@ def detect_v_strategy_row(symbol: str, layer: RAICryptoSignalOutputLayerV3, klin
             ema55[idx - 1],
             item["spreadAtr"],
         )
-        if event_state == "bullish_flip_zone":
-            recent_flip_idx = pos
-            recent_flip_side = "bullish"
-        elif event_state == "bearish_flip_zone":
-            recent_flip_idx = pos
-            recent_flip_side = "bearish"
-
-        active_state = "none"
-        if recent_flip_idx is not None and (pos - recent_flip_idx) <= V_STRATEGY_FLIP_ZONE_RECENT_BARS:
-            if isinstance(item["spreadAtr"], (int, float)) and V_STRATEGY_FLIP_ZONE_SPREAD_MIN <= float(item["spreadAtr"]) <= V_STRATEGY_FLIP_ZONE_SPREAD_MAX:
-                if recent_flip_side == "bullish" and int(item["bullishOrderScore"]) >= 4:
-                    active_state = "bullish_flip_zone"
-                elif recent_flip_side == "bearish" and int(item["bearishOrderScore"]) >= 4:
-                    active_state = "bearish_flip_zone"
-
-        history.append({
+        if event_state == "none":
+            continue
+        direction = "bullish" if event_state == "bullish_flip_zone" else "bearish"
+        events.append({
             "at": item["at"],
-            "state": active_state,
-            "eventState": event_state,
+            "event": event_state,
+            "direction": direction,
+            "price": item["price"],
             "spreadAtr": item["spreadAtr"],
             "bullishOrderScore": item["bullishOrderScore"],
             "bearishOrderScore": item["bearishOrderScore"],
+            "prevBullishOrderScore": prev_bull,
+            "prevBearishOrderScore": prev_bear,
+            "barsAgo": len(raw_history) - 1 - pos,
         })
 
-    if not history:
-        return None
-
-    current = history[-1]
-    current_state = current["state"]
-    state_started_at = current["at"]
-    for item in reversed(history[:-1]):
-        if item["state"] != current_state:
-            break
-        state_started_at = item["at"]
-
-    def latest_at(target: str):
-        for item in reversed(history):
-            if item["state"] == target:
-                return item["at"]
-        return None
-
+    last_event = events[-1] if events else None
     return {
         "symbol": symbol,
         "timeframe": V_STRATEGY_TIMEFRAME,
-        "currentState": current_state,
-        "stateStartedAt": state_started_at,
-        "spreadAtr": current.get("spreadAtr"),
-        "bullishOrderScore": current.get("bullishOrderScore"),
-        "bearishOrderScore": current.get("bearishOrderScore"),
         "price": rounded(closes[-1]),
         "ema21": rounded(ema21[-1]),
         "ema55": rounded(ema55[-1]),
-        "lastBullishFlipAt": latest_at("bullish_flip_zone"),
-        "lastBearishFlipAt": latest_at("bearish_flip_zone"),
-        "recentStates": history[-8:],
+        "currentSpreadAtr": rounded((abs(ema21[-1] - ema55[-1]) / atr_values[-1]) if isinstance(atr_values[-1], (int, float)) and atr_values[-1] > 0 else None, 4),
+        "currentBullishOrderScore": raw_history[-1].get("bullishOrderScore"),
+        "currentBearishOrderScore": raw_history[-1].get("bearishOrderScore"),
+        "lastEvent": last_event,
+        "lastEventAt": last_event.get("at") if isinstance(last_event, dict) else None,
+        "lastEventDirection": last_event.get("direction") if isinstance(last_event, dict) else None,
+        "lastEventPrice": last_event.get("price") if isinstance(last_event, dict) else None,
+        "lastEventSpreadAtr": last_event.get("spreadAtr") if isinstance(last_event, dict) else None,
+        "lastEventBullishOrderScore": last_event.get("bullishOrderScore") if isinstance(last_event, dict) else None,
+        "lastEventBearishOrderScore": last_event.get("bearishOrderScore") if isinstance(last_event, dict) else None,
+        "lastEventPrevBullishOrderScore": last_event.get("prevBullishOrderScore") if isinstance(last_event, dict) else None,
+        "lastEventPrevBearishOrderScore": last_event.get("prevBearishOrderScore") if isinstance(last_event, dict) else None,
+        "lastEventBarsAgo": last_event.get("barsAgo") if isinstance(last_event, dict) else None,
+        "isFreshEvent": bool(isinstance(last_event, dict) and isinstance(last_event.get("barsAgo"), int) and last_event.get("barsAgo") <= V_STRATEGY_EVENT_FRESH_BARS),
+        "recentEvents": events[-5:],
         "sourceVenue": "binance",
     }
 
@@ -2866,7 +2851,7 @@ def main():
             "timeframe": V_STRATEGY_TIMEFRAME,
             "symbols": V_STRATEGY_SYMBOLS,
             "flipZoneSpread": [V_STRATEGY_FLIP_ZONE_SPREAD_MIN, V_STRATEGY_FLIP_ZONE_SPREAD_MAX],
-            "flipZoneRecentBars": V_STRATEGY_FLIP_ZONE_RECENT_BARS,
+            "eventFreshBars": V_STRATEGY_EVENT_FRESH_BARS,
         },
         "vStrategyRows": v_strategy_rows,
         "checkMarkMeta": {
