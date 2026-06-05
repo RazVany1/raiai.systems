@@ -199,31 +199,43 @@ type VStrategyMeta = {
   timeframe?: string;
   symbols?: string[];
   flipZoneSpread?: number[];
-  flipZoneRecentBars?: number;
+  eventFreshBars?: number;
 };
 
-type VStrategyRecentState = {
+type VStrategyEvent = {
   at?: string;
-  state?: string;
+  event?: string;
+  direction?: string;
+  price?: number | null;
   spreadAtr?: number | null;
   bullishOrderScore?: number;
   bearishOrderScore?: number;
+  prevBullishOrderScore?: number;
+  prevBearishOrderScore?: number;
+  barsAgo?: number;
 };
 
 type VStrategyRow = {
   symbol: string;
   timeframe?: string;
-  currentState?: string;
-  stateStartedAt?: string | null;
-  spreadAtr?: number | null;
-  bullishOrderScore?: number;
-  bearishOrderScore?: number;
   price?: number | null;
   ema21?: number | null;
   ema55?: number | null;
-  lastBullishFlipAt?: string | null;
-  lastBearishFlipAt?: string | null;
-  recentStates?: VStrategyRecentState[];
+  currentSpreadAtr?: number | null;
+  currentBullishOrderScore?: number;
+  currentBearishOrderScore?: number;
+  lastEvent?: VStrategyEvent | null;
+  lastEventAt?: string | null;
+  lastEventDirection?: string | null;
+  lastEventPrice?: number | null;
+  lastEventSpreadAtr?: number | null;
+  lastEventBullishOrderScore?: number;
+  lastEventBearishOrderScore?: number;
+  lastEventPrevBullishOrderScore?: number;
+  lastEventPrevBearishOrderScore?: number;
+  lastEventBarsAgo?: number | null;
+  isFreshEvent?: boolean;
+  recentEvents?: VStrategyEvent[];
   sourceVenue?: string;
 };
 
@@ -408,19 +420,25 @@ function checkMarkStatusClasses(status?: string | null) {
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
-function vStrategyStateClasses(state?: string | null) {
-  if (state === "bullish_flip_zone") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
-  if (state === "bearish_flip_zone") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
+function vStrategyStateClasses(direction?: string | null) {
+  if (direction === "bullish") return "border-emerald-200/70 bg-emerald-300/20 text-emerald-50";
+  if (direction === "bearish") return "border-rose-200/70 bg-rose-300/20 text-rose-50";
   return "border-slate-200/25 bg-slate-100/10 text-slate-100";
 }
 
-function shortVStrategyState(state?: string | null) {
+function shortVStrategyState(direction?: string | null) {
   const map: Record<string, string> = {
-    bullish_flip_zone: "B FLIP",
-    bearish_flip_zone: "S FLIP",
-    none: "NONE",
+    bullish: "BULL FLIP",
+    bearish: "BEAR FLIP",
   };
-  return map[state || ""] || (state || "-");
+  return map[direction || ""] || "NO FLIP";
+}
+
+function vStrategyAgeLabel(barsAgo?: number | null) {
+  if (barsAgo == null || !Number.isFinite(barsAgo)) return "-";
+  if (barsAgo === 0) return "JUST FLIPPED";
+  if (barsAgo === 1) return "1 BAR AGO";
+  return `${barsAgo} BARS AGO`;
 }
 
 function isCheckMarkPosition(row: OpenPaperPosition) {
@@ -1218,15 +1236,16 @@ export default function CryptoDashboardPage() {
   }, [checkMarkRows]);
 
   const orderedVStrategyRows = useMemo(() => {
-    const rank: Record<string, number> = {
-      bullish_flip_zone: 0,
-      bearish_flip_zone: 1,
-      none: 9,
-    };
     return [...vStrategyRows].sort((a, b) => {
-      const diff = (rank[a.currentState || "none"] ?? 99) - (rank[b.currentState || "none"] ?? 99);
-      if (diff !== 0) return diff;
-      return (b.spreadAtr || 0) - (a.spreadAtr || 0);
+      const aFresh = a.isFreshEvent ? 0 : 1;
+      const bFresh = b.isFreshEvent ? 0 : 1;
+      if (aFresh !== bFresh) return aFresh - bFresh;
+      const aBars = a.lastEventBarsAgo ?? 999;
+      const bBars = b.lastEventBarsAgo ?? 999;
+      if (aBars !== bBars) return aBars - bBars;
+      const aTime = a.lastEventAt ? new Date(a.lastEventAt).getTime() : 0;
+      const bTime = b.lastEventAt ? new Date(b.lastEventAt).getTime() : 0;
+      return bTime - aTime;
     });
   }, [vStrategyRows]);
 
@@ -1806,50 +1825,74 @@ export default function CryptoDashboardPage() {
         <section className={`${shellClass} mb-4 border-violet-400/30 bg-violet-950/20`}>
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">V Strategy v0.1 — Color Flip Zones</h2>
-              <p className="mt-1 text-sm text-slate-300">preview pe 5 monede pentru calibrarea zonelor de schimbare de culoare</p>
+              <h2 className="text-lg font-semibold text-white">V Flip Events 4H</h2>
+              <p className="mt-1 text-sm text-slate-300">momentul exact al trecerii de culoare, nu starea continuă</p>
             </div>
             <div className="text-xs text-slate-300 md:text-right">
               <p>TF: {vStrategyMeta?.timeframe || "4h"}</p>
               <p>Flip spread: {Array.isArray(vStrategyMeta?.flipZoneSpread) ? `${vStrategyMeta?.flipZoneSpread?.[0]}-${vStrategyMeta?.flipZoneSpread?.[1]}` : "-"}</p>
-              <p>Window: {vStrategyMeta?.flipZoneRecentBars ?? "-"} bars</p>
+              <p>Fresh: {vStrategyMeta?.eventFreshBars ?? "-"} bars</p>
             </div>
           </div>
+
+          <div className="mb-3 grid gap-2 md:grid-cols-4">
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Rows</p>
+              <p className="mt-2 text-lg font-semibold text-slate-100">{orderedVStrategyRows.length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fresh flips</p>
+              <p className="mt-2 text-lg font-semibold text-violet-200">{orderedVStrategyRows.filter((row) => row.isFreshEvent).length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bullish</p>
+              <p className="mt-2 text-lg font-semibold text-emerald-200">{orderedVStrategyRows.filter((row) => row.lastEventDirection === "bullish" && row.isFreshEvent).length}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/50 p-2.5">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bearish</p>
+              <p className="mt-2 text-lg font-semibold text-rose-200">{orderedVStrategyRows.filter((row) => row.lastEventDirection === "bearish" && row.isFreshEvent).length}</p>
+            </div>
+          </div>
+
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950/25">
             <table className="min-w-full text-xs text-slate-300">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Coin</th>
-                  <th className="px-4 py-3 text-left">State</th>
-                  <th className="px-4 py-3 text-left">Since</th>
-                  <th className="px-4 py-3 text-left">Spread ATR</th>
-                  <th className="px-4 py-3 text-left">B score</th>
-                  <th className="px-4 py-3 text-left">S score</th>
-                  <th className="px-4 py-3 text-left">Price</th>
-                  <th className="px-4 py-3 text-left">Last bullish flip</th>
-                  <th className="px-4 py-3 text-left">Last bearish flip</th>
-                  <th className="px-4 py-3 text-left">Recent states</th>
+                  <th className="px-4 py-3 text-left">Event</th>
+                  <th className="px-4 py-3 text-left">Age</th>
+                  <th className="px-4 py-3 text-left">Event candle</th>
+                  <th className="px-4 py-3 text-left">Price at flip</th>
+                  <th className="px-4 py-3 text-left">Spread</th>
+                  <th className="px-4 py-3 text-left">Score before</th>
+                  <th className="px-4 py-3 text-left">Score after</th>
+                  <th className="px-4 py-3 text-left">Now</th>
+                  <th className="px-4 py-3 text-left">Recent events</th>
                 </tr>
               </thead>
               <tbody>
                 {orderedVStrategyRows.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-4 text-slate-400">Încă nu există rânduri V Strategy în payload.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-4 text-slate-400">Încă nu există evenimente V Flip în payload.</td></tr>
                 ) : (
                   orderedVStrategyRows.map((row) => (
                     <tr key={row.symbol} className="border-t border-white/10 align-top">
                       <td className="px-4 py-3 font-semibold text-slate-100">{row.symbol}</td>
-                      <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(row.currentState)}`}>{shortVStrategyState(row.currentState)}</span></td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.stateStartedAt)}</td>
-                      <td className="px-4 py-3">{row.spreadAtr != null ? row.spreadAtr.toFixed(3) : "-"}</td>
-                      <td className="px-4 py-3">{row.bullishOrderScore ?? "-"}</td>
-                      <td className="px-4 py-3">{row.bearishOrderScore ?? "-"}</td>
-                      <td className="px-4 py-3">{formatPrice(row.price)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastBullishFlipAt)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastBearishFlipAt)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(row.lastEventDirection)}`}>
+                          {shortVStrategyState(row.lastEventDirection)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{vStrategyAgeLabel(row.lastEventBarsAgo)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(row.lastEventAt)}</td>
+                      <td className="px-4 py-3">{formatPrice(row.lastEventPrice)}</td>
+                      <td className="px-4 py-3">{row.lastEventSpreadAtr != null ? row.lastEventSpreadAtr.toFixed(3) : "-"}</td>
+                      <td className="px-4 py-3">{row.lastEventPrevBullishOrderScore ?? "-"}/{row.lastEventPrevBearishOrderScore ?? "-"}</td>
+                      <td className="px-4 py-3">{row.lastEventBullishOrderScore ?? "-"}/{row.lastEventBearishOrderScore ?? "-"}</td>
+                      <td className="px-4 py-3">{row.currentBullishOrderScore ?? "-"}/{row.currentBearishOrderScore ?? "-"}</td>
                       <td className="px-4 py-3 min-w-[220px]">
                         <div className="flex flex-wrap gap-1">
-                          {(row.recentStates || []).map((item, idx) => (
-                            <span key={`${row.symbol}-${idx}`} title={`${item.at || ""} · ${item.state || "none"} · spread ${item.spreadAtr ?? "-"}`} className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(item.state)}`}>{shortVStrategyState(item.state)}</span>
+                          {(row.recentEvents || []).map((item, idx) => (
+                            <span key={`${row.symbol}-${idx}`} title={`${item.at || ""} · ${item.direction || "-"} · ${item.prevBullishOrderScore ?? "-"}/${item.prevBearishOrderScore ?? "-"} -> ${item.bullishOrderScore ?? "-"}/${item.bearishOrderScore ?? "-"}`} className={`rounded-full border px-2 py-1 text-[10px] font-medium ${vStrategyStateClasses(item.direction)}`}>{item.barsAgo === 0 ? "NOW" : `${item.barsAgo}b`}</span>
                           ))}
                         </div>
                       </td>
