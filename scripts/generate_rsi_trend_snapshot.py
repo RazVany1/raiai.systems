@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 RSI_LOOKBACK_BARS = 50
 RSI_BAR_HOURS = 4
 RSI_LOOKBACK_WINDOW = timedelta(hours=RSI_LOOKBACK_BARS * RSI_BAR_HOURS)
+CHECK_MARK_ENABLED = False
 CHECK_MARK_SESSION_HOUR_UTC = 0
 CHECK_MARK_SESSION_MINUTE_UTC = 0
 CHECK_MARK_OPENING_RANGE_INTERVAL = "15m"
@@ -78,7 +79,7 @@ RSI_INTEREST_1D_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-int
 RSI_INTEREST_1D_V2_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-v2-state.json")
 RSI_INTEREST_1D_V3_STATE_PATH = Path(r"C:\Users\R\raiai.systems\public\data\rsi-interest-1d-v3-state.json")
 PAPER_POSITIONS_ENABLED = True
-PAPER_POSITIONS_ENTRY_MODE = "v3"
+PAPER_POSITIONS_ENTRY_MODE = "rsi_top"
 MATRIX_RETENTION_DAYS = 5
 
 
@@ -229,7 +230,7 @@ def compute_pl_percent(entry_price: float | None, current_price: float | None, s
 
 
 def signal_uses_entry_system(entry_signal: str | None) -> bool:
-    return entry_signal in {"RSI_V3", "CHECK_MARK_V0_1"}
+    return entry_signal in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"}
 
 
 def partial_runner_stop_hit(side: str | None, current_price: float | None, runner_stop_price: float | None) -> bool:
@@ -978,7 +979,10 @@ def get_klines_cached(
 ) -> list:
     key = (symbol, interval, limit)
     if key not in cache:
-        cache[key] = layer.fetch_binance_klines(symbol=symbol, interval=interval, limit=limit)
+        try:
+            cache[key] = layer.fetch_binance_klines(symbol=symbol, interval=interval, limit=limit)
+        except Exception:
+            cache[key] = []
     return cache[key]
 
 
@@ -1500,7 +1504,10 @@ def main():
     interest_rows_1h = []
     v2_interest_rows_1h = []
     v3_interest_rows_1h = []
-    rsi_top_rows_1h = []
+    rsi_top_v0_rows_1h = []
+    rsi_top_v1_rows_1h = []
+    rsi_top_v2_rows_1h = []
+    rsi_top_v3_rows_1h = []
     v0_interest_rows_1d = []
     interest_rows_1d = []
     v2_interest_rows_1d = []
@@ -1747,21 +1754,6 @@ def main():
                         "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
                     })
 
-                    rsi_top_rows_1h.append({
-                        "symbol": symbol,
-                        "rsi": round(float(last_rsi_1h), 2),
-                        "price": price,
-                        "zone": v2_zone_1h,
-                        "detectedAt": detected_at,
-                        "anchorRsi": anchor_1h.get("anchorRsi"),
-                        "anchorTime": anchor_1h.get("anchorTime"),
-                        "anchorPrice": anchor_1h.get("anchorPrice"),
-                        "timeframe": "1h",
-                        "sourceVenue": "hyper",
-                        "previousRsi": round(float(prev_rsi_1h), 2) if isinstance(prev_rsi_1h, (int, float)) else None,
-                        "strategySide": "LONG" if v2_zone_1h == "upper_interest" else "SHORT",
-                    })
-
                     anchor_price_1h = anchor_1h.get("anchorPrice")
                     v3_price_ok = False
                     if isinstance(price, (int, float)) and isinstance(anchor_price_1h, (int, float)):
@@ -1883,9 +1875,10 @@ def main():
 
             formation_rows.extend(detect_hl_lh_scanner(symbol, klines, live_closes, live_highs, live_lows, rsi, price_cache))
 
-            check_mark_setup = detect_check_mark_setup(symbol, layer, kline_cache, updated_at)
-            if isinstance(check_mark_setup, dict):
-                check_mark_rows.append(check_mark_setup)
+            if CHECK_MARK_ENABLED:
+                check_mark_setup = detect_check_mark_setup(symbol, layer, kline_cache, updated_at)
+                if isinstance(check_mark_setup, dict):
+                    check_mark_rows.append(check_mark_setup)
 
             if symbol in V_STRATEGY_SYMBOLS:
                 v_strategy_row = detect_v_strategy_row(symbol, layer, kline_cache)
@@ -2182,6 +2175,19 @@ def main():
         reverse=False,
     )
 
+    def enrich_rsi_top_row(row: dict) -> dict:
+        zone = row.get("zone")
+        strategy_side = "LONG" if zone == "upper_interest" else "SHORT" if zone == "lower_interest" else None
+        return {
+            **row,
+            "strategySide": strategy_side,
+        }
+
+    rsi_top_v0_rows_1h = [enrich_rsi_top_row(row) for row in v0_interest_rows_1h]
+    rsi_top_v1_rows_1h = [enrich_rsi_top_row(row) for row in interest_rows_1h]
+    rsi_top_v2_rows_1h = [enrich_rsi_top_row(row) for row in v2_interest_rows_1h]
+    rsi_top_v3_rows_1h = [enrich_rsi_top_row(row) for row in v2_interest_rows_1h]
+
     current_v0_interest_map_1d = {}
     for row in v0_interest_rows_1d:
         key = f"{row['symbol']}:{row['zone']}"
@@ -2447,6 +2453,34 @@ def main():
                     "openingRangeTimeframe": row.get("openingRangeTimeframe"),
                     "triggerTimeframe": row.get("triggerTimeframe"),
                 })
+        elif PAPER_POSITIONS_ENTRY_MODE == "rsi_top":
+            for row in rsi_top_v3_rows_1h:
+                if not isinstance(row, dict) or not row.get("currentlyInZone"):
+                    continue
+                first_detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
+                side = row.get("strategySide")
+                entry_price = row.get("price")
+                detected_at = row.get("detectedAt") or first_detected_at
+                if side not in {"LONG", "SHORT"} or not isinstance(entry_price, (int, float)) or not detected_at:
+                    continue
+                entry_candidates.append({
+                    "symbol": row.get("symbol"),
+                    "side": side,
+                    "state": "confirmed",
+                    "confirmedAt": detected_at,
+                    "detectedAt": detected_at,
+                    "firstDetectedAt": first_detected_at,
+                    "price": entry_price,
+                    "formationType": "RSI_TOP_V3",
+                    "entrySignal": "RSI_TOP_V3",
+                    "entrySystem": "S1h",
+                    "signalZone": row.get("zone"),
+                    "anchorRsi": row.get("anchorRsi"),
+                    "anchorTime": row.get("anchorTime"),
+                    "anchorPrice": row.get("anchorPrice"),
+                    "previousRsi": row.get("previousRsi"),
+                    "strategySide": side,
+                })
         else:
             entry_candidates = formation_rows
 
@@ -2457,7 +2491,7 @@ def main():
             trend = trend_map.get(symbol)
             if not trend:
                 continue
-            if PAPER_POSITIONS_ENTRY_MODE == "v3":
+            if PAPER_POSITIONS_ENTRY_MODE in {"v3", "rsi_top"}:
                 allowed = True
             else:
                 long_allowed = (
@@ -2509,13 +2543,13 @@ def main():
                 if isinstance(current_pl, (int, float)):
                     max_pl = max(max_pl, current_pl)
                     min_pl = min(min_pl, current_pl)
-                if existing.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"}:
+                if existing.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"}:
                     current_signal = existing.get("entrySignal", row.get("entrySignal"))
                     current_invalidation = existing.get("invalidationLevel")
                     if current_signal == "CHECK_MARK_V0_1":
                         current_invalidation = existing.get("invalidationLevel", row.get("invalidationLevel"))
 
-                    if current_signal == "RSI_V3":
+                    if current_signal in {"RSI_V3", "RSI_TOP_V3"}:
                         exit_state = apply_exit_management(
                             existing,
                             side,
@@ -2569,7 +2603,7 @@ def main():
                         "firstDetectedAt": existing.get("firstDetectedAt", row.get("firstDetectedAt")),
                         "trendDirection": None,
                         "tradePermission": None,
-                        "invalidationLevel": None if current_signal == "RSI_V3" else current_invalidation,
+                        "invalidationLevel": None if current_signal in {"RSI_V3", "RSI_TOP_V3"} else current_invalidation,
                         "targetPrice": existing.get("targetPrice", row.get("targetPrice")),
                         "targetPrice2": existing.get("targetPrice2", row.get("targetPrice2")),
                         "retestAt": existing.get("retestAt", row.get("retestAt")),
@@ -2589,7 +2623,7 @@ def main():
                         "partialClosePrice": current_partial_close_price,
                         "partialClosePlPercent": current_partial_close_pl,
                         "runnerStopPrice": current_runner_stop,
-                        "exitSignals": exit_signals if current_signal == "RSI_V3" else {},
+                        "exitSignals": exit_signals if current_signal in {"RSI_V3", "RSI_TOP_V3"} else {},
                         "maxPlPercent": max_pl,
                         "minPlPercent": min_pl,
                     })
@@ -2633,9 +2667,9 @@ def main():
                     "anchorPrice": row.get("anchorPrice"),
                     "previousRsi": row.get("previousRsi"),
                     "firstDetectedAt": row.get("firstDetectedAt"),
-                    "trendDirection": None if row.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"} else trend.get("finalMarketDirection"),
-                    "tradePermission": None if row.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"} else trend.get("tradePermission"),
-                    "invalidationLevel": row.get("invalidationLevel") if row.get("entrySignal") == "CHECK_MARK_V0_1" else None if row.get("entrySignal") == "RSI_V3" else trend.get("invalidationLevel"),
+                    "trendDirection": None if row.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"} else trend.get("finalMarketDirection"),
+                    "tradePermission": None if row.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"} else trend.get("tradePermission"),
+                    "invalidationLevel": row.get("invalidationLevel") if row.get("entrySignal") == "CHECK_MARK_V0_1" else None if row.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3"} else trend.get("invalidationLevel"),
                     "formationType": row.get("formationType"),
                     "detectedAt": row.get("detectedAt"),
                     "lastSeenAt": updated_at,
@@ -2893,6 +2927,11 @@ def main():
         row["altContextLabel"] = label
         row["altContextScore"] = score
 
+    if PAPER_POSITIONS_ENABLED:
+        append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
+    position_snapshots_payload = load_json(PAPER_POSITION_SNAPSHOTS_PATH, {"positions": {}})
+    position_snapshots = position_snapshots_payload.get("positions", {}) if isinstance(position_snapshots_payload, dict) and isinstance(position_snapshots_payload.get("positions"), dict) else {}
+
     scan_universe_symbols = list(dict.fromkeys(SYMBOLS))
 
     payload = {
@@ -2902,13 +2941,18 @@ def main():
         "scanUniverseSymbols": scan_universe_symbols,
         "openPaperPositions": dashboard_paper_positions,
         "paperPositionHistory": dashboard_paper_history,
+        "positionSnapshots": position_snapshots,
         "interestRows": interest_rows,
         "v3InterestRows": v3_interest_rows,
         "v0InterestRows1h": v0_interest_rows_1h,
         "interestRows1h": interest_rows_1h,
         "v2InterestRows1h": v2_interest_rows_1h,
         "v3InterestRows1h": v3_interest_rows_1h,
-        "rsiTopRows1h": rsi_top_rows_1h,
+        "rsiTopRows1h": rsi_top_v3_rows_1h,
+        "rsiTopV0Rows1h": rsi_top_v0_rows_1h,
+        "rsiTopV1Rows1h": rsi_top_v1_rows_1h,
+        "rsiTopV2Rows1h": rsi_top_v2_rows_1h,
+        "rsiTopV3Rows1h": rsi_top_v3_rows_1h,
         "v0InterestRows1d": v0_interest_rows_1d,
         "interestRows1d": interest_rows_1d,
         "v2InterestRows1d": v2_interest_rows_1d,
@@ -2949,8 +2993,6 @@ def main():
     RSI_INTEREST_1D_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1D_V2_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v2_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
     RSI_INTEREST_1D_V3_STATE_PATH.write_text(json.dumps({"updatedAt": updated_at, "rows": retained_v3_interest_map_1d}, indent=2, ensure_ascii=False), encoding="utf-8")
-    if PAPER_POSITIONS_ENABLED:
-        append_position_snapshots(PAPER_POSITION_SNAPSHOTS_PATH, paper_positions, trend_map, formation_map, market_scan_map, updated_at)
     print(OUTPUT_PATH)
 
 
