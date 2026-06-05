@@ -68,6 +68,7 @@ type DashboardPayload = {
   nextScanAt?: string;
   scanUniverseExpected?: number;
   scanUniverseSymbols?: string[];
+  trendRows?: { symbol?: string }[];
   openPaperPositions?: OpenPaperPosition[];
   paperPositionHistory?: OpenPaperPosition[];
   positionSnapshots?: Record<string, PositionSnapshotBucket>;
@@ -494,6 +495,36 @@ function EvolutionSection({ rows }: { rows: EvolutionRow[] }) {
                     {currentPoint ? <circle cx={scanToX(currentPoint.scanIndex)} cy={valueToY(currentPoint.price)} r="4.5" fill="rgba(255,255,255,0.95)" stroke="rgba(59,130,246,0.9)" strokeWidth="1.5" /> : null}
                   </svg>
                 </div>
+                <div className="mt-3 overflow-x-auto rounded-lg border border-white/10 bg-slate-900/40">
+                  <table className="min-w-full text-xs text-slate-300">
+                    <thead className="bg-white/5 text-[10px] uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Bar</th>
+                        <th className="px-4 py-3 text-left">Scan</th>
+                        <th className="px-4 py-3 text-left">Time</th>
+                        <th className="px-4 py-3 text-left">Price</th>
+                        <th className="px-4 py-3 text-left">P/L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scanSeries.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-4 text-slate-400">No scan rows yet for this position.</td>
+                        </tr>
+                      ) : (
+                        [...scanSeries].reverse().map((point) => (
+                          <tr key={`${key}-table-${point.scanIndex}`} className="border-t border-white/10">
+                            <td className="px-4 py-3">B{point.bar}</td>
+                            <td className="px-4 py-3">#{point.scanIndex}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">{formatCompactDate(point.scanAt)}</td>
+                            <td className="px-4 py-3">{formatPrice(point.price)}</td>
+                            <td className={`px-4 py-3 font-semibold ${percentTextClass(point.pl)}`}>{formatPercent(point.pl)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           })}
@@ -538,6 +569,7 @@ export default function CryptoDashboardPage() {
   const updatedAt = payload.updatedAt || "";
   const nextScanAt = payload.nextScanAt || "";
   const expected = Number.isFinite(payload.scanUniverseExpected) ? payload.scanUniverseExpected || 0 : 0;
+  const scannedCount = Array.isArray(payload.trendRows) ? payload.trendRows.length : (Array.isArray(payload.scanUniverseSymbols) ? payload.scanUniverseSymbols.length : expected);
   const rsiTopV0Rows1h = Array.isArray(payload.rsiTopV0Rows1h) ? payload.rsiTopV0Rows1h : [];
   const rsiTopV1Rows1h = Array.isArray(payload.rsiTopV1Rows1h) ? payload.rsiTopV1Rows1h : [];
   const rsiTopV2Rows1h = Array.isArray(payload.rsiTopV2Rows1h) ? payload.rsiTopV2Rows1h : [];
@@ -637,7 +669,7 @@ export default function CryptoDashboardPage() {
         {loading ? <div className={`${shellClass} mb-4 text-sm text-slate-300`}>Loading RSI Top dashboard…</div> : null}
 
         <section className="mb-4 grid gap-2 md:grid-cols-6">
-          <MetricCard label="Scan status" value={`${visibleCoins}/${expected || visibleCoins}`} tone={expected && visibleCoins < expected ? "text-amber-200" : "text-emerald-200"} />
+          <MetricCard label="Scanned" value={scannedCount} tone={expected && scannedCount < expected ? "text-amber-200" : "text-emerald-200"} />
           <MetricCard label="Visible now" value={visibleCoins} />
           <MetricCard label="V0 active" value={activeV0Count} />
           <MetricCard label="V1 active" value={activeV1Count} />
