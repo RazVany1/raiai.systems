@@ -2549,7 +2549,7 @@ def main():
                     if current_signal == "CHECK_MARK_V0_1":
                         current_invalidation = existing.get("invalidationLevel", row.get("invalidationLevel"))
 
-                    if current_signal in {"RSI_V3", "RSI_TOP_V3"}:
+                    if current_signal == "RSI_V3":
                         exit_state = apply_exit_management(
                             existing,
                             side,
@@ -2580,7 +2580,7 @@ def main():
                         current_partial_close_price = None
                         current_partial_close_pl = None
                         current_runner_stop = None
-                        if isinstance(current_invalidation, (int, float)) and isinstance(entry_price, (int, float)):
+                        if current_signal == "CHECK_MARK_V0_1" and isinstance(current_invalidation, (int, float)) and isinstance(entry_price, (int, float)):
                             if (side == "LONG" and entry_price <= current_invalidation) or (side == "SHORT" and entry_price >= current_invalidation):
                                 current_status = "closed_invalidated"
                                 current_closed_at = updated_at
@@ -2704,7 +2704,7 @@ def main():
                 continue
             symbol, side, _entry_at = key
             trend = trend_map.get(symbol)
-            if existing.get("entrySignal") in {"RSI_V3", "CHECK_MARK_V0_1"}:
+            if existing.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"}:
                 current_price = trend.get("price") if trend else existing.get("currentPrice")
                 current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
                 previous_max_pl = existing.get("maxPlPercent")
@@ -2738,7 +2738,7 @@ def main():
                     "lastSeenAt": updated_at,
                     "trendDirection": None,
                     "tradePermission": None,
-                    "invalidationLevel": None if current_signal == "RSI_V3" else current_invalidation,
+                    "invalidationLevel": None if current_signal in {"RSI_V3", "RSI_TOP_V3"} else current_invalidation,
                     "status": current_status,
                     "closedAt": current_closed_at,
                     "closePrice": current_close_price,

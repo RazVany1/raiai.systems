@@ -593,7 +593,7 @@ export default function CryptoDashboardPage() {
 
   const closedPositions = useMemo(() => {
     return paperPositionHistory
-      .filter((row) => isRsiTopPosition(row) && row.entrySystem === "S1h")
+      .filter((row) => isRsiTopPosition(row) && row.entrySystem === "S1h" && (String(row.status || "").startsWith("closed") || Boolean(row.closedAt)))
       .sort((a, b) => (parseIsoDate(b.closedAt || b.lastSeenAt)?.getTime() || 0) - (parseIsoDate(a.closedAt || a.lastSeenAt)?.getTime() || 0));
   }, [paperPositionHistory]);
 
