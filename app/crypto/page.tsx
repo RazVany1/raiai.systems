@@ -677,10 +677,10 @@ export default function CryptoDashboardPage() {
           <MetricCard label="V3 active" value={activeV3Count} />
         </section>
 
+        <PositionsSection title="P/L Table — Active Positions" rows={activePositions} updatedAt={updatedAt} />
+        <PositionsSection title="P/L Table — Closed Positions" rows={closedPositions} updatedAt={updatedAt} showClosed />
         <MatrixSection rows={matrixRows} />
-        <PositionsSection title="Paper Positions — Active" rows={activePositions} updatedAt={updatedAt} />
         <EvolutionSection rows={evolutionRows} />
-        <PositionsSection title="Paper Positions — Closed" rows={closedPositions} updatedAt={updatedAt} showClosed />
       </div>
     </main>
   );
