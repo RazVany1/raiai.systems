@@ -90,6 +90,24 @@ function dateFmt(value?: string): string {
   }
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function progressFromR(rValue?: number): number {
+  // Scale visual: -1R stop = 0%, entry 0R = 33%, +2R target = 100%.
+  return clamp((((Number(rValue ?? 0) + 1) / 3) * 100), 0, 100);
+}
+
+function targetPrice(position: PaperPosition): number | null {
+  const entry = Number(position.entryPrice);
+  const stop = Number(position.stop);
+  if (!Number.isFinite(entry) || !Number.isFinite(stop)) return null;
+  const risk = Math.abs(entry - stop);
+  if (!risk) return null;
+  return position.side === "SHORT" ? entry - risk * 2 : entry + risk * 2;
+}
+
 const panel: React.CSSProperties = {
   border: "1px solid #1f2937",
   borderRadius: 16,
@@ -192,18 +210,43 @@ export default function CryptoPage() {
           <h2 style={{ marginTop: 0 }}>Open Paper Positions</h2>
           {openPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție open.</p> : null}
           <div style={{ display: "grid", gap: 10 }}>
-            {openPositions.map((position) => (
-              <div key={position.id} style={{ borderBottom: "1px solid #1f2937", paddingBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <strong>{position.symbol} {position.side}</strong>
-                  <Badge tone={Number(position.currentR ?? 0) >= 0 ? "#22c55e" : "#ef4444"}>{fmt(position.currentR)}R</Badge>
+            {openPositions.map((position) => {
+              const currentR = Number(position.currentR ?? 0);
+              const maxR = Number(position.maxR ?? 0);
+              const currentPct = progressFromR(currentR);
+              const maxPct = progressFromR(maxR);
+              const target = targetPrice(position);
+              return (
+                <div key={position.id} style={{ borderBottom: "1px solid #1f2937", paddingBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <strong>{position.symbol} {position.side}</strong>
+                    <Badge tone={currentR >= 0 ? "#22c55e" : "#ef4444"}>{fmt(position.currentR)}R</Badge>
+                  </div>
+                  <div style={{ color: "#94a3b8", fontSize: 14, marginTop: 6 }}>
+                    Status: {position.status} · Entry {fmt(position.entryPrice)} · Last {fmt(position.lastPrice)} · Stop {fmt(position.stop)} · Target {fmt(target)} · Max {fmt(position.maxR)}R
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 11, marginBottom: 6 }}>
+                      <span>Stop -1R</span>
+                      <span>Entry 0R</span>
+                      <span>Target +2R</span>
+                    </div>
+                    <div style={{ position: "relative", height: 14, borderRadius: 999, background: "linear-gradient(90deg, #7f1d1d 0%, #334155 33%, #14532d 100%)", border: "1px solid #334155", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: "33.333%", top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,.65)" }} />
+                      <div style={{ position: "absolute", left: `${maxPct}%`, top: 1, bottom: 1, width: 2, background: "#fbbf24", boxShadow: "0 0 10px #fbbf24" }} />
+                      <div style={{ position: "absolute", left: `${currentPct}%`, top: -3, width: 20, height: 20, marginLeft: -10, borderRadius: 999, background: currentR >= 0 ? "#22c55e" : "#ef4444", border: "2px solid #e5e7eb", boxShadow: "0 0 18px rgba(56,189,248,.35)" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: 12, marginTop: 6 }}>
+                      <span>Curent: <b style={{ color: currentR >= 0 ? "#22c55e" : "#ef4444" }}>{fmt(currentR)}R</b></span>
+                      <span>Max atins: <b style={{ color: "#fbbf24" }}>{fmt(maxR)}R</b></span>
+                    </div>
+                  </div>
+
+                  <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>Checked: {dateFmt(position.lastCheckedAt)}</div>
                 </div>
-                <div style={{ color: "#94a3b8", fontSize: 14, marginTop: 6 }}>
-                  Status: {position.status} · Entry {fmt(position.entryPrice)} · Last {fmt(position.lastPrice)} · Stop {fmt(position.stop)} · Max {fmt(position.maxR)}R
-                </div>
-                <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>Checked: {dateFmt(position.lastCheckedAt)}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
