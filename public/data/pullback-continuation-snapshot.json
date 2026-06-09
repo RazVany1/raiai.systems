@@ -1,7 +1,7 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T07:01:28.179712+00:00",
+  "updatedAt": "2026-06-09T07:03:04.721684+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
@@ -29,41 +29,6 @@
     "newlyClosedPositions": 0
   },
   "candidates": [
-    {
-      "symbol": "WLD",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 78,
-      "grade": "B",
-      "entryZone": [
-        0.504781,
-        0.507819
-      ],
-      "invalidation": "1H close below 0.4798",
-      "stop": 0.4798,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 0.5063,
-        "ema20_1h": 0.498923,
-        "ema20_4h": 0.479416,
-        "ema50_4h": 0.453368,
-        "rsi_1h": 42.57,
-        "rsi_4h": 64.49
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "price not too extended from 4H EMA20",
-        "1H reclaim/reaction above EMA20",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    },
     {
       "symbol": "CC",
       "venues": [
@@ -98,6 +63,41 @@
       ],
       "warnings": [],
       "status": "paper_candidate"
+    },
+    {
+      "symbol": "WLD",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 68,
+      "grade": "B",
+      "entryZone": [
+        0.502388,
+        0.505412
+      ],
+      "invalidation": "1H close below 0.4798",
+      "stop": 0.4798,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.5039,
+        "ema20_1h": 0.498694,
+        "ema20_4h": 0.479187,
+        "ema50_4h": 0.453274,
+        "rsi_1h": 41.78,
+        "rsi_4h": 64.23
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "price not too extended from 4H EMA20",
+        "price above EMA20 1H",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
     }
   ],
   "paperPositions": [
@@ -111,12 +111,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T07:01:38.240024+00:00",
+      "lastCheckedAt": "2026-06-09T07:03:15.420759+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.1007,
-      "currentR": -0.0468,
+      "currentR": -0.1331,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.5063
+      "lastPrice": 0.5039
     },
     {
       "id": "CC-LONG-1780983487",
@@ -128,7 +128,7 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T07:01:38.240024+00:00",
+      "lastCheckedAt": "2026-06-09T07:03:15.420759+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.0,
       "currentR": -0.2699,
