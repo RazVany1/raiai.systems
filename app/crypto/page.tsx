@@ -208,6 +208,21 @@ export default function CryptoPage() {
   const candidates = snapshot.candidates ?? [];
   const openPositions = snapshot.paperPositions ?? [];
   const closedPositions = snapshot.closedPaperPositions ?? [];
+  const simulatedPositions = [...openPositions, ...closedPositions];
+  const openPnl = openPositions.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
+  const closedPnl = closedPositions.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
+  const totalPnl = openPnl + closedPnl;
+  const openMargin = openPositions.length * SIM_MARGIN_USD;
+  const openNotional = openPositions.length * SIM_NOTIONAL_USD;
+  const wins = closedPositions.filter((p) => Number(p.rMultiple ?? 0) > 0).length;
+  const losses = closedPositions.filter((p) => Number(p.rMultiple ?? 0) <= 0).length;
+  let curve = 0;
+  const equityPoints = closedPositions.map((p) => {
+    curve += Number(simulatedPnl(p) ?? 0);
+    return curve;
+  });
+  const bestTrade = simulatedPositions.reduce<PaperPosition | null>((best, p) => simulatedPnl(p) !== null && (!best || Number(simulatedPnl(p)) > Number(simulatedPnl(best))) ? p : best, null);
+  const worstTrade = simulatedPositions.reduce<PaperPosition | null>((worst, p) => simulatedPnl(p) !== null && (!worst || Number(simulatedPnl(p)) < Number(simulatedPnl(worst))) ? p : worst, null);
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -228,6 +243,26 @@ export default function CryptoPage() {
         <StatCard label="Candidates" value={stats.candidates} tone="#38bdf8" />
         <StatCard label="Open paper" value={stats.openPaperPositions ?? openPositions.length} tone="#22c55e" />
         <StatCard label="Closed paper" value={stats.closedPaperPositions ?? closedPositions.length} />
+      </section>
+
+      <section style={{ ...panel, marginBottom: 22 }}>
+        <h2 style={{ marginTop: 0 }}>Performance & Risk Panel</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+          <StatCard label="Total sim P/L" value={`$${totalPnl.toFixed(2)}`} tone={totalPnl >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Open sim P/L" value={`$${openPnl.toFixed(2)}`} tone={openPnl >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Closed sim P/L" value={`$${closedPnl.toFixed(2)}`} tone={closedPnl >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Capital blocat" value={`$${openMargin.toFixed(0)}`} />
+          <StatCard label="Open notional" value={`$${openNotional.toFixed(0)}`} />
+          <StatCard label="Win / Loss" value={`${wins}/${losses}`} />
+          <StatCard label="Best trade" value={bestTrade ? `${bestTrade.symbol} $${Number(simulatedPnl(bestTrade)).toFixed(2)}` : "—"} tone="#22c55e" />
+          <StatCard label="Worst trade" value={worstTrade ? `${worstTrade.symbol} $${Number(simulatedPnl(worstTrade)).toFixed(2)}` : "—"} tone="#ef4444" />
+        </div>
+        <div style={{ marginTop: 14, color: "#94a3b8", fontSize: 13 }}>
+          Equity curve closed trades: {equityPoints.length ? equityPoints.map((v, i) => <span key={i} style={{ display: "inline-block", marginRight: 8, color: v >= 0 ? "#22c55e" : "#ef4444" }}>#{i + 1}: ${v.toFixed(2)}</span>) : "—"}
+        </div>
+        <div style={{ marginTop: 8, color: regime.label === "risk_off" ? "#fca5a5" : "#94a3b8", fontWeight: 700 }}>
+          Risk-off management: {regime.label === "risk_off" ? "ACTIVE — no new longs; winners >= +0.5R move SL to BE; losers <= -0.75R close defensively." : "standby"}
+        </div>
       </section>
 
       <section style={{ ...panel, marginBottom: 22 }}>
