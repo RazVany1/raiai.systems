@@ -41,6 +41,14 @@ type PaperPosition = {
   closedAt?: string;
   exitPrice?: number;
   rMultiple?: number;
+  originalStop?: number;
+  initialRisk?: number;
+  tp1Price?: number;
+  runnerTargetPrice?: number;
+  runnerStopReason?: string;
+  activeStopReason?: string;
+  exitReason?: string;
+  actionLog?: Array<{ at?: string; action?: string; price?: number; stop?: number; entryPrice?: number; partialPrice?: number; exitPrice?: number; rMultiple?: number }>;
 };
 
 type PullbackSnapshot = {
@@ -100,12 +108,18 @@ function progressFromR(rValue?: number): number {
 }
 
 function targetPrice(position: PaperPosition): number | null {
+  const configuredTarget = Number(position.runnerTargetPrice);
+  if (Number.isFinite(configuredTarget)) return configuredTarget;
   const entry = Number(position.entryPrice);
-  const stop = Number(position.stop);
+  const risk = Number(position.initialRisk);
+  if (Number.isFinite(entry) && Number.isFinite(risk) && risk > 0) {
+    return position.side === "SHORT" ? entry - risk * 2.5 : entry + risk * 2.5;
+  }
+  const stop = Number(position.originalStop ?? position.stop);
   if (!Number.isFinite(entry) || !Number.isFinite(stop)) return null;
-  const risk = Math.abs(entry - stop);
-  if (!risk) return null;
-  return position.side === "SHORT" ? entry - risk * 2 : entry + risk * 2;
+  const fallbackRisk = Math.abs(entry - stop);
+  if (!fallbackRisk) return null;
+  return position.side === "SHORT" ? entry - fallbackRisk * 2.5 : entry + fallbackRisk * 2.5;
 }
 
 const panel: React.CSSProperties = {
@@ -223,8 +237,18 @@ export default function CryptoPage() {
                     <Badge tone={currentR >= 0 ? "#22c55e" : "#ef4444"}>{fmt(position.currentR)}R</Badge>
                   </div>
                   <div style={{ color: "#94a3b8", fontSize: 14, marginTop: 6 }}>
-                    Status: {position.status} · Entry {fmt(position.entryPrice)} · Last {fmt(position.lastPrice)} · Stop {fmt(position.stop)} · Target {fmt(target)} · Max {fmt(position.maxR)}R
+                    Status: {position.status} · Entry {fmt(position.entryPrice)} · Last {fmt(position.lastPrice)} · Initial SL {fmt(position.originalStop ?? position.stop)} · Active SL {fmt(position.stop)} · TP1 {fmt(position.tp1Price)} · Runner TP {fmt(target)} · Max {fmt(position.maxR)}R
                   </div>
+                  {position.activeStopReason || position.runnerStopReason ? (
+                    <div style={{ color: "#38bdf8", fontSize: 13, marginTop: 4 }}>
+                      Stop rule: {position.activeStopReason ?? position.runnerStopReason}
+                    </div>
+                  ) : null}
+                  {(position.actionLog ?? []).length ? (
+                    <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 8 }}>
+                      Ultime actiuni: {(position.actionLog ?? []).slice(-3).map((a) => `${a.action}${a.stop ? ` SL ${fmt(a.stop)}` : ""}${a.partialPrice ? ` TP1 ${fmt(a.partialPrice)}` : ""}`).join(" · ")}
+                    </div>
+                  ) : null}
 
                   <div style={{ marginTop: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: 11, marginBottom: 6 }}>
@@ -257,7 +281,7 @@ export default function CryptoPage() {
             {closedPositions.slice(-10).reverse().map((position) => (
               <div key={position.id} style={{ borderBottom: "1px solid #1f2937", paddingBottom: 10 }}>
                 <strong>{position.symbol} {position.side}</strong>
-                <div style={{ color: "#94a3b8", fontSize: 14 }}>Status: {position.status} · Exit {fmt(position.exitPrice)} · Result {fmt(position.rMultiple)}R</div>
+                <div style={{ color: "#94a3b8", fontSize: 14 }}>Status: {position.status} · Exit {fmt(position.exitPrice)} · Result {fmt(position.rMultiple)}R · Reason {position.exitReason ?? "—"}</div>
               </div>
             ))}
           </div>
