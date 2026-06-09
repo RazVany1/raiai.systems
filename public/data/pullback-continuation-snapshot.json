@@ -1,7 +1,7 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T14:28:46.280718+00:00",
+  "updatedAt": "2026-06-09T14:40:31.021351+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
@@ -10,7 +10,7 @@
     "label": "risk_off",
     "btcTrend": "down",
     "ethTrend": "down",
-    "universeHealthPct": 20.0,
+    "universeHealthPct": 10.0,
     "notes": [
       "prototype regime: BTC/ETH EMA20/EMA50 + universe health"
     ]
@@ -40,12 +40,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T14:28:56.060774+00:00",
+      "lastCheckedAt": "2026-06-09T14:40:40.595161+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.9568,
-      "currentR": 0.6187,
+      "currentR": 0.5827,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.5248
+      "lastPrice": 0.5238
     },
     {
       "id": "CC-LONG-1780983487",
@@ -57,31 +57,33 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T14:28:56.060774+00:00",
+      "lastCheckedAt": "2026-06-09T14:40:40.595161+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.5592,
-      "currentR": 0.2084,
+      "currentR": 0.2699,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.16499
+      "lastPrice": 0.1654
     },
     {
       "id": "STG-LONG-1780992317",
       "symbol": "STG",
       "side": "LONG",
       "entryPrice": 0.2555,
-      "stop": 0.2431,
+      "stop": 0.2555,
       "initialRisk": 0.0124,
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T08:05:17.728254+00:00",
-      "lastCheckedAt": "2026-06-09T14:28:56.060774+00:00",
+      "lastCheckedAt": "2026-06-09T14:40:40.595161+00:00",
       "status": "partial_taken_runner",
       "maxR": 2.5161,
-      "currentR": 2.3145,
+      "currentR": 2.4758,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.2842,
+      "lastPrice": 0.2862,
       "partialAt": "2026-06-09T13:15:22.106252+00:00",
-      "partialPrice": 0.2784
+      "partialPrice": 0.2784,
+      "originalStop": 0.2431,
+      "runnerStopReason": "breakeven_after_partial"
     },
     {
       "id": "JTO-LONG-1781007200",
@@ -93,12 +95,12 @@
       "grade": "B",
       "setupScore": 70,
       "openedAt": "2026-06-09T12:13:20.741999+00:00",
-      "lastCheckedAt": "2026-06-09T14:28:56.060774+00:00",
+      "lastCheckedAt": "2026-06-09T14:40:40.595161+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.2566,
-      "currentR": -0.3019,
+      "currentR": -0.7528,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.618
+      "lastPrice": 0.5941
     }
   ],
   "closedPaperPositions": [],
