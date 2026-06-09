@@ -1,16 +1,16 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T11:11:09.777914+00:00",
+  "updatedAt": "2026-06-09T12:13:11.142227+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
   ],
   "marketRegime": {
-    "label": "risk_off",
+    "label": "neutral",
     "btcTrend": "down",
     "ethTrend": "sideways",
-    "universeHealthPct": 36.67,
+    "universeHealthPct": 46.67,
     "notes": [
       "prototype regime: BTC/ETH EMA20/EMA50 + universe health"
     ]
@@ -18,17 +18,124 @@
   "scanStats": {
     "expected": 150,
     "scanned": 150,
-    "candidates": 0,
+    "candidates": 3,
     "aSetups": 0,
-    "bSetups": 0,
+    "bSetups": 3,
     "watchlist": 0,
     "errors": 0,
-    "openPaperPositions": 3,
+    "openPaperPositions": 4,
     "closedPaperPositions": 0,
-    "newPaperPositions": 0,
+    "newPaperPositions": 1,
     "newlyClosedPositions": 0
   },
-  "candidates": [],
+  "candidates": [
+    {
+      "symbol": "STG",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 78,
+      "grade": "B",
+      "entryZone": [
+        0.257625,
+        0.259175
+      ],
+      "invalidation": "1H close below 0.2431",
+      "stop": 0.2431,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.2584,
+        "ema20_1h": 0.254954,
+        "ema20_4h": 0.24413,
+        "ema50_4h": 0.24022,
+        "rsi_1h": 46.19,
+        "rsi_4h": 63.66
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "price not too extended from 4H EMA20",
+        "1H reclaim/reaction above EMA20",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
+    },
+    {
+      "symbol": "CC",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 75,
+      "grade": "B",
+      "entryZone": [
+        0.164246,
+        0.165234
+      ],
+      "invalidation": "1H close below 0.16101",
+      "stop": 0.16101,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.16474,
+        "ema20_1h": 0.162232,
+        "ema20_4h": 0.160143,
+        "ema50_4h": 0.157194,
+        "rsi_1h": 52.36,
+        "rsi_4h": 50.31
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "controlled pullback near 4H EMA20",
+        "price above EMA20 1H",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
+    },
+    {
+      "symbol": "JTO",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 70,
+      "grade": "B",
+      "entryZone": [
+        0.632098,
+        0.635902
+      ],
+      "invalidation": "1H close below 0.581",
+      "stop": 0.581,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.634,
+        "ema20_1h": 0.62045,
+        "ema20_4h": 0.598991,
+        "ema50_4h": 0.574861,
+        "rsi_1h": 60.27,
+        "rsi_4h": 64.04
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "price not too extended from 4H EMA20",
+        "1H reclaim/reaction above EMA20"
+      ],
+      "warnings": [
+        "risk acceptable but not ideal"
+      ],
+      "status": "paper_candidate"
+    }
+  ],
   "paperPositions": [
     {
       "id": "WLD-LONG-1780983487",
@@ -40,12 +147,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T11:11:19.311281+00:00",
+      "lastCheckedAt": "2026-06-09T12:13:20.741999+00:00",
       "status": "open_paper_candidate",
-      "maxR": 0.1942,
-      "currentR": 0.0683,
+      "maxR": 0.518,
+      "currentR": 0.518,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.5095
+      "lastPrice": 0.522
     },
     {
       "id": "CC-LONG-1780983487",
@@ -57,12 +164,12 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T11:11:19.311281+00:00",
+      "lastCheckedAt": "2026-06-09T12:13:20.741999+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.1994,
-      "currentR": 0.1994,
+      "currentR": 0.1709,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.16493
+      "lastPrice": 0.16474
     },
     {
       "id": "STG-LONG-1780992317",
@@ -74,12 +181,28 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T08:05:17.728254+00:00",
-      "lastCheckedAt": "2026-06-09T11:11:19.311281+00:00",
+      "lastCheckedAt": "2026-06-09T12:13:20.741999+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.4032,
-      "currentR": 0.4032,
+      "currentR": 0.2339,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.2605
+      "lastPrice": 0.2584
+    },
+    {
+      "id": "JTO-LONG-1781007200",
+      "symbol": "JTO",
+      "side": "LONG",
+      "entryPrice": 0.634,
+      "stop": 0.581,
+      "initialRisk": 0.053,
+      "grade": "B",
+      "setupScore": 70,
+      "openedAt": "2026-06-09T12:13:20.741999+00:00",
+      "lastCheckedAt": "2026-06-09T12:13:20.741999+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0.0,
+      "currentR": 0.0,
+      "notes": "prototype candidate, not real trade"
     }
   ],
   "closedPaperPositions": [],
