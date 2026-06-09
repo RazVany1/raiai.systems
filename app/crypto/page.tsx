@@ -122,6 +122,24 @@ function targetPrice(position: PaperPosition): number | null {
   return position.side === "SHORT" ? entry - fallbackRisk * 2.5 : entry + fallbackRisk * 2.5;
 }
 
+const SIM_MARGIN_USD = 50;
+const SIM_LEVERAGE = 3;
+const SIM_NOTIONAL_USD = SIM_MARGIN_USD * SIM_LEVERAGE;
+
+function simulatedPnl(position: PaperPosition): number | null {
+  const entry = Number(position.entryPrice);
+  const mark = Number(position.exitPrice ?? position.lastPrice);
+  if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
+  const direction = position.side === "SHORT" ? -1 : 1;
+  return ((mark - entry) / entry) * direction * SIM_NOTIONAL_USD;
+}
+
+function simulatedRoiOnMargin(position: PaperPosition): number | null {
+  const pnl = simulatedPnl(position);
+  if (!Number.isFinite(Number(pnl))) return null;
+  return (Number(pnl) / SIM_MARGIN_USD) * 100;
+}
+
 const panel: React.CSSProperties = {
   border: "1px solid #1f2937",
   borderRadius: 16,
@@ -216,6 +234,34 @@ export default function CryptoPage() {
               </ul>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section style={{ ...panel, marginBottom: 22 }}>
+        <h2 style={{ marginTop: 0 }}>Real Money Simulation — $50 margin / 3x leverage</h2>
+        <p style={{ color: "#94a3b8", marginTop: -4 }}>
+          Simulare fixa: margin $50 pe pozitie, leverage 3x, notional $150. Nu este executie reala.
+        </p>
+        {[...openPositions, ...closedPositions.slice(-10).reverse()].length === 0 ? <p style={{ color: "#94a3b8" }}>Nu exista pozitii de simulat.</p> : null}
+        <div style={{ display: "grid", gap: 8 }}>
+          {[...openPositions, ...closedPositions.slice(-10).reverse()].map((position) => {
+            const pnl = simulatedPnl(position);
+            const roi = simulatedRoiOnMargin(position);
+            const pnlTone = Number(pnl ?? 0) >= 0 ? "#22c55e" : "#ef4444";
+            return (
+              <div key={`sim-${position.id}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a", alignItems: "center" }}>
+                <strong>{position.symbol} {position.side}</strong>
+                <span>Status: <b>{position.status}</b></span>
+                <span>Margin: <b>$50</b></span>
+                <span>Lev: <b>3x</b></span>
+                <span>Notional: <b>$150</b></span>
+                <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                <span>Mark/Exit: <b>{fmt(position.exitPrice ?? position.lastPrice)}</b></span>
+                <span style={{ color: pnlTone }}>P/L: <b>{pnl === null ? "—" : `$${pnl.toFixed(2)}`}</b></span>
+                <span style={{ color: pnlTone }}>ROI margin: <b>{roi === null ? "—" : `${roi.toFixed(2)}%`}</b></span>
+              </div>
+            );
+          })}
         </div>
       </section>
 
