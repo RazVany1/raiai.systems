@@ -1,16 +1,16 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T09:07:07.213357+00:00",
+  "updatedAt": "2026-06-09T10:09:08.443070+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
   ],
   "marketRegime": {
-    "label": "neutral",
+    "label": "risk_off",
     "btcTrend": "down",
     "ethTrend": "sideways",
-    "universeHealthPct": 53.33,
+    "universeHealthPct": 36.67,
     "notes": [
       "prototype regime: BTC/ETH EMA20/EMA50 + universe health"
     ]
@@ -18,9 +18,9 @@
   "scanStats": {
     "expected": 150,
     "scanned": 150,
-    "candidates": 2,
+    "candidates": 0,
     "aSetups": 0,
-    "bSetups": 2,
+    "bSetups": 0,
     "watchlist": 0,
     "errors": 0,
     "openPaperPositions": 3,
@@ -28,78 +28,7 @@
     "newPaperPositions": 0,
     "newlyClosedPositions": 0
   },
-  "candidates": [
-    {
-      "symbol": "CC",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 75,
-      "grade": "B",
-      "entryZone": [
-        0.162302,
-        0.163278
-      ],
-      "invalidation": "1H close below 0.15802",
-      "stop": 0.15802,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 0.16279,
-        "ema20_1h": 0.161433,
-        "ema20_4h": 0.159536,
-        "ema50_4h": 0.156826,
-        "rsi_1h": 55.36,
-        "rsi_4h": 46.06
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "controlled pullback near 4H EMA20",
-        "price above EMA20 1H",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    },
-    {
-      "symbol": "STG",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 68,
-      "grade": "B",
-      "entryZone": [
-        0.257226,
-        0.258774
-      ],
-      "invalidation": "1H close below 0.2431",
-      "stop": 0.2431,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 0.258,
-        "ema20_1h": 0.253985,
-        "ema20_4h": 0.242667,
-        "ema50_4h": 0.239513,
-        "rsi_1h": 45.66,
-        "rsi_4h": 65.38
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "price not too extended from 4H EMA20",
-        "price above EMA20 1H",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    }
-  ],
+  "candidates": [],
   "paperPositions": [
     {
       "id": "WLD-LONG-1780983487",
@@ -111,12 +40,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T09:07:17.153027+00:00",
+      "lastCheckedAt": "2026-06-09T10:09:18.035393+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.1942,
-      "currentR": 0.1942,
+      "currentR": 0.0144,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.513
+      "lastPrice": 0.508
     },
     {
       "id": "CC-LONG-1780983487",
@@ -128,12 +57,12 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T09:07:17.153027+00:00",
+      "lastCheckedAt": "2026-06-09T10:09:18.035393+00:00",
       "status": "open_paper_candidate",
-      "maxR": 0.0,
-      "currentR": -0.1214,
+      "maxR": 0.063,
+      "currentR": 0.063,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.16279
+      "lastPrice": 0.16402
     },
     {
       "id": "STG-LONG-1780992317",
@@ -145,12 +74,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T08:05:17.728254+00:00",
-      "lastCheckedAt": "2026-06-09T09:07:17.153027+00:00",
+      "lastCheckedAt": "2026-06-09T10:09:18.035393+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.2016,
-      "currentR": 0.2016,
+      "currentR": -0.1694,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.258
+      "lastPrice": 0.2534
     }
   ],
   "closedPaperPositions": [],
