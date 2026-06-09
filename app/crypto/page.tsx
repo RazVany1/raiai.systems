@@ -140,6 +140,29 @@ function simulatedRoiOnMargin(position: PaperPosition): number | null {
   return (Number(pnl) / SIM_MARGIN_USD) * 100;
 }
 
+function stopHit(position: PaperPosition): boolean {
+  const stop = Number(position.stop);
+  const mark = Number(position.exitPrice ?? position.lastPrice);
+  if (!Number.isFinite(stop) || !Number.isFinite(mark)) return false;
+  return position.side === "SHORT" ? mark >= stop : mark <= stop;
+}
+
+function distanceToStopPct(position: PaperPosition): number | null {
+  const stop = Number(position.stop);
+  const mark = Number(position.exitPrice ?? position.lastPrice);
+  if (!Number.isFinite(stop) || !Number.isFinite(mark) || mark <= 0) return null;
+  const raw = position.side === "SHORT" ? (stop - mark) / mark : (mark - stop) / mark;
+  return raw * 100;
+}
+
+function pnlAtStop(position: PaperPosition): number | null {
+  const entry = Number(position.entryPrice);
+  const stop = Number(position.stop);
+  if (!Number.isFinite(entry) || !Number.isFinite(stop) || entry <= 0) return null;
+  const direction = position.side === "SHORT" ? -1 : 1;
+  return ((stop - entry) / entry) * direction * SIM_NOTIONAL_USD;
+}
+
 const panel: React.CSSProperties = {
   border: "1px solid #1f2937",
   borderRadius: 16,
@@ -248,6 +271,9 @@ export default function CryptoPage() {
             const pnl = simulatedPnl(position);
             const roi = simulatedRoiOnMargin(position);
             const pnlTone = Number(pnl ?? 0) >= 0 ? "#22c55e" : "#ef4444";
+            const hit = stopHit(position);
+            const distStop = distanceToStopPct(position);
+            const stopPnl = pnlAtStop(position);
             return (
               <div key={`sim-${position.id}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a", alignItems: "center" }}>
                 <strong>{position.symbol} {position.side}</strong>
@@ -256,6 +282,10 @@ export default function CryptoPage() {
                 <span>Lev: <b>3x</b></span>
                 <span>Notional: <b>$150</b></span>
                 <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                <span>SL: <b>{fmt(position.stop)}</b></span>
+                <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL status: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
+                <span>Dist. to SL: <b>{distStop === null ? "—" : `${distStop.toFixed(2)}%`}</b></span>
+                <span>Loss if SL: <b style={{ color: "#ef4444" }}>{stopPnl === null ? "—" : `$${stopPnl.toFixed(2)}`}</b></span>
                 <span>Mark/Exit: <b>{fmt(position.exitPrice ?? position.lastPrice)}</b></span>
                 <span style={{ color: pnlTone }}>P/L: <b>{pnl === null ? "—" : `$${pnl.toFixed(2)}`}</b></span>
                 <span style={{ color: pnlTone }}>ROI margin: <b>{roi === null ? "—" : `${roi.toFixed(2)}%`}</b></span>
@@ -276,6 +306,9 @@ export default function CryptoPage() {
               const currentPct = progressFromR(currentR);
               const maxPct = progressFromR(maxR);
               const target = targetPrice(position);
+              const hit = stopHit(position);
+              const distStop = distanceToStopPct(position);
+              const stopPnl = pnlAtStop(position);
               return (
                 <div key={position.id} style={{ borderBottom: "1px solid #1f2937", paddingBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
@@ -290,6 +323,9 @@ export default function CryptoPage() {
                       Stop rule: {position.activeStopReason ?? position.runnerStopReason}
                     </div>
                   ) : null}
+                  <div style={{ color: hit ? "#ef4444" : "#22c55e", fontSize: 13, marginTop: 4, fontWeight: 700 }}>
+                    SL status: {hit ? "HIT" : "NOT HIT"} · Distance to SL: {distStop === null ? "—" : `${distStop.toFixed(2)}%`} · Sim loss if SL: {stopPnl === null ? "—" : `$${stopPnl.toFixed(2)}`}
+                  </div>
                   {(position.actionLog ?? []).length ? (
                     <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 8 }}>
                       Ultime actiuni: {(position.actionLog ?? []).slice(-3).map((a) => `${a.action}${a.stop ? ` SL ${fmt(a.stop)}` : ""}${a.partialPrice ? ` TP1 ${fmt(a.partialPrice)}` : ""}`).join(" · ")}
