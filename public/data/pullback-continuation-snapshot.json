@@ -1,7 +1,7 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T06:10:31.364310+00:00",
+  "updatedAt": "2026-06-09T06:15:59.826346+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
@@ -16,8 +16,8 @@
     ]
   },
   "scanStats": {
-    "expected": 60,
-    "scanned": 60,
+    "expected": 150,
+    "scanned": 150,
     "candidates": 2,
     "aSetups": 0,
     "bSetups": 2,
@@ -30,6 +30,41 @@
   },
   "candidates": [
     {
+      "symbol": "WLD",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 78,
+      "grade": "B",
+      "entryZone": [
+        0.508869,
+        0.511931
+      ],
+      "invalidation": "1H close below 0.4798",
+      "stop": 0.4798,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.5104,
+        "ema20_1h": 0.498766,
+        "ema20_4h": 0.479806,
+        "ema50_4h": 0.453529,
+        "rsi_1h": 52.46,
+        "rsi_4h": 64.94
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "price not too extended from 4H EMA20",
+        "1H reclaim/reaction above EMA20",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
+    },
+    {
       "symbol": "CC",
       "venues": [
         "hyperliquid",
@@ -39,60 +74,25 @@
       "score": 75,
       "grade": "B",
       "entryZone": [
-        0.162671,
-        0.163649
+        0.161524,
+        0.162496
       ],
       "invalidation": "1H close below 0.15802",
       "stop": 0.15802,
       "riskReward": 2.0,
       "metrics": {
-        "price": 0.16316,
-        "ema20_1h": 0.161259,
-        "ema20_4h": 0.159384,
-        "ema50_4h": 0.156644,
-        "rsi_1h": 67.74,
-        "rsi_4h": 53.51
+        "price": 0.16201,
+        "ema20_1h": 0.161149,
+        "ema20_4h": 0.159274,
+        "ema50_4h": 0.156599,
+        "rsi_1h": 64.82,
+        "rsi_4h": 51.68
       },
       "reasons": [
         "hard quality gate passed",
         "market neutral",
         "4H trend above EMA20/EMA50",
         "controlled pullback near 4H EMA20",
-        "price above EMA20 1H",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    },
-    {
-      "symbol": "WLD",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 68,
-      "grade": "B",
-      "entryZone": [
-        0.504781,
-        0.507819
-      ],
-      "invalidation": "1H close below 0.4798",
-      "stop": 0.4798,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 0.5063,
-        "ema20_1h": 0.498375,
-        "ema20_4h": 0.479416,
-        "ema50_4h": 0.453368,
-        "rsi_1h": 51.49,
-        "rsi_4h": 64.49
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "price not too extended from 4H EMA20",
         "price above EMA20 1H",
         "risk/reward technically valid"
       ],
@@ -111,12 +111,12 @@
       "grade": "B",
       "setupScore": 78,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T06:11:20.563845+00:00",
+      "lastCheckedAt": "2026-06-09T06:18:02.552978+00:00",
       "status": "open_paper_candidate",
-      "maxR": 0.0,
-      "currentR": -0.0468,
+      "maxR": 0.1007,
+      "currentR": 0.1007,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.5063
+      "lastPrice": 0.5104
     },
     {
       "id": "CC-LONG-1780983487",
@@ -128,12 +128,12 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T06:11:20.563845+00:00",
+      "lastCheckedAt": "2026-06-09T06:18:02.552978+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.0,
-      "currentR": -0.066,
+      "currentR": -0.2384,
       "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.16316
+      "lastPrice": 0.16201
     }
   ],
   "closedPaperPositions": [],
