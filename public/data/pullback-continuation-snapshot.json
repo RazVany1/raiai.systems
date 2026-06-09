@@ -1,0 +1,141 @@
+{
+  "system": "RAI_PULLBACK_CONTINUATION",
+  "version": "0.1",
+  "updatedAt": "2026-06-09T06:00:24.609282+00:00",
+  "venues": [
+    "hyperliquid",
+    "asterdex"
+  ],
+  "marketRegime": {
+    "label": "neutral",
+    "btcTrend": "sideways",
+    "ethTrend": "sideways",
+    "universeHealthPct": 53.33,
+    "notes": [
+      "prototype regime: BTC/ETH EMA20/EMA50 + universe health"
+    ]
+  },
+  "scanStats": {
+    "expected": 60,
+    "scanned": 60,
+    "candidates": 2,
+    "aSetups": 0,
+    "bSetups": 2,
+    "watchlist": 0,
+    "errors": 0,
+    "openPaperPositions": 2,
+    "closedPaperPositions": 0,
+    "newPaperPositions": 0,
+    "newlyClosedPositions": 0
+  },
+  "candidates": [
+    {
+      "symbol": "CC",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 75,
+      "grade": "B",
+      "entryZone": [
+        0.162671,
+        0.163649
+      ],
+      "invalidation": "1H close below 0.15802",
+      "stop": 0.15802,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.16316,
+        "ema20_1h": 0.161259,
+        "ema20_4h": 0.159384,
+        "ema50_4h": 0.156644,
+        "rsi_1h": 67.74,
+        "rsi_4h": 53.51
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "controlled pullback near 4H EMA20",
+        "price above EMA20 1H",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
+    },
+    {
+      "symbol": "WLD",
+      "venues": [
+        "hyperliquid",
+        "asterdex"
+      ],
+      "side": "LONG",
+      "score": 68,
+      "grade": "B",
+      "entryZone": [
+        0.505977,
+        0.509022
+      ],
+      "invalidation": "1H close below 0.4798",
+      "stop": 0.4798,
+      "riskReward": 2.0,
+      "metrics": {
+        "price": 0.5075,
+        "ema20_1h": 0.498489,
+        "ema20_4h": 0.47953,
+        "ema50_4h": 0.453415,
+        "rsi_1h": 51.79,
+        "rsi_4h": 64.63
+      },
+      "reasons": [
+        "hard quality gate passed",
+        "market neutral",
+        "4H trend above EMA20/EMA50",
+        "price not too extended from 4H EMA20",
+        "price above EMA20 1H",
+        "risk/reward technically valid"
+      ],
+      "warnings": [],
+      "status": "paper_candidate"
+    }
+  ],
+  "paperPositions": [
+    {
+      "id": "WLD-LONG-1780983487",
+      "symbol": "WLD",
+      "side": "LONG",
+      "entryPrice": 0.5076,
+      "stop": 0.4798,
+      "initialRisk": 0.0278,
+      "grade": "B",
+      "setupScore": 78,
+      "openedAt": "2026-06-09T05:38:07.740998+00:00",
+      "lastCheckedAt": "2026-06-09T06:01:14.894333+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0.0,
+      "currentR": -0.0036,
+      "notes": "prototype candidate, not real trade",
+      "lastPrice": 0.5075
+    },
+    {
+      "id": "CC-LONG-1780983487",
+      "symbol": "CC",
+      "side": "LONG",
+      "entryPrice": 0.1636,
+      "stop": 0.15693,
+      "initialRisk": 0.00667,
+      "grade": "B",
+      "setupScore": 75,
+      "openedAt": "2026-06-09T05:38:07.740998+00:00",
+      "lastCheckedAt": "2026-06-09T06:01:14.894333+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0.0,
+      "currentR": -0.066,
+      "notes": "prototype candidate, not real trade",
+      "lastPrice": 0.16316
+    }
+  ],
+  "closedPaperPositions": [],
+  "errors": []
+}
