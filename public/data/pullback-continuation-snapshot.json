@@ -1,7 +1,7 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-09T22:31:23.815097+00:00",
+  "updatedAt": "2026-06-10T06:16:33.365118+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
@@ -10,7 +10,7 @@
     "label": "risk_off",
     "btcTrend": "down",
     "ethTrend": "down",
-    "universeHealthPct": 33.33,
+    "universeHealthPct": 3.33,
     "notes": [
       "prototype regime: BTC/ETH EMA20/EMA50 + universe health"
     ]
@@ -23,36 +23,13 @@
     "bSetups": 0,
     "watchlist": 0,
     "errors": 0,
-    "openPaperPositions": 3,
-    "closedPaperPositions": 1,
+    "openPaperPositions": 1,
+    "closedPaperPositions": 3,
     "newPaperPositions": 0,
-    "newlyClosedPositions": 0
+    "newlyClosedPositions": 2
   },
   "candidates": [],
   "paperPositions": [
-    {
-      "id": "WLD-LONG-1780983487",
-      "symbol": "WLD",
-      "side": "LONG",
-      "entryPrice": 0.5076,
-      "stop": 0.4798,
-      "initialRisk": 0.0278,
-      "grade": "B",
-      "setupScore": 78,
-      "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T22:31:34.041752+00:00",
-      "status": "open_paper_candidate",
-      "maxR": 0.9568,
-      "currentR": 0.2698,
-      "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.5151,
-      "originalStop": 0.4798,
-      "tp1R": 1.5,
-      "tp1Price": 0.5493,
-      "runnerTargetR": 2.5,
-      "runnerTargetPrice": 0.5771,
-      "actionLog": []
-    },
     {
       "id": "CC-LONG-1780983487",
       "symbol": "CC",
@@ -63,7 +40,7 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-09T05:38:07.740998+00:00",
-      "lastCheckedAt": "2026-06-09T22:31:34.041752+00:00",
+      "lastCheckedAt": "2026-06-10T06:16:42.952650+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.5592,
       "currentR": 0.2084,
@@ -74,29 +51,6 @@
       "tp1Price": 0.173605,
       "runnerTargetR": 2.5,
       "runnerTargetPrice": 0.180275,
-      "actionLog": []
-    },
-    {
-      "id": "JTO-LONG-1781007200",
-      "symbol": "JTO",
-      "side": "LONG",
-      "entryPrice": 0.634,
-      "stop": 0.581,
-      "initialRisk": 0.053,
-      "grade": "B",
-      "setupScore": 70,
-      "openedAt": "2026-06-09T12:13:20.741999+00:00",
-      "lastCheckedAt": "2026-06-09T22:31:34.041752+00:00",
-      "status": "open_paper_candidate",
-      "maxR": 0.2566,
-      "currentR": -0.4736,
-      "notes": "prototype candidate, not real trade",
-      "lastPrice": 0.6089,
-      "originalStop": 0.581,
-      "tp1R": 1.5,
-      "tp1Price": 0.7135,
-      "runnerTargetR": 2.5,
-      "runnerTargetPrice": 0.7665,
       "actionLog": []
     }
   ],
@@ -125,6 +79,74 @@
       "exitPrice": 0.2865,
       "rMultiple": 2.5,
       "exitReason": "runner_target"
+    },
+    {
+      "id": "WLD-LONG-1780983487",
+      "symbol": "WLD",
+      "side": "LONG",
+      "entryPrice": 0.5076,
+      "stop": 0.4798,
+      "initialRisk": 0.0278,
+      "grade": "B",
+      "setupScore": 78,
+      "openedAt": "2026-06-09T05:38:07.740998+00:00",
+      "lastCheckedAt": "2026-06-10T06:16:42.952650+00:00",
+      "status": "closed_risk_off_defensive",
+      "maxR": 0.9568,
+      "currentR": -0.8129,
+      "notes": "prototype candidate, not real trade",
+      "lastPrice": 0.485,
+      "originalStop": 0.4798,
+      "tp1R": 1.5,
+      "tp1Price": 0.5493,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.5771,
+      "actionLog": [
+        {
+          "at": "2026-06-10T06:16:42.952650+00:00",
+          "action": "closed_risk_off_defensive",
+          "exitPrice": 0.485,
+          "rMultiple": -0.8129
+        }
+      ],
+      "closedAt": "2026-06-10T06:16:42.952650+00:00",
+      "exitPrice": 0.485,
+      "rMultiple": -0.8129,
+      "exitReason": "risk_off_defensive_exit"
+    },
+    {
+      "id": "JTO-LONG-1781007200",
+      "symbol": "JTO",
+      "side": "LONG",
+      "entryPrice": 0.634,
+      "stop": 0.581,
+      "initialRisk": 0.053,
+      "grade": "B",
+      "setupScore": 70,
+      "openedAt": "2026-06-09T12:13:20.741999+00:00",
+      "lastCheckedAt": "2026-06-10T06:16:42.952650+00:00",
+      "status": "closed_risk_off_defensive",
+      "maxR": 0.2566,
+      "currentR": -0.7566,
+      "notes": "prototype candidate, not real trade",
+      "lastPrice": 0.5939,
+      "originalStop": 0.581,
+      "tp1R": 1.5,
+      "tp1Price": 0.7135,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.7665,
+      "actionLog": [
+        {
+          "at": "2026-06-10T06:16:42.952650+00:00",
+          "action": "closed_risk_off_defensive",
+          "exitPrice": 0.5939,
+          "rMultiple": -0.7566
+        }
+      ],
+      "closedAt": "2026-06-10T06:16:42.952650+00:00",
+      "exitPrice": 0.5939,
+      "rMultiple": -0.7566,
+      "exitReason": "risk_off_defensive_exit"
     }
   ],
   "errors": []
