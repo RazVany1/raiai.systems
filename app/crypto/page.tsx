@@ -177,6 +177,35 @@ function pnlAtStop(position: PaperPosition): number | null {
   return ((stop - entry) / entry) * direction * SIM_NOTIONAL_USD;
 }
 
+function isClosedPosition(position: PaperPosition): boolean {
+  const status = String(position.status ?? "").toLowerCase();
+  return status.startsWith("closed") || Boolean(position.closedAt || position.exitPrice !== undefined);
+}
+
+function statusLabel(position: PaperPosition): string {
+  if (isClosedPosition(position)) return "ÎNCHISĂ";
+  if (String(position.status ?? "").includes("partial")) return "DESCHISĂ — runner";
+  return "DESCHISĂ";
+}
+
+function statusTone(position: PaperPosition): string {
+  if (!isClosedPosition(position)) return "#22c55e";
+  return Number(position.rMultiple ?? simulatedPnl(position) ?? 0) >= 0 ? "#38bdf8" : "#f97316";
+}
+
+function readableStatus(position: PaperPosition): string {
+  const raw = String(position.status ?? "—");
+  const map: Record<string, string> = {
+    open_paper_candidate: "deschisă — paper",
+    partial_taken_runner: "deschisă — TP1 luat, runner activ",
+    closed_risk_off_defensive: "închisă — risk-off defensiv",
+    closed_runner_target: "închisă — runner target",
+    closed_runner_breakeven: "închisă — runner BE",
+    closed_stop: "închisă — stop loss",
+  };
+  return map[raw] ?? raw.replaceAll("_", " ");
+}
+
 const panel: React.CSSProperties = {
   border: "1px solid #1f2937",
   borderRadius: 16,
@@ -202,6 +231,51 @@ function Badge({ children, tone = "#38bdf8" }: { children: React.ReactNode; tone
     <span style={{ border: `1px solid ${tone}`, color: tone, padding: "3px 8px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
       {children}
     </span>
+  );
+}
+
+type StrategySummary = {
+  name: string;
+  candidates: number;
+  aSetups: number;
+  bSetups: number;
+  openPositions: PaperPosition[];
+  closedPositions: PaperPosition[];
+  openPnl: number;
+  closedPnl: number;
+};
+
+function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySummary; funding: StrategySummary }) {
+  const rows = [pullback, funding].map((s) => {
+    const closedPnl = s.closedPnl;
+    const totalPnl = s.openPnl + s.closedPnl;
+    const wins = s.closedPositions.filter((p) => Number(p.rMultiple ?? simulatedPnl(p) ?? 0) > 0).length;
+    const losses = s.closedPositions.filter((p) => Number(p.rMultiple ?? simulatedPnl(p) ?? 0) <= 0).length;
+    return { ...s, totalPnl, wins, losses, openRisk: s.openPositions.length * SIM_MARGIN_USD };
+  });
+  const leader = rows.reduce((best, row) => row.totalPnl > best.totalPnl ? row : best, rows[0]);
+  return (
+    <section style={{ ...panel, marginBottom: 22, borderColor: "#2563eb" }}>
+      <h2 style={{ marginTop: 0 }}>Strategy Comparison Panel</h2>
+      <p style={{ color: "#94a3b8", marginTop: -4 }}>Comparație paper: Pullback Continuation vs Funding Reset Reclaim. Simulare $50 margin / 3x per poziție.</p>
+      <div style={{ display: "grid", gap: 10 }}>
+        {rows.map((row) => (
+          <div key={row.name} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, padding: 12, border: "1px solid #334155", borderRadius: 14, background: row.name === leader.name ? "rgba(34,197,94,.08)" : "#0f172a" }}>
+            <strong style={{ fontSize: 18 }}>{row.name}</strong>
+            <span>Candidates: <b>{fmt(row.candidates)}</b></span>
+            <span>A/B: <b>{fmt(row.aSetups)}/{fmt(row.bSetups)}</b></span>
+            <span>Open: <b style={{ color: "#22c55e" }}>{row.openPositions.length}</b></span>
+            <span>Closed: <b>{row.closedPositions.length}</b></span>
+            <span>Win/Loss: <b>{row.wins}/{row.losses}</b></span>
+            <span>Open risk: <b>${row.openRisk.toFixed(0)}</b></span>
+            <span>Open P/L: <b style={{ color: row.openPnl >= 0 ? "#22c55e" : "#ef4444" }}>${row.openPnl.toFixed(2)}</b></span>
+            <span>Closed P/L: <b style={{ color: row.closedPnl >= 0 ? "#22c55e" : "#ef4444" }}>${row.closedPnl.toFixed(2)}</b></span>
+            <span>Total P/L: <b style={{ color: row.totalPnl >= 0 ? "#22c55e" : "#ef4444" }}>${row.totalPnl.toFixed(2)}</b></span>
+            {row.name === leader.name ? <Badge tone="#22c55e">leader acum</Badge> : <span />}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -245,6 +319,26 @@ export default function CryptoPage() {
   const fundingClosed = fundingSnapshot?.closedPaperPositions ?? [];
   const fundingOpenPnl = fundingOpen.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
   const fundingClosedPnl = fundingClosed.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
+  const pullbackSummary: StrategySummary = {
+    name: "Pullback",
+    candidates: Number(stats.candidates ?? candidates.length),
+    aSetups: Number(stats.aSetups ?? 0),
+    bSetups: Number(stats.bSetups ?? 0),
+    openPositions,
+    closedPositions,
+    openPnl,
+    closedPnl,
+  };
+  const fundingSummary: StrategySummary = {
+    name: "Funding Reset",
+    candidates: Number(fundingStats.candidates ?? fundingCandidates.length),
+    aSetups: Number(fundingStats.aSetups ?? 0),
+    bSetups: Number(fundingStats.bSetups ?? 0),
+    openPositions: fundingOpen,
+    closedPositions: fundingClosed,
+    openPnl: fundingOpenPnl,
+    closedPnl: fundingClosedPnl,
+  };
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -266,6 +360,8 @@ export default function CryptoPage() {
         <StatCard label="Open paper" value={stats.openPaperPositions ?? openPositions.length} tone="#22c55e" />
         <StatCard label="Closed paper" value={stats.closedPaperPositions ?? closedPositions.length} />
       </section>
+
+      <StrategyComparisonPanel pullback={pullbackSummary} funding={fundingSummary} />
 
       <section style={{ ...panel, marginBottom: 22 }}>
         <h2 style={{ marginTop: 0 }}>Performance & Risk Panel</h2>
@@ -393,20 +489,30 @@ export default function CryptoPage() {
             const distStop = distanceToStopPct(position);
             const stopPnl = pnlAtStop(position);
             return (
-              <div key={`sim-${position.id}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a", alignItems: "center" }}>
-                <strong>{position.symbol} {position.side}</strong>
-                <span>Status: <b>{position.status}</b></span>
-                <span>Margin: <b>$50</b></span>
-                <span>Lev: <b>3x</b></span>
-                <span>Notional: <b>$150</b></span>
-                <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
-                <span>SL: <b>{fmt(position.stop)}</b></span>
-                <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL status: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
-                <span>Dist. to SL: <b>{distStop === null ? "—" : `${distStop.toFixed(2)}%`}</b></span>
-                <span>Loss if SL: <b style={{ color: "#ef4444" }}>{stopPnl === null ? "—" : `$${stopPnl.toFixed(2)}`}</b></span>
-                <span>Mark/Exit: <b>{fmt(position.exitPrice ?? position.lastPrice)}</b></span>
-                <span style={{ color: pnlTone }}>P/L: <b>{pnl === null ? "—" : `$${pnl.toFixed(2)}`}</b></span>
-                <span style={{ color: pnlTone }}>ROI margin: <b>{roi === null ? "—" : `${roi.toFixed(2)}%`}</b></span>
+              <div key={`sim-${position.id}`} style={{ padding: 14, border: `1px solid ${isClosedPosition(position) ? "#475569" : "#22c55e"}`, borderRadius: 14, background: isClosedPosition(position) ? "#111827" : "#0f172a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: 18 }}>{position.symbol} {position.side}</strong>
+                    <Badge tone={statusTone(position)}>{statusLabel(position)}</Badge>
+                    <span style={{ color: "#94a3b8" }}>{readableStatus(position)}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+                    <span style={{ color: pnlTone, fontWeight: 800 }}>P/L: {pnl === null ? "—" : `$${pnl.toFixed(2)}`}</span>
+                    <span style={{ color: pnlTone, fontWeight: 800 }}>ROI: {roi === null ? "—" : `${roi.toFixed(2)}%`}</span>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, color: "#cbd5e1" }}>
+                  <span>Margin: <b>$50</b></span>
+                  <span>Lev: <b>3x</b></span>
+                  <span>Notional: <b>$150</b></span>
+                  <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                  <span>SL: <b>{fmt(position.stop)}</b></span>
+                  <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL status: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
+                  <span>Dist. to SL: <b>{distStop === null ? "—" : `${distStop.toFixed(2)}%`}</b></span>
+                  <span>Loss if SL: <b style={{ color: "#ef4444" }}>{stopPnl === null ? "—" : `$${stopPnl.toFixed(2)}`}</b></span>
+                  <span>Mark/Exit: <b>{fmt(position.exitPrice ?? position.lastPrice)}</b></span>
+                  {position.closedAt ? <span>Closed at: <b>{dateFmt(position.closedAt)}</b></span> : <span>Checked: <b>{dateFmt(position.lastCheckedAt)}</b></span>}
+                </div>
               </div>
             );
           })}
