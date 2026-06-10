@@ -22,6 +22,15 @@ type Candidate = {
   };
   reasons?: string[];
   warnings?: string[];
+  price?: number;
+  fundingRate?: number;
+  openInterest?: number;
+  drop72hPct?: number;
+  reboundFromLowPct?: number;
+  rsi1h?: number;
+  ema20_1h?: number;
+  tp1Price?: number;
+  runnerTargetPrice?: number;
 };
 
 type PaperPosition = {
@@ -70,14 +79,19 @@ type PullbackSnapshot = {
 };
 
 const dataPath = path.join(process.cwd(), "public", "data", "pullback-continuation-snapshot.json");
+const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-reset-reclaim-snapshot.json");
 
-function loadSnapshot(): PullbackSnapshot | null {
+function loadJson<T>(filePath: string): T | null {
   try {
-    const raw = fs.readFileSync(dataPath, "utf-8");
-    return JSON.parse(raw) as PullbackSnapshot;
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }
+}
+
+function loadSnapshot(): PullbackSnapshot | null {
+  return loadJson<PullbackSnapshot>(dataPath);
 }
 
 function fmt(value: unknown): string {
@@ -193,6 +207,7 @@ function Badge({ children, tone = "#38bdf8" }: { children: React.ReactNode; tone
 
 export default function CryptoPage() {
   const snapshot = loadSnapshot();
+  const fundingSnapshot = loadJson<PullbackSnapshot>(fundingDataPath);
 
   if (!snapshot) {
     return (
@@ -223,6 +238,13 @@ export default function CryptoPage() {
   });
   const bestTrade = simulatedPositions.reduce<PaperPosition | null>((best, p) => simulatedPnl(p) !== null && (!best || Number(simulatedPnl(p)) > Number(simulatedPnl(best))) ? p : best, null);
   const worstTrade = simulatedPositions.reduce<PaperPosition | null>((worst, p) => simulatedPnl(p) !== null && (!worst || Number(simulatedPnl(p)) < Number(simulatedPnl(worst))) ? p : worst, null);
+  const fundingStats = fundingSnapshot?.scanStats ?? {};
+  const fundingRegime = fundingSnapshot?.marketRegime ?? {};
+  const fundingCandidates = fundingSnapshot?.candidates ?? [];
+  const fundingOpen = fundingSnapshot?.paperPositions ?? [];
+  const fundingClosed = fundingSnapshot?.closedPaperPositions ?? [];
+  const fundingOpenPnl = fundingOpen.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
+  const fundingClosedPnl = fundingClosed.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -263,6 +285,67 @@ export default function CryptoPage() {
         <div style={{ marginTop: 8, color: regime.label === "risk_off" ? "#fca5a5" : "#94a3b8", fontWeight: 700 }}>
           Risk-off management: {regime.label === "risk_off" ? "ACTIVE — no new longs; winners >= +0.5R move SL to BE; losers <= -0.75R close defensively." : "standby"}
         </div>
+      </section>
+
+      <section style={{ ...panel, marginBottom: 22 }}>
+        <h2 style={{ marginTop: 0 }}>Funding Reset Reclaim — Strategy 2</h2>
+        {!fundingSnapshot ? <p style={{ color: "#fca5a5" }}>Nu gasesc snapshotul Funding Reset: {fundingDataPath}</p> : null}
+        {fundingSnapshot ? (
+          <>
+            <p style={{ color: "#94a3b8", marginTop: -4 }}>
+              Reset + funding neutral/negativ + reclaim 1H. Ultim update: {dateFmt(fundingSnapshot.updatedAt)} PDT.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
+              <StatCard label="Regime" value={fundingRegime.label} tone={fundingRegime.label === "risk_off" ? "#ef4444" : fundingRegime.label === "risk_on" ? "#22c55e" : "#fbbf24"} />
+              <StatCard label="Candidates" value={fundingStats.candidates} tone="#38bdf8" />
+              <StatCard label="A/B" value={`${fmt(fundingStats.aSetups)}/${fmt(fundingStats.bSetups)}`} />
+              <StatCard label="Open FRR" value={fundingStats.openPaperPositions ?? fundingOpen.length} tone="#22c55e" />
+              <StatCard label="Closed FRR" value={fundingStats.closedPaperPositions ?? fundingClosed.length} />
+              <StatCard label="Open P/L" value={`$${fundingOpenPnl.toFixed(2)}`} tone={fundingOpenPnl >= 0 ? "#22c55e" : "#ef4444"} />
+              <StatCard label="Closed P/L" value={`$${fundingClosedPnl.toFixed(2)}`} tone={fundingClosedPnl >= 0 ? "#22c55e" : "#ef4444"} />
+            </div>
+            <h3 style={{ marginBottom: 8 }}>Top candidates</h3>
+            {fundingCandidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat Funding Reset acum.</p> : null}
+            <div style={{ display: "grid", gap: 8 }}>
+              {fundingCandidates.slice(0, 8).map((candidate) => (
+                <div key={`frr-c-${candidate.symbol}-${candidate.side}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a" }}>
+                  <strong>{candidate.symbol} {candidate.side}</strong>
+                  <span>Grade: <b>{candidate.grade}</b></span>
+                  <span>Score: <b>{fmt(candidate.score)}</b></span>
+                  <span>Price: <b>{fmt(candidate.price)}</b></span>
+                  <span>Funding: <b>{fmt(candidate.fundingRate)}</b></span>
+                  <span>Drop72h: <b>{fmt(candidate.drop72hPct)}%</b></span>
+                  <span>RSI1H: <b>{fmt(candidate.rsi1h)}</b></span>
+                  <span>SL: <b>{fmt(candidate.stop)}</b></span>
+                  <span>TP1: <b>{fmt(candidate.tp1Price)}</b></span>
+                  <span>Runner: <b>{fmt(candidate.runnerTargetPrice)}</b></span>
+                </div>
+              ))}
+            </div>
+            <h3 style={{ margin: "16px 0 8px" }}>Open Funding Reset paper</h3>
+            {fundingOpen.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio pozitie Funding Reset open.</p> : null}
+            <div style={{ display: "grid", gap: 8 }}>
+              {fundingOpen.map((position) => {
+                const pnl = simulatedPnl(position);
+                const hit = stopHit(position);
+                return (
+                  <div key={`frr-open-${position.id}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a" }}>
+                    <strong>{position.symbol} {position.side}</strong>
+                    <span>Status: <b>{position.status}</b></span>
+                    <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                    <span>Last: <b>{fmt(position.lastPrice)}</b></span>
+                    <span>SL: <b>{fmt(position.stop)}</b></span>
+                    <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
+                    <span>TP1: <b>{fmt(position.tp1Price)}</b></span>
+                    <span>Runner: <b>{fmt(position.runnerTargetPrice)}</b></span>
+                    <span>R: <b>{fmt(position.currentR)}</b></span>
+                    <span style={{ color: Number(pnl ?? 0) >= 0 ? "#22c55e" : "#ef4444" }}>P/L: <b>{pnl === null ? "—" : `$${pnl.toFixed(2)}`}</b></span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section style={{ ...panel, marginBottom: 22 }}>

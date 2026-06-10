@@ -1,0 +1,379 @@
+{
+  "system": "RAI_FUNDING_RESET_RECLAIM",
+  "version": "0.1",
+  "updatedAt": "2026-06-10T08:34:48.264644+00:00",
+  "venues": [
+    "asterdex_public_data",
+    "hyperliquid_universe_filter"
+  ],
+  "marketRegime": {
+    "label": "neutral",
+    "btcTrend": "down",
+    "ethTrend": "down",
+    "btc24hPct": -1.94
+  },
+  "scanStats": {
+    "expected": 150,
+    "scanned": 147,
+    "candidates": 6,
+    "aSetups": 1,
+    "bSetups": 4,
+    "watchlist": 1,
+    "errors": 8,
+    "openPaperPositions": 5,
+    "closedPaperPositions": 0,
+    "newPaperPositions": 5,
+    "newlyClosedPositions": 0
+  },
+  "candidates": [
+    {
+      "symbol": "HYPER",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 86.0,
+      "grade": "A",
+      "price": 0.07,
+      "fundingRate": -9.23e-05,
+      "openInterest": 17704.0,
+      "drop72hPct": -17.65,
+      "reboundFromLowPct": 6.54,
+      "rsi1h": 77.49,
+      "ema20_1h": 0.06820503,
+      "stop": 0.06512929,
+      "tp1Price": 0.07730607,
+      "runnerTargetPrice": 0.08217679,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "negative funding reset",
+        "price reclaimed EMA20 1H",
+        "RSI recovery band"
+      ]
+    },
+    {
+      "symbol": "BABY",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 79.0,
+      "grade": "B",
+      "price": 0.01595,
+      "fundingRate": 1.25e-05,
+      "openInterest": 3692771.0,
+      "drop72hPct": -9.94,
+      "reboundFromLowPct": 11.07,
+      "rsi1h": 55.99,
+      "ema20_1h": 0.01569291,
+      "stop": 0.01426393,
+      "tp1Price": 0.01847911,
+      "runnerTargetPrice": 0.02016518,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "neutral funding",
+        "price reclaimed EMA20 1H",
+        "RSI recovery band"
+      ]
+    },
+    {
+      "symbol": "DYDX",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 79.0,
+      "grade": "B",
+      "price": 0.132,
+      "fundingRate": 0.0001,
+      "openInterest": 80194.6,
+      "drop72hPct": -11.41,
+      "reboundFromLowPct": 6.45,
+      "rsi1h": 57.14,
+      "ema20_1h": 0.1300144,
+      "stop": 0.12360714,
+      "tp1Price": 0.14458929,
+      "runnerTargetPrice": 0.15298214,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "neutral funding",
+        "price reclaimed EMA20 1H",
+        "RSI recovery band"
+      ]
+    },
+    {
+      "symbol": "PROVE",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 74.0,
+      "grade": "B",
+      "price": 0.1892,
+      "fundingRate": -0.00032924,
+      "openInterest": 144293.0,
+      "drop72hPct": -8.24,
+      "reboundFromLowPct": 9.24,
+      "rsi1h": 78.36,
+      "ema20_1h": 0.18428474,
+      "stop": 0.17291607,
+      "tp1Price": 0.21362589,
+      "runnerTargetPrice": 0.22990982,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "negative funding reset",
+        "price reclaimed EMA20 1H",
+        "RSI warm but funding still reset"
+      ]
+    },
+    {
+      "symbol": "STBL",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 74.0,
+      "grade": "B",
+      "price": 0.02357,
+      "fundingRate": 5e-05,
+      "openInterest": 4658415.0,
+      "drop72hPct": -9.28,
+      "reboundFromLowPct": 1.2,
+      "rsi1h": 55.28,
+      "ema20_1h": 0.02374753,
+      "stop": 0.02326125,
+      "tp1Price": 0.02403313,
+      "runnerTargetPrice": 0.02434187,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "neutral funding",
+        "price reclaimed previous 1H high",
+        "bullish recovery candle",
+        "RSI recovery band"
+      ]
+    },
+    {
+      "symbol": "DASH",
+      "side": "LONG",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "score": 62.0,
+      "grade": "C",
+      "price": 34.77,
+      "fundingRate": 1.242e-05,
+      "openInterest": 1525.763,
+      "drop72hPct": -9.38,
+      "reboundFromLowPct": 1.91,
+      "rsi1h": 33.73,
+      "ema20_1h": 35.31068693,
+      "stop": 34.04214286,
+      "tp1Price": 35.86178571,
+      "runnerTargetPrice": 36.58964286,
+      "reasons": [
+        "8-25% reset from 72h high",
+        "neutral funding",
+        "price reclaimed previous 1H high",
+        "RSI early recovery watch"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "symbol": "RUNE",
+      "kind": "funding",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "RUNE",
+      "kind": "oi",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "MKR",
+      "kind": "oi",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "MATIC",
+      "kind": "funding",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "MATIC",
+      "kind": "oi",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "RUNE",
+      "kind": "score",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "MKR",
+      "kind": "score",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "symbol": "MATIC",
+      "kind": "score",
+      "error": "HTTP Error 400: Bad Request"
+    }
+  ],
+  "paperPositions": [
+    {
+      "id": "FRR-HYPER-LONG-1781080502",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "symbol": "HYPER",
+      "side": "LONG",
+      "entryPrice": 0.07,
+      "stop": 0.06512929,
+      "originalStop": 0.06512929,
+      "initialRisk": 0.00487071,
+      "tp1R": 1.5,
+      "tp1Price": 0.07730607,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.08217678,
+      "grade": "A",
+      "setupScore": 86.0,
+      "openedAt": "2026-06-10T08:35:02.760168+00:00",
+      "lastCheckedAt": "2026-06-10T08:35:02.760168+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0,
+      "currentR": 0,
+      "lastPrice": 0.07,
+      "fundingRateAtEntry": -9.23e-05,
+      "drop72hPctAtEntry": -17.65,
+      "notes": "funding reset reclaim prototype candidate, not real trade",
+      "actionLog": [
+        {
+          "at": "2026-06-10T08:35:02.760168+00:00",
+          "action": "open_paper",
+          "entryPrice": 0.07,
+          "stop": 0.06512929
+        }
+      ]
+    },
+    {
+      "id": "FRR-BABY-LONG-1781080502",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "symbol": "BABY",
+      "side": "LONG",
+      "entryPrice": 0.01595,
+      "stop": 0.01426393,
+      "originalStop": 0.01426393,
+      "initialRisk": 0.00168607,
+      "tp1R": 1.5,
+      "tp1Price": 0.0184791,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.02016517,
+      "grade": "B",
+      "setupScore": 79.0,
+      "openedAt": "2026-06-10T08:35:02.760168+00:00",
+      "lastCheckedAt": "2026-06-10T08:35:02.760168+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0,
+      "currentR": 0,
+      "lastPrice": 0.01595,
+      "fundingRateAtEntry": 1.25e-05,
+      "drop72hPctAtEntry": -9.94,
+      "notes": "funding reset reclaim prototype candidate, not real trade",
+      "actionLog": [
+        {
+          "at": "2026-06-10T08:35:02.760168+00:00",
+          "action": "open_paper",
+          "entryPrice": 0.01595,
+          "stop": 0.01426393
+        }
+      ]
+    },
+    {
+      "id": "FRR-DYDX-LONG-1781080502",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "symbol": "DYDX",
+      "side": "LONG",
+      "entryPrice": 0.132,
+      "stop": 0.12360714,
+      "originalStop": 0.12360714,
+      "initialRisk": 0.00839286,
+      "tp1R": 1.5,
+      "tp1Price": 0.14458929,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.15298215,
+      "grade": "B",
+      "setupScore": 79.0,
+      "openedAt": "2026-06-10T08:35:02.760168+00:00",
+      "lastCheckedAt": "2026-06-10T08:35:02.760168+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0,
+      "currentR": 0,
+      "lastPrice": 0.132,
+      "fundingRateAtEntry": 0.0001,
+      "drop72hPctAtEntry": -11.41,
+      "notes": "funding reset reclaim prototype candidate, not real trade",
+      "actionLog": [
+        {
+          "at": "2026-06-10T08:35:02.760168+00:00",
+          "action": "open_paper",
+          "entryPrice": 0.132,
+          "stop": 0.12360714
+        }
+      ]
+    },
+    {
+      "id": "FRR-PROVE-LONG-1781080502",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "symbol": "PROVE",
+      "side": "LONG",
+      "entryPrice": 0.1892,
+      "stop": 0.17291607,
+      "originalStop": 0.17291607,
+      "initialRisk": 0.01628393,
+      "tp1R": 1.5,
+      "tp1Price": 0.2136259,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.22990983,
+      "grade": "B",
+      "setupScore": 74.0,
+      "openedAt": "2026-06-10T08:35:02.760168+00:00",
+      "lastCheckedAt": "2026-06-10T08:35:02.760168+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0,
+      "currentR": 0,
+      "lastPrice": 0.1892,
+      "fundingRateAtEntry": -0.00032924,
+      "drop72hPctAtEntry": -8.24,
+      "notes": "funding reset reclaim prototype candidate, not real trade",
+      "actionLog": [
+        {
+          "at": "2026-06-10T08:35:02.760168+00:00",
+          "action": "open_paper",
+          "entryPrice": 0.1892,
+          "stop": 0.17291607
+        }
+      ]
+    },
+    {
+      "id": "FRR-STBL-LONG-1781080502",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "symbol": "STBL",
+      "side": "LONG",
+      "entryPrice": 0.02357,
+      "stop": 0.02326125,
+      "originalStop": 0.02326125,
+      "initialRisk": 0.00030875,
+      "tp1R": 1.5,
+      "tp1Price": 0.02403313,
+      "runnerTargetR": 2.5,
+      "runnerTargetPrice": 0.02434187,
+      "grade": "B",
+      "setupScore": 74.0,
+      "openedAt": "2026-06-10T08:35:02.760168+00:00",
+      "lastCheckedAt": "2026-06-10T08:35:02.760168+00:00",
+      "status": "open_paper_candidate",
+      "maxR": 0,
+      "currentR": 0,
+      "lastPrice": 0.02357,
+      "fundingRateAtEntry": 5e-05,
+      "drop72hPctAtEntry": -9.28,
+      "notes": "funding reset reclaim prototype candidate, not real trade",
+      "actionLog": [
+        {
+          "at": "2026-06-10T08:35:02.760168+00:00",
+          "action": "open_paper",
+          "entryPrice": 0.02357,
+          "stop": 0.02326125
+        }
+      ]
+    }
+  ],
+  "closedPaperPositions": []
+}
