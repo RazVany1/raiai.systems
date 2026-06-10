@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "id": "FRR-DYDX-LONG-1781080502",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "DYDX",
+    "side": "LONG",
+    "entryPrice": 0.132,
+    "stop": 0.12360714,
+    "originalStop": 0.12360714,
+    "initialRisk": 0.00839286,
+    "tp1R": 1.5,
+    "tp1Price": 0.14458929,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.15298215,
+    "grade": "B",
+    "setupScore": 79.0,
+    "openedAt": "2026-06-10T08:35:02.760168+00:00",
+    "lastCheckedAt": "2026-06-10T12:42:46.127873+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.1915,
+    "lastPrice": 0.122,
+    "fundingRateAtEntry": 0.0001,
+    "drop72hPctAtEntry": -11.41,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T08:35:02.760168+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.132,
+        "stop": 0.12360714
+      },
+      {
+        "at": "2026-06-10T12:42:46.127873+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.122,
+        "rMultiple": -1.1915,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-10T12:42:46.127873+00:00",
+    "exitPrice": 0.122,
+    "rMultiple": -1.1915,
+    "exitReason": "active_stop_hit"
+  }
+]
