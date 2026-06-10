@@ -344,10 +344,18 @@ export default function CryptoPage() {
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
       <section style={{ marginBottom: 28 }}>
         <div style={{ color: "#38bdf8", fontWeight: 800, letterSpacing: 1 }}>RAI CRYPTO</div>
-        <h1 style={{ fontSize: 38, margin: "8px 0 6px" }}>Pullback Continuation Dashboard</h1>
+        <h1 style={{ fontSize: 38, margin: "8px 0 6px" }}>Crypto Strategy Dashboard</h1>
         <p style={{ color: "#94a3b8", margin: 0 }}>
-          Paper trading prototype pentru Hyperliquid / AsterDex. Ultim update: {dateFmt(snapshot.updatedAt)} PDT.
+          Paper trading prototype pentru Hyperliquid / AsterDex. Strategiile sunt grupate separat mai jos. Ultim update Pullback: {dateFmt(snapshot.updatedAt)} PDT.
         </p>
+      </section>
+
+      <StrategyComparisonPanel pullback={pullbackSummary} funding={fundingSummary} />
+
+      <section style={{ marginBottom: 18, padding: 16, border: "1px solid #2563eb", borderRadius: 18, background: "rgba(37,99,235,.08)" }}>
+        <div style={{ color: "#93c5fd", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 1</div>
+        <h2 style={{ margin: "6px 0 4px" }}>Pullback Continuation</h2>
+        <p style={{ color: "#94a3b8", margin: 0 }}>Toate tabelele de mai jos aparțin Strategiei 1 până la blocul Strategia 2.</p>
       </section>
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 22 }}>
@@ -361,10 +369,8 @@ export default function CryptoPage() {
         <StatCard label="Closed paper" value={stats.closedPaperPositions ?? closedPositions.length} />
       </section>
 
-      <StrategyComparisonPanel pullback={pullbackSummary} funding={fundingSummary} />
-
       <section style={{ ...panel, marginBottom: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Performance & Risk Panel</h2>
+        <h2 style={{ marginTop: 0 }}>Strategia 1 — Performance & Risk Panel</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           <StatCard label="Total sim P/L" value={`$${totalPnl.toFixed(2)}`} tone={totalPnl >= 0 ? "#22c55e" : "#ef4444"} />
           <StatCard label="Open sim P/L" value={`$${openPnl.toFixed(2)}`} tone={openPnl >= 0 ? "#22c55e" : "#ef4444"} />
@@ -384,68 +390,7 @@ export default function CryptoPage() {
       </section>
 
       <section style={{ ...panel, marginBottom: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Funding Reset Reclaim — Strategy 2</h2>
-        {!fundingSnapshot ? <p style={{ color: "#fca5a5" }}>Nu gasesc snapshotul Funding Reset: {fundingDataPath}</p> : null}
-        {fundingSnapshot ? (
-          <>
-            <p style={{ color: "#94a3b8", marginTop: -4 }}>
-              Reset + funding neutral/negativ + reclaim 1H. Ultim update: {dateFmt(fundingSnapshot.updatedAt)} PDT.
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
-              <StatCard label="Regime" value={fundingRegime.label} tone={fundingRegime.label === "risk_off" ? "#ef4444" : fundingRegime.label === "risk_on" ? "#22c55e" : "#fbbf24"} />
-              <StatCard label="Candidates" value={fundingStats.candidates} tone="#38bdf8" />
-              <StatCard label="A/B" value={`${fmt(fundingStats.aSetups)}/${fmt(fundingStats.bSetups)}`} />
-              <StatCard label="Open FRR" value={fundingStats.openPaperPositions ?? fundingOpen.length} tone="#22c55e" />
-              <StatCard label="Closed FRR" value={fundingStats.closedPaperPositions ?? fundingClosed.length} />
-              <StatCard label="Open P/L" value={`$${fundingOpenPnl.toFixed(2)}`} tone={fundingOpenPnl >= 0 ? "#22c55e" : "#ef4444"} />
-              <StatCard label="Closed P/L" value={`$${fundingClosedPnl.toFixed(2)}`} tone={fundingClosedPnl >= 0 ? "#22c55e" : "#ef4444"} />
-            </div>
-            <h3 style={{ marginBottom: 8 }}>Top candidates</h3>
-            {fundingCandidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat Funding Reset acum.</p> : null}
-            <div style={{ display: "grid", gap: 8 }}>
-              {fundingCandidates.slice(0, 8).map((candidate) => (
-                <div key={`frr-c-${candidate.symbol}-${candidate.side}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a" }}>
-                  <strong>{candidate.symbol} {candidate.side}</strong>
-                  <span>Grade: <b>{candidate.grade}</b></span>
-                  <span>Score: <b>{fmt(candidate.score)}</b></span>
-                  <span>Price: <b>{fmt(candidate.price)}</b></span>
-                  <span>Funding: <b>{fmt(candidate.fundingRate)}</b></span>
-                  <span>Drop72h: <b>{fmt(candidate.drop72hPct)}%</b></span>
-                  <span>RSI1H: <b>{fmt(candidate.rsi1h)}</b></span>
-                  <span>SL: <b>{fmt(candidate.stop)}</b></span>
-                  <span>TP1: <b>{fmt(candidate.tp1Price)}</b></span>
-                  <span>Runner: <b>{fmt(candidate.runnerTargetPrice)}</b></span>
-                </div>
-              ))}
-            </div>
-            <h3 style={{ margin: "16px 0 8px" }}>Open Funding Reset paper</h3>
-            {fundingOpen.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio pozitie Funding Reset open.</p> : null}
-            <div style={{ display: "grid", gap: 8 }}>
-              {fundingOpen.map((position) => {
-                const pnl = simulatedPnl(position);
-                const hit = stopHit(position);
-                return (
-                  <div key={`frr-open-${position.id}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a" }}>
-                    <strong>{position.symbol} {position.side}</strong>
-                    <span>Status: <b>{position.status}</b></span>
-                    <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
-                    <span>Last: <b>{fmt(position.lastPrice)}</b></span>
-                    <span>SL: <b>{fmt(position.stop)}</b></span>
-                    <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
-                    <span>TP1: <b>{fmt(position.tp1Price)}</b></span>
-                    <span>Runner: <b>{fmt(position.runnerTargetPrice)}</b></span>
-                    <span>R: <b>{fmt(position.currentR)}</b></span>
-                    <span style={{ color: Number(pnl ?? 0) >= 0 ? "#22c55e" : "#ef4444" }}>P/L: <b>{pnl === null ? "—" : `$${pnl.toFixed(2)}`}</b></span>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : null}
-      </section>
-
-      <section style={{ ...panel, marginBottom: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Candidates</h2>
+        <h2 style={{ marginTop: 0 }}>Strategia 1 — Candidates</h2>
         {candidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat acum.</p> : null}
         <div style={{ display: "grid", gap: 12 }}>
           {candidates.map((candidate) => (
@@ -475,7 +420,7 @@ export default function CryptoPage() {
       </section>
 
       <section style={{ ...panel, marginBottom: 22 }}>
-        <h2 style={{ marginTop: 0 }}>Real Money Simulation — $50 margin / 3x leverage</h2>
+        <h2 style={{ marginTop: 0 }}>Strategia 1 — Real Money Simulation</h2>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>
           Simulare fixa: margin $50 pe pozitie, leverage 3x, notional $150. Nu este executie reala.
         </p>
@@ -521,7 +466,7 @@ export default function CryptoPage() {
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
         <div style={panel}>
-          <h2 style={{ marginTop: 0 }}>Open Paper Positions</h2>
+          <h2 style={{ marginTop: 0 }}>Strategia 1 — Open Paper Positions</h2>
           {openPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție open.</p> : null}
           <div style={{ display: "grid", gap: 10 }}>
             {openPositions.map((position) => {
@@ -581,7 +526,7 @@ export default function CryptoPage() {
         </div>
 
         <div style={panel}>
-          <h2 style={{ marginTop: 0 }}>Closed Paper Positions</h2>
+          <h2 style={{ marginTop: 0 }}>Strategia 1 — Closed Paper Positions</h2>
           {closedPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Încă nu avem poziții închise.</p> : null}
           <div style={{ display: "grid", gap: 10 }}>
             {closedPositions.slice(-10).reverse().map((position) => (
@@ -592,6 +537,90 @@ export default function CryptoPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section style={{ ...panel, marginBottom: 22 }}>
+        <div style={{ color: "#fbbf24", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 2</div>
+        <h2 style={{ margin: "6px 0 0" }}>Funding Reset Reclaim</h2>
+        {!fundingSnapshot ? <p style={{ color: "#fca5a5" }}>Nu gasesc snapshotul Funding Reset: {fundingDataPath}</p> : null}
+        {fundingSnapshot ? (
+          <>
+            <p style={{ color: "#94a3b8", marginTop: -4 }}>
+              Reset + funding neutral/negativ + reclaim 1H. Ultim update: {dateFmt(fundingSnapshot.updatedAt)} PDT.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
+              <StatCard label="Regime" value={fundingRegime.label} tone={fundingRegime.label === "risk_off" ? "#ef4444" : fundingRegime.label === "risk_on" ? "#22c55e" : "#fbbf24"} />
+              <StatCard label="Candidates" value={fundingStats.candidates} tone="#38bdf8" />
+              <StatCard label="A/B" value={`${fmt(fundingStats.aSetups)}/${fmt(fundingStats.bSetups)}`} />
+              <StatCard label="Open FRR" value={fundingStats.openPaperPositions ?? fundingOpen.length} tone="#22c55e" />
+              <StatCard label="Closed FRR" value={fundingStats.closedPaperPositions ?? fundingClosed.length} />
+              <StatCard label="Open P/L" value={`$${fundingOpenPnl.toFixed(2)}`} tone={fundingOpenPnl >= 0 ? "#22c55e" : "#ef4444"} />
+              <StatCard label="Closed P/L" value={`$${fundingClosedPnl.toFixed(2)}`} tone={fundingClosedPnl >= 0 ? "#22c55e" : "#ef4444"} />
+            </div>
+            <h3 style={{ marginBottom: 8 }}>Strategia 2 — Top Candidates</h3>
+            {fundingCandidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat Funding Reset acum.</p> : null}
+            <div style={{ display: "grid", gap: 8 }}>
+              {fundingCandidates.slice(0, 8).map((candidate) => (
+                <div key={`frr-c-${candidate.symbol}-${candidate.side}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, padding: 10, border: "1px solid #334155", borderRadius: 12, background: "#0f172a" }}>
+                  <strong>{candidate.symbol} {candidate.side}</strong>
+                  <span>Grade: <b>{candidate.grade}</b></span>
+                  <span>Score: <b>{fmt(candidate.score)}</b></span>
+                  <span>Price: <b>{fmt(candidate.price)}</b></span>
+                  <span>Funding: <b>{fmt(candidate.fundingRate)}</b></span>
+                  <span>Drop72h: <b>{fmt(candidate.drop72hPct)}%</b></span>
+                  <span>RSI1H: <b>{fmt(candidate.rsi1h)}</b></span>
+                  <span>SL: <b>{fmt(candidate.stop)}</b></span>
+                  <span>TP1: <b>{fmt(candidate.tp1Price)}</b></span>
+                  <span>Runner: <b>{fmt(candidate.runnerTargetPrice)}</b></span>
+                </div>
+              ))}
+            </div>
+            <h3 style={{ margin: "16px 0 8px" }}>Strategia 2 — Open Paper Positions</h3>
+            {fundingOpen.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio pozitie Funding Reset open.</p> : null}
+            <div style={{ display: "grid", gap: 8 }}>
+              {fundingOpen.map((position) => {
+                const pnl = simulatedPnl(position);
+                const hit = stopHit(position);
+                return (
+                  <div key={`frr-open-${position.id}`} style={{ padding: 12, border: "1px solid #fbbf24", borderRadius: 12, background: "rgba(251,191,36,.07)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <strong>{position.symbol} {position.side}</strong>
+                        <Badge tone={statusTone(position)}>{statusLabel(position)}</Badge>
+                        <span style={{ color: "#94a3b8" }}>{readableStatus(position)}</span>
+                      </div>
+                      <span style={{ color: Number(pnl ?? 0) >= 0 ? "#22c55e" : "#ef4444", fontWeight: 800 }}>P/L: {pnl === null ? "—" : `$${pnl.toFixed(2)}`}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(115px, 1fr))", gap: 8, color: "#cbd5e1" }}>
+                      <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                      <span>Last: <b>{fmt(position.lastPrice)}</b></span>
+                      <span>SL: <b>{fmt(position.stop)}</b></span>
+                      <span style={{ color: hit ? "#ef4444" : "#22c55e" }}>SL: <b>{hit ? "HIT" : "NOT HIT"}</b></span>
+                      <span>TP1: <b>{fmt(position.tp1Price)}</b></span>
+                      <span>Runner: <b>{fmt(position.runnerTargetPrice)}</b></span>
+                      <span>R: <b>{fmt(position.currentR)}</b></span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <h3 style={{ margin: "16px 0 8px" }}>Strategia 2 — Closed Paper Positions</h3>
+            {fundingClosed.length === 0 ? <p style={{ color: "#94a3b8" }}>Încă nu avem poziții Funding Reset închise.</p> : null}
+            <div style={{ display: "grid", gap: 8 }}>
+              {fundingClosed.slice(-10).reverse().map((position) => (
+                <div key={`frr-closed-${position.id}`} style={{ padding: 10, border: "1px solid #475569", borderRadius: 12, background: "#111827" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <strong>{position.symbol} {position.side}</strong>
+                    <Badge tone={statusTone(position)}>{statusLabel(position)}</Badge>
+                    <span style={{ color: "#94a3b8" }}>{readableStatus(position)}</span>
+                    <span>Exit: <b>{fmt(position.exitPrice)}</b></span>
+                    <span>Result: <b>{fmt(position.rMultiple)}R</b></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
     </main>
   );
