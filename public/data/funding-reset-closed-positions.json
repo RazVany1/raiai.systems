@@ -408,5 +408,93 @@
     "exitPrice": 0.0437,
     "rMultiple": -1.0272,
     "exitReason": "active_stop_hit"
+  },
+  {
+    "id": "FRR-DASH-LONG-1781095366",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "DASH",
+    "side": "LONG",
+    "entryPrice": 34.82,
+    "stop": 33.89946429,
+    "originalStop": 33.89946429,
+    "initialRisk": 0.92053571,
+    "tp1R": 1.5,
+    "tp1Price": 36.20080357,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 37.12133928,
+    "grade": "A",
+    "setupScore": 81.0,
+    "openedAt": "2026-06-10T12:42:46.127873+00:00",
+    "lastCheckedAt": "2026-06-10T22:52:59.092067+00:00",
+    "status": "closed_stop",
+    "maxR": 0.2933,
+    "currentR": -1.5209,
+    "lastPrice": 33.42,
+    "fundingRateAtEntry": -1.59e-06,
+    "drop72hPctAtEntry": -9.25,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T12:42:46.127873+00:00",
+        "action": "open_paper",
+        "entryPrice": 34.82,
+        "stop": 33.89946429
+      },
+      {
+        "at": "2026-06-10T22:52:59.092067+00:00",
+        "action": "closed_stop",
+        "exitPrice": 33.42,
+        "rMultiple": -1.5209,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-10T22:52:59.092067+00:00",
+    "exitPrice": 33.42,
+    "rMultiple": -1.5209,
+    "exitReason": "active_stop_hit"
+  },
+  {
+    "id": "FRR-APE-LONG-1781095366",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "APE",
+    "side": "LONG",
+    "entryPrice": 0.1185,
+    "stop": 0.11550357,
+    "originalStop": 0.11550357,
+    "initialRisk": 0.00299643,
+    "tp1R": 1.5,
+    "tp1Price": 0.12299464,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.12599107,
+    "grade": "B",
+    "setupScore": 65.0,
+    "openedAt": "2026-06-10T12:42:46.127873+00:00",
+    "lastCheckedAt": "2026-06-10T22:52:59.092067+00:00",
+    "status": "closed_stop",
+    "maxR": 1.0012,
+    "currentR": -1.2348,
+    "lastPrice": 0.1148,
+    "fundingRateAtEntry": 0.0001,
+    "drop72hPctAtEntry": -8.78,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T12:42:46.127873+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.1185,
+        "stop": 0.11550357
+      },
+      {
+        "at": "2026-06-10T22:52:59.092067+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.1148,
+        "rMultiple": -1.2348,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-10T22:52:59.092067+00:00",
+    "exitPrice": 0.1148,
+    "rMultiple": -1.2348,
+    "exitReason": "active_stop_hit"
   }
 ]
