@@ -173,5 +173,48 @@
     "closedAt": "2026-06-10T17:58:48.541791+00:00",
     "exitPrice": 0.16266,
     "rMultiple": -0.1409
+  },
+  {
+    "id": "JTO-LONG-1781106886",
+    "symbol": "JTO",
+    "side": "LONG",
+    "entryPrice": 0.5968,
+    "stop": 0.5661,
+    "originalStop": 0.5661,
+    "initialRisk": 0.0307,
+    "tp1R": 1.5,
+    "tp1Price": 0.64285,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.67355,
+    "activeStopReason": "initial_stop",
+    "grade": "B",
+    "setupScore": 75,
+    "openedAt": "2026-06-10T15:54:46.120626+00:00",
+    "lastCheckedAt": "2026-06-10T20:02:51.993063+00:00",
+    "status": "closed_risk_off_defensive",
+    "maxR": 0.1531,
+    "currentR": -0.7687,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T15:54:46.120626+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.5968,
+        "stop": 0.5661,
+        "tp1Price": 0.64285,
+        "runnerTargetPrice": 0.67355
+      },
+      {
+        "at": "2026-06-10T20:02:51.993063+00:00",
+        "action": "closed_risk_off_defensive",
+        "exitPrice": 0.5732,
+        "rMultiple": -0.7687
+      }
+    ],
+    "lastPrice": 0.5732,
+    "closedAt": "2026-06-10T20:02:51.993063+00:00",
+    "exitPrice": 0.5732,
+    "rMultiple": -0.7687,
+    "exitReason": "risk_off_defensive_exit"
   }
 ]
