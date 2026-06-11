@@ -642,5 +642,93 @@
     "exitPrice": 2.39905357,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-BERA-LONG-1781095366",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "BERA",
+    "side": "LONG",
+    "entryPrice": 0.2446,
+    "stop": 0.2363125,
+    "originalStop": 0.2363125,
+    "initialRisk": 0.0082875,
+    "tp1R": 1.5,
+    "tp1Price": 0.25703125,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.26531875,
+    "grade": "A",
+    "setupScore": 89.0,
+    "openedAt": "2026-06-10T12:42:46.127873+00:00",
+    "lastCheckedAt": "2026-06-11T02:57:09.937452+00:00",
+    "status": "closed_stop",
+    "maxR": 0.1931,
+    "currentR": -1.0377,
+    "lastPrice": 0.236,
+    "fundingRateAtEntry": 1.25e-05,
+    "drop72hPctAtEntry": -10.76,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T12:42:46.127873+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.2446,
+        "stop": 0.2363125
+      },
+      {
+        "at": "2026-06-11T02:57:09.937452+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.236,
+        "rMultiple": -1.0377,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-11T02:57:09.937452+00:00",
+    "exitPrice": 0.236,
+    "rMultiple": -1.0377,
+    "exitReason": "active_stop_hit"
+  },
+  {
+    "id": "FRR-JUP-LONG-1781131979",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "JUP",
+    "side": "LONG",
+    "entryPrice": 0.1458,
+    "stop": 0.14387321,
+    "originalStop": 0.14387321,
+    "initialRisk": 0.00192679,
+    "tp1R": 1.5,
+    "tp1Price": 0.14869019,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.15061698,
+    "grade": "A",
+    "setupScore": 81.0,
+    "openedAt": "2026-06-10T22:52:59.092067+00:00",
+    "lastCheckedAt": "2026-06-11T02:57:09.937452+00:00",
+    "status": "closed_runner_target",
+    "maxR": 2.5431,
+    "currentR": 2.5431,
+    "lastPrice": 0.1507,
+    "fundingRateAtEntry": -1.498e-05,
+    "drop72hPctAtEntry": -10.5,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T22:52:59.092067+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.1458,
+        "stop": 0.14387321
+      },
+      {
+        "at": "2026-06-11T02:57:09.937452+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 0.15061698,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "closedAt": "2026-06-11T02:57:09.937452+00:00",
+    "exitPrice": 0.15061698,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
