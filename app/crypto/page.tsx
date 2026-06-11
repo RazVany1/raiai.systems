@@ -33,6 +33,25 @@ type Candidate = {
   runnerTargetPrice?: number;
 };
 
+type RsiTopRow = {
+  symbol?: string;
+  rsi?: number;
+  price?: number;
+  zone?: string;
+  detectedAt?: string;
+  anchorRsi?: number;
+  anchorTime?: string;
+  anchorPrice?: number;
+  timeframe?: string;
+  sourceVenue?: string;
+  previousRsi?: number;
+};
+
+type RsiTopState = {
+  updatedAt?: string | null;
+  rows?: RsiTopRow[];
+};
+
 type PaperPosition = {
   id?: string;
   symbol?: string;
@@ -80,6 +99,7 @@ type PullbackSnapshot = {
 
 const dataPath = path.join(process.cwd(), "public", "data", "pullback-continuation-snapshot.json");
 const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-reset-reclaim-snapshot.json");
+const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
 
 function loadJson<T>(filePath: string): T | null {
   try {
@@ -282,6 +302,7 @@ function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySumm
 export default function CryptoPage() {
   const snapshot = loadSnapshot();
   const fundingSnapshot = loadJson<PullbackSnapshot>(fundingDataPath);
+  const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
 
   if (!snapshot) {
     return (
@@ -339,6 +360,10 @@ export default function CryptoPage() {
     openPnl: fundingOpenPnl,
     closedPnl: fundingClosedPnl,
   };
+  const rawRsiTopRows = rsiTop1dV3?.rows;
+  const rsiTopRows = (Array.isArray(rawRsiTopRows) ? rawRsiTopRows : []).filter((row) => String(row.timeframe ?? "1d").toLowerCase() === "1d");
+  const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
+  const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -620,6 +645,58 @@ export default function CryptoPage() {
               ))}
             </div>
           </>
+        ) : null}
+      </section>
+
+      <section style={{ ...panel, marginBottom: 22 }}>
+        <div style={{ color: "#a78bfa", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 3</div>
+        <h2 style={{ margin: "6px 0 0" }}>RSI TOP — 1D V3</h2>
+        <p style={{ color: "#94a3b8", marginTop: -4 }}>
+          Scannerul vechi OpenClaw: 175 monede unice, RSI interest zones, varianta activă V3 pe timeframe 1D. Scanare țintă: 8 ori pe zi. Ultim update: {dateFmt(rsiTop1dV3?.updatedAt ?? undefined)} PDT.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
+          <StatCard label="RSI TOP 1D V3" value={rsiTopRows.length} tone="#a78bfa" />
+          <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
+          <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
+          <StatCard label="Scanări / zi" value="8" />
+        </div>
+        {rsiTopRows.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio monedă în RSI TOP 1D V3 acum.</p> : null}
+        {rsiTopRows.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
+              <thead>
+                <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
+                  <th style={{ padding: "8px 6px" }}>Symbol</th>
+                  <th style={{ padding: "8px 6px" }}>Side</th>
+                  <th style={{ padding: "8px 6px" }}>RSI</th>
+                  <th style={{ padding: "8px 6px" }}>Prev RSI</th>
+                  <th style={{ padding: "8px 6px" }}>Price</th>
+                  <th style={{ padding: "8px 6px" }}>Anchor RSI</th>
+                  <th style={{ padding: "8px 6px" }}>Anchor price</th>
+                  <th style={{ padding: "8px 6px" }}>Detected</th>
+                  <th style={{ padding: "8px 6px" }}>Venue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rsiTopRows.map((row) => {
+                  const isLong = row.zone === "lower_interest";
+                  return (
+                    <tr key={`${row.symbol}-${row.zone}-${row.detectedAt}`} style={{ borderBottom: "1px solid #1f2937" }}>
+                      <td style={{ padding: "9px 6px", fontWeight: 800 }}>{row.symbol}</td>
+                      <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{isLong ? "LONG" : "SHORT"}</Badge></td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(row.rsi)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(row.previousRsi)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(row.price)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(row.anchorRsi)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(row.anchorPrice)}</td>
+                      <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{dateFmt(row.detectedAt)}</td>
+                      <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{fmt(row.sourceVenue)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : null}
       </section>
     </main>
