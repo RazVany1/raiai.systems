@@ -2177,12 +2177,16 @@ def main():
 
     def enrich_rsi_top_row(row: dict) -> dict:
         zone = row.get("zone")
-        strategy_side = "LONG" if zone == "upper_interest" else "SHORT" if zone == "lower_interest" else None
+        strategy_side = "SHORT" if zone == "upper_interest" else "LONG" if zone == "lower_interest" else None
         return {
             **row,
             "strategySide": strategy_side,
         }
 
+    rsi_top_v0_rows_4h = [enrich_rsi_top_row(row) for row in v0_interest_rows]
+    rsi_top_v1_rows_4h = [enrich_rsi_top_row(row) for row in interest_rows]
+    rsi_top_v2_rows_4h = [enrich_rsi_top_row(row) for row in v2_interest_rows]
+    rsi_top_v3_rows_4h = [enrich_rsi_top_row(row) for row in v3_interest_rows]
     rsi_top_v0_rows_1h = [enrich_rsi_top_row(row) for row in v0_interest_rows_1h]
     rsi_top_v1_rows_1h = [enrich_rsi_top_row(row) for row in interest_rows_1h]
     rsi_top_v2_rows_1h = [enrich_rsi_top_row(row) for row in v2_interest_rows_1h]
@@ -2315,6 +2319,10 @@ def main():
         ),
         reverse=False,
     )
+    rsi_top_v0_rows_1d = [enrich_rsi_top_row(row) for row in v0_interest_rows_1d]
+    rsi_top_v1_rows_1d = [enrich_rsi_top_row(row) for row in interest_rows_1d]
+    rsi_top_v2_rows_1d = [enrich_rsi_top_row(row) for row in v2_interest_rows_1d]
+    rsi_top_v3_rows_1d = [enrich_rsi_top_row(row) for row in v3_interest_rows_1d]
 
     new_confirmed_state = {}
     formation_index = {(row["symbol"], row["side"]): row for row in formation_rows}
@@ -2454,33 +2462,38 @@ def main():
                     "triggerTimeframe": row.get("triggerTimeframe"),
                 })
         elif PAPER_POSITIONS_ENTRY_MODE == "rsi_top":
-            for row in rsi_top_v3_rows_1h:
-                if not isinstance(row, dict) or not row.get("currentlyInZone"):
-                    continue
-                first_detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
-                side = row.get("strategySide")
-                entry_price = row.get("price")
-                detected_at = row.get("detectedAt") or first_detected_at
-                if side not in {"LONG", "SHORT"} or not isinstance(entry_price, (int, float)) or not detected_at:
-                    continue
-                entry_candidates.append({
-                    "symbol": row.get("symbol"),
-                    "side": side,
-                    "state": "confirmed",
-                    "confirmedAt": detected_at,
-                    "detectedAt": detected_at,
-                    "firstDetectedAt": first_detected_at,
-                    "price": entry_price,
-                    "formationType": "RSI_TOP_V3",
-                    "entrySignal": "RSI_TOP_V3",
-                    "entrySystem": "S1h",
-                    "signalZone": row.get("zone"),
-                    "anchorRsi": row.get("anchorRsi"),
-                    "anchorTime": row.get("anchorTime"),
-                    "anchorPrice": row.get("anchorPrice"),
-                    "previousRsi": row.get("previousRsi"),
-                    "strategySide": side,
-                })
+            # RAI Strategy 3: RSI TOP V3 opens paper positions from the higher-signal
+            # timeframes requested for the dashboard: 4H and 1D. 1H remains tracked
+            # in the legacy RSI files, but is intentionally not used for new Strategy 3 entries.
+            for system_name, rows in (("S4h", rsi_top_v3_rows_4h), ("S1D", rsi_top_v3_rows_1d)):
+                for row in rows:
+                    if not isinstance(row, dict) or not row.get("currentlyInZone"):
+                        continue
+                    first_detected_at = row.get("firstDetectedAt") or row.get("detectedAt")
+                    side = row.get("strategySide")
+                    entry_price = row.get("price")
+                    detected_at = row.get("detectedAt") or first_detected_at
+                    if side not in {"LONG", "SHORT"} or not isinstance(entry_price, (int, float)) or not detected_at:
+                        continue
+                    entry_candidates.append({
+                        "symbol": row.get("symbol"),
+                        "side": side,
+                        "state": "confirmed",
+                        "confirmedAt": detected_at,
+                        "detectedAt": detected_at,
+                        "firstDetectedAt": first_detected_at,
+                        "price": entry_price,
+                        "formationType": "RSI_TOP_V3",
+                        "entrySignal": "RSI_TOP_V3",
+                        "entrySystem": system_name,
+                        "signalZone": row.get("zone"),
+                        "anchorRsi": row.get("anchorRsi"),
+                        "anchorTime": row.get("anchorTime"),
+                        "anchorPrice": row.get("anchorPrice"),
+                        "previousRsi": row.get("previousRsi"),
+                        "timeframe": "4h" if system_name == "S4h" else "1d",
+                        "strategySide": side,
+                    })
         else:
             entry_candidates = formation_rows
 

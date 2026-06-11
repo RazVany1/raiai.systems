@@ -45,11 +45,17 @@ type RsiTopRow = {
   timeframe?: string;
   sourceVenue?: string;
   previousRsi?: number;
+  currentlyInZone?: boolean;
 };
 
 type RsiTopState = {
   updatedAt?: string | null;
-  rows?: RsiTopRow[];
+  rows?: RsiTopRow[] | Record<string, RsiTopRow>;
+};
+
+type RsiPaperState = {
+  updatedAt?: string | null;
+  positions?: PaperPosition[];
 };
 
 type PaperPosition = {
@@ -76,6 +82,11 @@ type PaperPosition = {
   runnerStopReason?: string;
   activeStopReason?: string;
   exitReason?: string;
+  entrySignal?: string;
+  entrySystem?: string;
+  currentPrice?: number;
+  maxPlPercent?: number;
+  minPlPercent?: number;
   actionLog?: Array<{ at?: string; action?: string; price?: number; stop?: number; entryPrice?: number; partialPrice?: number; exitPrice?: number; rMultiple?: number }>;
 };
 
@@ -99,7 +110,9 @@ type PullbackSnapshot = {
 
 const dataPath = path.join(process.cwd(), "public", "data", "pullback-continuation-snapshot.json");
 const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-reset-reclaim-snapshot.json");
+const rsiTop4hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-v3-state.json");
 const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
+const rsiTopPaperPath = path.join(process.cwd(), "public", "data", "paper-entry-positions.json");
 
 function loadJson<T>(filePath: string): T | null {
   try {
@@ -112,6 +125,12 @@ function loadJson<T>(filePath: string): T | null {
 
 function loadSnapshot(): PullbackSnapshot | null {
   return loadJson<PullbackSnapshot>(dataPath);
+}
+
+function rsiRowsFromState(state: RsiTopState | null, timeframe: string): RsiTopRow[] {
+  const raw = state?.rows;
+  const rows = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? Object.values(raw) : [];
+  return rows.map((row) => ({ ...row, timeframe: row.timeframe ?? timeframe })).filter((row) => row.currentlyInZone !== false);
 }
 
 function fmt(value: unknown): string {
@@ -302,7 +321,9 @@ function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySumm
 export default function CryptoPage() {
   const snapshot = loadSnapshot();
   const fundingSnapshot = loadJson<PullbackSnapshot>(fundingDataPath);
+  const rsiTop4hV3 = loadJson<RsiTopState>(rsiTop4hV3Path);
   const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
+  const rsiTopPaper = loadJson<RsiPaperState>(rsiTopPaperPath);
 
   if (!snapshot) {
     return (
@@ -360,10 +381,13 @@ export default function CryptoPage() {
     openPnl: fundingOpenPnl,
     closedPnl: fundingClosedPnl,
   };
-  const rawRsiTopRows = rsiTop1dV3?.rows;
-  const rsiTopRows = (Array.isArray(rawRsiTopRows) ? rawRsiTopRows : []).filter((row) => String(row.timeframe ?? "1d").toLowerCase() === "1d");
+  const rsiTop4hRows = rsiRowsFromState(rsiTop4hV3, "4h");
+  const rsiTop1dRows = rsiRowsFromState(rsiTop1dV3, "1d");
+  const rsiTopRows = [...rsiTop4hRows, ...rsiTop1dRows];
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
+  const rsiTopPositions = (rsiTopPaper?.positions ?? []).filter((p) => p.entrySignal === "RSI_TOP_V3" && ["S4h", "S1D"].includes(String(p.entrySystem ?? "")));
+  const rsiTopOpenPositions = rsiTopPositions.filter((p) => !p.closedAt && p.status !== "closed_invalidated");
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -650,22 +674,25 @@ export default function CryptoPage() {
 
       <section style={{ ...panel, marginBottom: 22 }}>
         <div style={{ color: "#a78bfa", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 3</div>
-        <h2 style={{ margin: "6px 0 0" }}>RSI TOP — 1D V3</h2>
+        <h2 style={{ margin: "6px 0 0" }}>RSI TOP — 4H + 1D V3</h2>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>
-          Scannerul vechi OpenClaw: 175 monede unice, RSI interest zones, varianta activă V3 pe timeframe 1D. Scanare țintă: 8 ori pe zi. Ultim update: {dateFmt(rsiTop1dV3?.updatedAt ?? undefined)} PDT.
+          Scannerul vechi OpenClaw: 175 monede unice, RSI interest zones. Acum urmărește V3 pe 4H și 1D și deschide poziții paper când apare semnal activ. Scanare țintă: 8 ori pe zi. Ultim update: {dateFmt(rsiTopPaper?.updatedAt ?? rsiTop4hV3?.updatedAt ?? rsiTop1dV3?.updatedAt ?? undefined)} PDT.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
-          <StatCard label="RSI TOP 1D V3" value={rsiTopRows.length} tone="#a78bfa" />
+          <StatCard label="RSI TOP 4H" value={rsiTop4hRows.length} tone="#a78bfa" />
+          <StatCard label="RSI TOP 1D" value={rsiTop1dRows.length} tone="#a78bfa" />
           <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
+          <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
           <StatCard label="Scanări / zi" value="8" />
         </div>
-        {rsiTopRows.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio monedă în RSI TOP 1D V3 acum.</p> : null}
+        {rsiTopRows.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio monedă în RSI TOP 4H/1D V3 acum.</p> : null}
         {rsiTopRows.length ? (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto", marginBottom: 18 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
               <thead>
                 <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
+                  <th style={{ padding: "8px 6px" }}>TF</th>
                   <th style={{ padding: "8px 6px" }}>Symbol</th>
                   <th style={{ padding: "8px 6px" }}>Side</th>
                   <th style={{ padding: "8px 6px" }}>RSI</th>
@@ -681,7 +708,8 @@ export default function CryptoPage() {
                 {rsiTopRows.map((row) => {
                   const isLong = row.zone === "lower_interest";
                   return (
-                    <tr key={`${row.symbol}-${row.zone}-${row.detectedAt}`} style={{ borderBottom: "1px solid #1f2937" }}>
+                    <tr key={`${row.timeframe}-${row.symbol}-${row.zone}-${row.detectedAt}`} style={{ borderBottom: "1px solid #1f2937" }}>
+                      <td style={{ padding: "9px 6px", color: "#c4b5fd", fontWeight: 800 }}>{String(row.timeframe ?? "—").toUpperCase()}</td>
                       <td style={{ padding: "9px 6px", fontWeight: 800 }}>{row.symbol}</td>
                       <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{isLong ? "LONG" : "SHORT"}</Badge></td>
                       <td style={{ padding: "9px 6px" }}>{fmt(row.rsi)}</td>
@@ -696,6 +724,24 @@ export default function CryptoPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        ) : null}
+        <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — Open Paper Positions</h3>
+        {rsiTopOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP 4H/1D deschisă acum.</p> : null}
+        {rsiTopOpenPositions.length ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {rsiTopOpenPositions.map((position) => (
+              <div key={`${position.symbol}-${position.side}-${position.entrySystem}-${position.openedAt ?? position.entryPrice}`} style={{ padding: 10, border: "1px solid #6d28d9", borderRadius: 12, background: "rgba(109,40,217,.12)" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <strong>{position.symbol} {position.side}</strong>
+                  <Badge tone="#a78bfa">{position.entrySystem}</Badge>
+                  <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
+                  <span>Mark: <b>{fmt(position.currentPrice ?? position.lastPrice)}</b></span>
+                  <span>Status: <b>DESCHISĂ</b></span>
+                  <span>Max P/L: <b>{fmt(position.maxPlPercent)}%</b></span>
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
       </section>
