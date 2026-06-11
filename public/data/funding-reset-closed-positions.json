@@ -496,5 +496,151 @@
     "exitPrice": 0.1148,
     "rMultiple": -1.2348,
     "exitReason": "active_stop_hit"
+  },
+  {
+    "id": "FRR-ME-LONG-1781102688",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "ME",
+    "side": "LONG",
+    "entryPrice": 0.0596,
+    "stop": 0.05794821,
+    "originalStop": 0.05794821,
+    "initialRisk": 0.00165179,
+    "tp1R": 1.5,
+    "tp1Price": 0.06207769,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.06372948,
+    "grade": "A",
+    "setupScore": 93.0,
+    "openedAt": "2026-06-10T14:44:48.390983+00:00",
+    "lastCheckedAt": "2026-06-11T00:55:02.635128+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.0292,
+    "lastPrice": 0.0579,
+    "fundingRateAtEntry": -6.908e-05,
+    "drop72hPctAtEntry": -9.97,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T14:44:48.390983+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.0596,
+        "stop": 0.05794821
+      },
+      {
+        "at": "2026-06-11T00:55:02.635128+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.0579,
+        "rMultiple": -1.0292,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-11T00:55:02.635128+00:00",
+    "exitPrice": 0.0579,
+    "rMultiple": -1.0292,
+    "exitReason": "active_stop_hit"
+  },
+  {
+    "id": "FRR-HEMI-LONG-1781117332",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "HEMI",
+    "side": "LONG",
+    "entryPrice": 0.005052,
+    "stop": 0.005052,
+    "originalStop": 0.00482287,
+    "initialRisk": 0.00022913,
+    "tp1R": 1.5,
+    "tp1Price": 0.0053957,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.00562482,
+    "grade": "B",
+    "setupScore": 79.0,
+    "openedAt": "2026-06-10T18:48:52.191634+00:00",
+    "lastCheckedAt": "2026-06-11T00:55:02.635128+00:00",
+    "status": "closed_runner_target",
+    "maxR": 3.8668,
+    "currentR": 3.8668,
+    "lastPrice": 0.005938,
+    "fundingRateAtEntry": 5e-05,
+    "drop72hPctAtEntry": -10.22,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T18:48:52.191634+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.005052,
+        "stop": 0.00482287
+      },
+      {
+        "at": "2026-06-10T20:50:57.125322+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.005415,
+        "rMultiple": 1.5843
+      },
+      {
+        "at": "2026-06-10T20:50:57.125322+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.005052
+      },
+      {
+        "at": "2026-06-11T00:55:02.635128+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 0.00562482,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "partialAt": "2026-06-10T20:50:57.125322+00:00",
+    "partialPrice": 0.005415,
+    "activeStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-11T00:55:02.635128+00:00",
+    "exitPrice": 0.00562482,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-UNI-LONG-1781131979",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "UNI",
+    "side": "LONG",
+    "entryPrice": 2.377,
+    "stop": 2.36817857,
+    "originalStop": 2.36817857,
+    "initialRisk": 0.00882143,
+    "tp1R": 1.5,
+    "tp1Price": 2.39023214,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 2.39905357,
+    "grade": "B",
+    "setupScore": 74.0,
+    "openedAt": "2026-06-10T22:52:59.092067+00:00",
+    "lastCheckedAt": "2026-06-11T00:55:02.635128+00:00",
+    "status": "closed_runner_target",
+    "maxR": 3.8543,
+    "currentR": 3.8543,
+    "lastPrice": 2.411,
+    "fundingRateAtEntry": 0.0001,
+    "drop72hPctAtEntry": -8.72,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T22:52:59.092067+00:00",
+        "action": "open_paper",
+        "entryPrice": 2.377,
+        "stop": 2.36817857
+      },
+      {
+        "at": "2026-06-11T00:55:02.635128+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 2.39905357,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "closedAt": "2026-06-11T00:55:02.635128+00:00",
+    "exitPrice": 2.39905357,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
