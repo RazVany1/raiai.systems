@@ -1,7 +1,7 @@
 {
   "system": "RAI_PULLBACK_CONTINUATION",
   "version": "0.1",
-  "updatedAt": "2026-06-11T08:22:18.422260+00:00",
+  "updatedAt": "2026-06-11T09:24:20.205855+00:00",
   "venues": [
     "hyperliquid",
     "asterdex"
@@ -18,9 +18,9 @@
   "scanStats": {
     "expected": 150,
     "scanned": 150,
-    "candidates": 4,
-    "aSetups": 1,
-    "bSetups": 3,
+    "candidates": 2,
+    "aSetups": 0,
+    "bSetups": 2,
     "watchlist": 0,
     "errors": 0,
     "openPaperPositions": 5,
@@ -29,41 +29,6 @@
     "newlyClosedPositions": 0
   },
   "candidates": [
-    {
-      "symbol": "CAKE",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 85,
-      "grade": "A",
-      "entryZone": [
-        1.313448,
-        1.321352
-      ],
-      "invalidation": "1H close below 1.2801",
-      "stop": 1.2801,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 1.3174,
-        "ema20_1h": 1.307669,
-        "ema20_4h": 1.299543,
-        "ema50_4h": 1.298999,
-        "rsi_1h": 59.85,
-        "rsi_4h": 50.06
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "controlled pullback near 4H EMA20",
-        "1H reclaim/reaction above EMA20",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    },
     {
       "symbol": "BIO",
       "venues": [
@@ -74,19 +39,19 @@
       "score": 75,
       "grade": "B",
       "entryZone": [
-        0.030658,
-        0.030842
+        0.030678,
+        0.030862
       ],
       "invalidation": "1H close below 0.02843",
       "stop": 0.02843,
       "riskReward": 2.0,
       "metrics": {
-        "price": 0.03075,
-        "ema20_1h": 0.030275,
-        "ema20_4h": 0.029966,
-        "ema50_4h": 0.029802,
-        "rsi_1h": 58.29,
-        "rsi_4h": 54.17
+        "price": 0.03077,
+        "ema20_1h": 0.030373,
+        "ema20_4h": 0.029968,
+        "ema50_4h": 0.029803,
+        "rsi_1h": 61.04,
+        "rsi_4h": 54.28
       },
       "reasons": [
         "hard quality gate passed",
@@ -100,7 +65,7 @@
       "status": "paper_candidate"
     },
     {
-      "symbol": "CC",
+      "symbol": "CAKE",
       "venues": [
         "hyperliquid",
         "asterdex"
@@ -109,54 +74,19 @@
       "score": 75,
       "grade": "B",
       "entryZone": [
-        0.167207,
-        0.168213
+        1.304076,
+        1.311924
       ],
-      "invalidation": "1H close below 0.16266",
-      "stop": 0.16266,
+      "invalidation": "1H close below 1.2893",
+      "stop": 1.2893,
       "riskReward": 2.0,
       "metrics": {
-        "price": 0.16771,
-        "ema20_1h": 0.165728,
-        "ema20_4h": 0.163646,
-        "ema50_4h": 0.160023,
-        "rsi_1h": 62.6,
-        "rsi_4h": 59.96
-      },
-      "reasons": [
-        "hard quality gate passed",
-        "market neutral",
-        "4H trend above EMA20/EMA50",
-        "controlled pullback near 4H EMA20",
-        "price above EMA20 1H",
-        "risk/reward technically valid"
-      ],
-      "warnings": [],
-      "status": "paper_candidate"
-    },
-    {
-      "symbol": "ZEREBRO",
-      "venues": [
-        "hyperliquid",
-        "asterdex"
-      ],
-      "side": "LONG",
-      "score": 75,
-      "grade": "B",
-      "entryZone": [
-        0.02638,
-        0.026538
-      ],
-      "invalidation": "1H close below 0.024734",
-      "stop": 0.024734,
-      "riskReward": 2.0,
-      "metrics": {
-        "price": 0.026459,
-        "ema20_1h": 0.026106,
-        "ema20_4h": 0.025838,
-        "ema50_4h": 0.024897,
-        "rsi_1h": 54.71,
-        "rsi_4h": 54.76
+        "price": 1.308,
+        "ema20_1h": 1.307787,
+        "ema20_4h": 1.298648,
+        "ema50_4h": 1.298631,
+        "rsi_1h": 54.86,
+        "rsi_4h": 48.28
       },
       "reasons": [
         "hard quality gate passed",
@@ -187,10 +117,10 @@
       "grade": "A",
       "setupScore": 85,
       "openedAt": "2026-06-11T04:13:06.018081+00:00",
-      "lastCheckedAt": "2026-06-11T08:22:27.814710+00:00",
+      "lastCheckedAt": "2026-06-11T09:24:30.064938+00:00",
       "status": "open_paper_candidate",
       "maxR": 1.2558,
-      "currentR": 0.3488,
+      "currentR": 0.3605,
       "notes": "prototype candidate, not real trade",
       "actionLog": [
         {
@@ -202,7 +132,7 @@
           "runnerTargetPrice": 0.03445
         }
       ],
-      "lastPrice": 0.03075
+      "lastPrice": 0.03077
     },
     {
       "id": "CAKE-LONG-1781151186",
@@ -220,10 +150,10 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-11T04:13:06.018081+00:00",
-      "lastCheckedAt": "2026-06-11T08:22:27.814710+00:00",
+      "lastCheckedAt": "2026-06-11T09:24:30.064938+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.0,
-      "currentR": -0.0813,
+      "currentR": -0.3128,
       "notes": "prototype candidate, not real trade",
       "actionLog": [
         {
@@ -235,7 +165,7 @@
           "runnerTargetPrice": 1.4222
         }
       ],
-      "lastPrice": 1.3174
+      "lastPrice": 1.308
     },
     {
       "id": "CC-LONG-1781151186",
@@ -253,10 +183,10 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-11T04:13:06.018081+00:00",
-      "lastCheckedAt": "2026-06-11T08:22:27.814710+00:00",
+      "lastCheckedAt": "2026-06-11T09:24:30.064938+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.3705,
-      "currentR": 0.2443,
+      "currentR": -0.2016,
       "notes": "prototype candidate, not real trade",
       "actionLog": [
         {
@@ -268,7 +198,7 @@
           "runnerTargetPrice": 0.18147
         }
       ],
-      "lastPrice": 0.16771
+      "lastPrice": 0.16499
     },
     {
       "id": "WLFI-LONG-1781151186",
@@ -286,10 +216,10 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-11T04:13:06.018081+00:00",
-      "lastCheckedAt": "2026-06-11T08:22:27.814710+00:00",
+      "lastCheckedAt": "2026-06-11T09:24:30.064938+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.1455,
-      "currentR": -0.6545,
+      "currentR": -0.2182,
       "notes": "prototype candidate, not real trade",
       "actionLog": [
         {
@@ -301,7 +231,7 @@
           "runnerTargetPrice": 0.0625375
         }
       ],
-      "lastPrice": 0.0582
+      "lastPrice": 0.0588
     },
     {
       "id": "ZEREBRO-LONG-1781151186",
@@ -319,7 +249,7 @@
       "grade": "B",
       "setupScore": 75,
       "openedAt": "2026-06-11T04:13:06.018081+00:00",
-      "lastCheckedAt": "2026-06-11T08:22:27.814710+00:00",
+      "lastCheckedAt": "2026-06-11T09:24:30.064938+00:00",
       "status": "open_paper_candidate",
       "maxR": 0.8685,
       "currentR": 0.4545,
