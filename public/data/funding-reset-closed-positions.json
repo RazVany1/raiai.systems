@@ -818,5 +818,49 @@
     "exitPrice": 1.21704733,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-JTO-LONG-1781102688",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "JTO",
+    "side": "LONG",
+    "entryPrice": 0.6146,
+    "stop": 0.56342679,
+    "originalStop": 0.56342679,
+    "initialRisk": 0.05117321,
+    "tp1R": 1.5,
+    "tp1Price": 0.69135982,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.74253303,
+    "grade": "A",
+    "setupScore": 96.0,
+    "openedAt": "2026-06-10T14:44:48.390983+00:00",
+    "lastCheckedAt": "2026-06-11T15:10:31.256247+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.1197,
+    "lastPrice": 0.5573,
+    "fundingRateAtEntry": -1.785e-05,
+    "drop72hPctAtEntry": -8.85,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T14:44:48.390983+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.6146,
+        "stop": 0.56342679
+      },
+      {
+        "at": "2026-06-11T15:10:31.256247+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.5573,
+        "rMultiple": -1.1197,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-11T15:10:31.256247+00:00",
+    "exitPrice": 0.5573,
+    "rMultiple": -1.1197,
+    "exitReason": "active_stop_hit"
   }
 ]
