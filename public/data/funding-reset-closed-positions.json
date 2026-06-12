@@ -1442,5 +1442,49 @@
     "exitPrice": 0.0472766,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-BABY-LONG-1781080502",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "BABY",
+    "side": "LONG",
+    "entryPrice": 0.01595,
+    "stop": 0.01426393,
+    "originalStop": 0.01426393,
+    "initialRisk": 0.00168607,
+    "tp1R": 1.5,
+    "tp1Price": 0.0184791,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.02016517,
+    "grade": "B",
+    "setupScore": 79.0,
+    "openedAt": "2026-06-10T08:35:02.760168+00:00",
+    "lastCheckedAt": "2026-06-12T05:59:51.345058+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.0735,
+    "lastPrice": 0.01414,
+    "fundingRateAtEntry": 1.25e-05,
+    "drop72hPctAtEntry": -9.94,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T08:35:02.760168+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.01595,
+        "stop": 0.01426393
+      },
+      {
+        "at": "2026-06-12T05:59:51.345058+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.01414,
+        "rMultiple": -1.0735,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-12T05:59:51.345058+00:00",
+    "exitPrice": 0.01414,
+    "rMultiple": -1.0735,
+    "exitReason": "active_stop_hit"
   }
 ]
