@@ -511,5 +511,62 @@
     "closedAt": "2026-06-12T23:22:13.513648+00:00",
     "exitPrice": 0.4554,
     "rMultiple": -1.0056
+  },
+  {
+    "id": "MELANIA-LONG-1781299211",
+    "symbol": "MELANIA",
+    "side": "LONG",
+    "entryPrice": 0.0832,
+    "stop": 0.0832,
+    "originalStop": 0.081676,
+    "initialRisk": 0.001524,
+    "tp1R": 1.5,
+    "tp1Price": 0.085486,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.08701,
+    "activeStopReason": "breakeven_after_partial",
+    "grade": "B",
+    "setupScore": 78,
+    "openedAt": "2026-06-12T21:20:11.135908+00:00",
+    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "status": "closed_runner_target",
+    "maxR": 3.1496,
+    "currentR": 3.1496,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-12T21:20:11.135908+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.0832,
+        "stop": 0.081676,
+        "tp1Price": 0.085486,
+        "runnerTargetPrice": 0.08701
+      },
+      {
+        "at": "2026-06-13T01:24:16.548094+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.0862,
+        "rMultiple": 1.9685
+      },
+      {
+        "at": "2026-06-13T01:24:16.548094+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.0832
+      },
+      {
+        "at": "2026-06-13T02:25:19.404096+00:00",
+        "action": "close_runner_target",
+        "exitPrice": 0.08701,
+        "rMultiple": 2.5
+      }
+    ],
+    "lastPrice": 0.088,
+    "partialAt": "2026-06-13T01:24:16.548094+00:00",
+    "partialPrice": 0.0862,
+    "runnerStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-13T02:25:19.404096+00:00",
+    "exitPrice": 0.08701,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
