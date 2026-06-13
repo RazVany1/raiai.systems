@@ -568,5 +568,47 @@
     "exitPrice": 0.08701,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "SPX-LONG-1781233304",
+    "symbol": "SPX",
+    "side": "LONG",
+    "entryPrice": 0.3252,
+    "stop": 0.3195,
+    "originalStop": 0.3195,
+    "initialRisk": 0.0057,
+    "tp1R": 1.5,
+    "tp1Price": 0.33375,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.33945,
+    "activeStopReason": "initial_stop",
+    "grade": "B",
+    "setupScore": 68,
+    "openedAt": "2026-06-12T03:01:44.704642+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
+    "status": "closed_stop",
+    "maxR": 0.8772,
+    "currentR": -1.0702,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-12T03:01:44.704642+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.3252,
+        "stop": 0.3195,
+        "tp1Price": 0.33375,
+        "runnerTargetPrice": 0.33945
+      },
+      {
+        "at": "2026-06-13T07:30:25.722748+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.3191,
+        "rMultiple": -1.0702
+      }
+    ],
+    "lastPrice": 0.3191,
+    "closedAt": "2026-06-13T07:30:25.722748+00:00",
+    "exitPrice": 0.3191,
+    "rMultiple": -1.0702
   }
 ]

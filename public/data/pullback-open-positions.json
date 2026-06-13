@@ -4,21 +4,21 @@
     "symbol": "BIO",
     "side": "LONG",
     "entryPrice": 0.03015,
-    "stop": 0.02843,
+    "stop": 0.03015,
     "originalStop": 0.02843,
     "initialRisk": 0.00172,
     "tp1R": 1.5,
     "tp1Price": 0.03273,
     "runnerTargetR": 2.5,
     "runnerTargetPrice": 0.03445,
-    "activeStopReason": "initial_stop",
+    "activeStopReason": "breakeven_after_partial",
     "grade": "A",
     "setupScore": 85,
     "openedAt": "2026-06-11T04:13:06.018081+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
-    "status": "open_paper_candidate",
-    "maxR": 1.4826,
-    "currentR": 0.2674,
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
+    "status": "partial_taken_runner",
+    "maxR": 1.8547,
+    "currentR": 1.8547,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -28,9 +28,23 @@
         "stop": 0.02843,
         "tp1Price": 0.03273,
         "runnerTargetPrice": 0.03445
+      },
+      {
+        "at": "2026-06-13T07:30:25.722748+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.03334,
+        "rMultiple": 1.8547
+      },
+      {
+        "at": "2026-06-13T07:30:25.722748+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.03015
       }
     ],
-    "lastPrice": 0.03061
+    "lastPrice": 0.03334,
+    "partialAt": "2026-06-13T07:30:25.722748+00:00",
+    "partialPrice": 0.03334,
+    "runnerStopReason": "breakeven_after_partial"
   },
   {
     "id": "CAKE-LONG-1781151186",
@@ -48,10 +62,10 @@
     "grade": "B",
     "setupScore": 75,
     "openedAt": "2026-06-11T04:13:06.018081+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.468,
-    "currentR": 0.1281,
+    "currentR": 0.2389,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -63,7 +77,7 @@
         "runnerTargetPrice": 1.4222
       }
     ],
-    "lastPrice": 1.3259
+    "lastPrice": 1.3304
   },
   {
     "id": "ZEREBRO-LONG-1781151186",
@@ -81,7 +95,7 @@
     "grade": "B",
     "setupScore": 75,
     "openedAt": "2026-06-11T04:13:06.018081+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "partial_taken_runner",
     "maxR": 2.344,
     "currentR": 1.1543,
@@ -128,10 +142,10 @@
     "grade": "B",
     "setupScore": 68,
     "openedAt": "2026-06-11T16:39:29.739794+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "partial_taken_runner",
     "maxR": 1.8146,
-    "currentR": 1.3737,
+    "currentR": 1.2006,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -154,7 +168,7 @@
         "stop": 0.015924
       }
     ],
-    "lastPrice": 0.017376,
+    "lastPrice": 0.017193,
     "partialAt": "2026-06-12T19:18:08.741896+00:00",
     "partialPrice": 0.017842,
     "runnerStopReason": "breakeven_after_partial"
@@ -175,10 +189,10 @@
     "grade": "A",
     "setupScore": 85,
     "openedAt": "2026-06-11T17:41:30.983935+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.904,
-    "currentR": -0.0836,
+    "currentR": -0.0058,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -190,7 +204,7 @@
         "runnerTargetPrice": 1.8409
       }
     ],
-    "lastPrice": 1.5288
+    "lastPrice": 1.5382
   },
   {
     "id": "IO-LONG-1781207134",
@@ -208,10 +222,10 @@
     "grade": "B",
     "setupScore": 78,
     "openedAt": "2026-06-11T19:45:34.479536+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.191,
-    "currentR": 0.191,
+    "currentR": -0.4494,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -223,7 +237,7 @@
         "runnerTargetPrice": 0.19525
       }
     ],
-    "lastPrice": 0.1747
+    "lastPrice": 0.169
   },
   {
     "id": "KAS-LONG-1781229642",
@@ -241,10 +255,10 @@
     "grade": "A",
     "setupScore": 85,
     "openedAt": "2026-06-12T02:00:42.430572+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.0,
-    "currentR": -0.2553,
+    "currentR": -0.6702,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -256,7 +270,7 @@
         "runnerTargetPrice": 0.03367
       }
     ],
-    "lastPrice": 0.03108
+    "lastPrice": 0.03069
   },
   {
     "id": "MORPHO-LONG-1781229642",
@@ -274,10 +288,10 @@
     "grade": "A",
     "setupScore": 85,
     "openedAt": "2026-06-12T02:00:42.430572+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
-    "maxR": 0.1961,
-    "currentR": 0.132,
+    "maxR": 0.2631,
+    "currentR": 0.2631,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -289,40 +303,7 @@
         "runnerTargetPrice": 2.2217
       }
     ],
-    "lastPrice": 1.9778
-  },
-  {
-    "id": "SPX-LONG-1781233304",
-    "symbol": "SPX",
-    "side": "LONG",
-    "entryPrice": 0.3252,
-    "stop": 0.3195,
-    "originalStop": 0.3195,
-    "initialRisk": 0.0057,
-    "tp1R": 1.5,
-    "tp1Price": 0.33375,
-    "runnerTargetR": 2.5,
-    "runnerTargetPrice": 0.33945,
-    "activeStopReason": "initial_stop",
-    "grade": "B",
-    "setupScore": 68,
-    "openedAt": "2026-06-12T03:01:44.704642+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
-    "status": "open_paper_candidate",
-    "maxR": 0.8772,
-    "currentR": -0.7719,
-    "notes": "prototype candidate, not real trade",
-    "actionLog": [
-      {
-        "at": "2026-06-12T03:01:44.704642+00:00",
-        "action": "open_paper",
-        "entryPrice": 0.3252,
-        "stop": 0.3195,
-        "tp1Price": 0.33375,
-        "runnerTargetPrice": 0.33945
-      }
-    ],
-    "lastPrice": 0.3208
+    "lastPrice": 1.9913
   },
   {
     "id": "WLFI-LONG-1781266259",
@@ -340,10 +321,10 @@
     "grade": "B",
     "setupScore": 78,
     "openedAt": "2026-06-12T12:10:59.214468+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.0,
-    "currentR": -0.3542,
+    "currentR": -0.3958,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -355,7 +336,7 @@
         "runnerTargetPrice": 0.0736
       }
     ],
-    "lastPrice": 0.0599
+    "lastPrice": 0.0597
   },
   {
     "id": "ORDI-LONG-1781310194",
@@ -373,10 +354,10 @@
     "grade": "B",
     "setupScore": 78,
     "openedAt": "2026-06-13T00:23:14.791372+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
-    "maxR": 0.241,
-    "currentR": 0.241,
+    "maxR": 0.4096,
+    "currentR": 0.0964,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -388,7 +369,7 @@
         "runnerTargetPrice": 3.5755
       }
     ],
-    "lastPrice": 3.388
+    "lastPrice": 3.376
   },
   {
     "id": "CC-LONG-1781313856",
@@ -406,10 +387,10 @@
     "grade": "A",
     "setupScore": 85,
     "openedAt": "2026-06-13T01:24:16.548094+00:00",
-    "lastCheckedAt": "2026-06-13T02:25:19.404096+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
     "status": "open_paper_candidate",
     "maxR": 0.0,
-    "currentR": 0.0,
+    "currentR": -0.3609,
     "notes": "prototype candidate, not real trade",
     "actionLog": [
       {
@@ -421,6 +402,38 @@
         "runnerTargetPrice": 0.172535
       }
     ],
-    "lastPrice": 0.16346
+    "lastPrice": 0.16215
+  },
+  {
+    "id": "WLD-LONG-1781335825",
+    "symbol": "WLD",
+    "side": "LONG",
+    "entryPrice": 0.4915,
+    "stop": 0.4539,
+    "originalStop": 0.4539,
+    "initialRisk": 0.0376,
+    "tp1R": 1.5,
+    "tp1Price": 0.5479,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.5855,
+    "activeStopReason": "initial_stop",
+    "grade": "A",
+    "setupScore": 85,
+    "openedAt": "2026-06-13T07:30:25.722748+00:00",
+    "lastCheckedAt": "2026-06-13T07:30:25.722748+00:00",
+    "status": "open_paper_candidate",
+    "maxR": 0.0,
+    "currentR": 0.0,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-13T07:30:25.722748+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.4915,
+        "stop": 0.4539,
+        "tp1Price": 0.5479,
+        "runnerTargetPrice": 0.5855
+      }
+    ]
   }
 ]
