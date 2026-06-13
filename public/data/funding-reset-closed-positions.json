@@ -1602,5 +1602,63 @@
     "exitPrice": 0.25679822,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-ICP-LONG-1781139302",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "ICP",
+    "side": "LONG",
+    "entryPrice": 2.214,
+    "stop": 2.214,
+    "originalStop": 2.17633929,
+    "initialRisk": 0.03766071,
+    "tp1R": 1.5,
+    "tp1Price": 2.27049106,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 2.30815177,
+    "grade": "B",
+    "setupScore": 71.0,
+    "openedAt": "2026-06-11T00:55:02.635128+00:00",
+    "lastCheckedAt": "2026-06-13T02:10:21.737935+00:00",
+    "status": "closed_runner_target",
+    "maxR": 3.7174,
+    "currentR": 3.7174,
+    "lastPrice": 2.354,
+    "fundingRateAtEntry": 1.25e-05,
+    "drop72hPctAtEntry": -8.02,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T00:55:02.635128+00:00",
+        "action": "open_paper",
+        "entryPrice": 2.214,
+        "stop": 2.17633929
+      },
+      {
+        "at": "2026-06-11T04:59:11.785048+00:00",
+        "action": "take_partial",
+        "partialPrice": 2.281,
+        "rMultiple": 1.779
+      },
+      {
+        "at": "2026-06-11T04:59:11.785048+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 2.214
+      },
+      {
+        "at": "2026-06-13T02:10:21.737935+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 2.30815177,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "partialAt": "2026-06-11T04:59:11.785048+00:00",
+    "partialPrice": 2.281,
+    "activeStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-13T02:10:21.737935+00:00",
+    "exitPrice": 2.30815177,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
