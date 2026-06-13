@@ -1544,5 +1544,63 @@
     "exitPrice": 0.09814107,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-BERA-LONG-1781153951",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "BERA",
+    "side": "LONG",
+    "entryPrice": 0.2417,
+    "stop": 0.2417,
+    "originalStop": 0.23566071,
+    "initialRisk": 0.00603929,
+    "tp1R": 1.5,
+    "tp1Price": 0.25075894,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.25679822,
+    "grade": "B",
+    "setupScore": 77.0,
+    "openedAt": "2026-06-11T04:59:11.785048+00:00",
+    "lastCheckedAt": "2026-06-12T16:05:06.800646+00:00",
+    "status": "closed_runner_target",
+    "maxR": 2.8646,
+    "currentR": 2.8646,
+    "lastPrice": 0.259,
+    "fundingRateAtEntry": 1.25e-05,
+    "drop72hPctAtEntry": -11.82,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T04:59:11.785048+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.2417,
+        "stop": 0.23566071
+      },
+      {
+        "at": "2026-06-11T21:55:40.382910+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.2509,
+        "rMultiple": 1.5234
+      },
+      {
+        "at": "2026-06-11T21:55:40.382910+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.2417
+      },
+      {
+        "at": "2026-06-12T16:05:06.800646+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 0.25679822,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "partialAt": "2026-06-11T21:55:40.382910+00:00",
+    "partialPrice": 0.2509,
+    "activeStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-12T16:05:06.800646+00:00",
+    "exitPrice": 0.25679822,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
