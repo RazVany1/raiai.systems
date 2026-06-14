@@ -7,10 +7,12 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(r"C:\Users\R\raiai.systems")
 SCANNER = PROJECT_ROOT / "scripts" / "generate_rsi_trend_snapshot.py"
-STATE_PATH = Path(r"D:\RAI_CRYPTO\60-paper-trading\rsi-top-vercel-deploy-budget-state.json")
+STATE_PATH = Path(r"D:\RAI_CRYPTO\60-paper-trading\vercel-deploy-budget-state.json")
+STATUS_PATH = PROJECT_ROOT / "public" / "data" / "rsi-top-runtime-status.json"
 DAILY_DEPLOY_CAP = 80
 MIN_SECONDS_BETWEEN_DEPLOYS = 25 * 60
 DATA_PATHS = [
+    "public/data/rsi-top-runtime-status.json",
     "public/data/rsi-trend-dashboard.json",
     "public/data/hl-lh-formation-state.json",
     "public/data/paper-entry-positions.json",
@@ -84,34 +86,54 @@ def record_deploy():
     save_json(STATE_PATH, state)
 
 
+def write_status(**kwargs):
+    budget = load_json(STATE_PATH, {})
+    payload = {
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "strategy": "RSI_TOP_V3",
+        "schedule": "every_30_minutes",
+        "deployBudgetPath": str(STATE_PATH),
+        "deployBudget": budget,
+        **kwargs,
+    }
+    save_json(STATUS_PATH, payload)
+
+
 def deploy_url_from_output(text):
     urls = [line.strip() for line in text.splitlines() if line.strip().startswith("https://raiai-systems-") and line.strip().endswith(".vercel.app")]
     return urls[-1] if urls else None
 
 
 def main():
+    started_at = datetime.now(timezone.utc).isoformat()
+    write_status(lastRunStartedAt=started_at, lastRunStatus="running", lastDeployAction="pending")
     scan = run([sys.executable, str(SCANNER)], timeout=1800)
     if scan.returncode != 0:
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", lastError=(scan.stderr or scan.stdout)[-2000:])
         print("RSI TOP scan failed")
         print((scan.stderr or scan.stdout)[-2000:])
         return scan.returncode
 
     status = run(["git", "status", "--short", *DATA_PATHS], timeout=60)
     if status.returncode != 0:
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", lastError=(status.stderr or status.stdout)[-1200:])
         print("git status failed")
         print((status.stderr or status.stdout)[-1200:])
         return status.returncode
     if not status.stdout.strip():
-        print("RSI TOP scan OK — no dashboard data changes, deploy skipped")
+        write_status(lastRunStartedAt=started_at, lastRunStatus="ok", dataChanged=False, lastDeployAction="skipped_no_changes")
+        print("RSI TOP scan OK - no dashboard data changes, deploy skipped")
         return 0
 
     ok, reason = budget_available()
     if not ok:
-        print(f"RSI TOP scan OK — data changed, deploy skipped: {reason}")
+        write_status(lastRunStartedAt=started_at, lastRunStatus="ok", dataChanged=True, lastDeployAction="skipped_budget", lastDeployReason=reason)
+        print(f"RSI TOP scan OK - data changed, deploy skipped: {reason}")
         return 0
 
     add = run(["git", "add", *DATA_PATHS], timeout=120)
     if add.returncode != 0:
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", dataChanged=True, lastError=(add.stderr or add.stdout)[-1200:])
         print("git add failed")
         print((add.stderr or add.stdout)[-1200:])
         return add.returncode
@@ -119,6 +141,7 @@ def main():
     commit = run(["git", "commit", "-m", "data: update RSI TOP crypto dashboard"], timeout=180)
     combined = (commit.stdout or "") + (commit.stderr or "")
     if commit.returncode != 0 and "nothing to commit" not in combined.lower():
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", dataChanged=True, lastError=combined[-1600:])
         print("git commit failed")
         print(combined[-1600:])
         return commit.returncode
@@ -126,6 +149,7 @@ def main():
     deploy = run(["npx", "vercel", "--prod", "--yes"], timeout=900)
     deploy_text = (deploy.stdout or "") + (deploy.stderr or "")
     if deploy.returncode != 0:
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", dataChanged=True, lastDeployAction="failed", lastError=deploy_text[-2000:])
         print("vercel deploy failed")
         print(deploy_text[-2000:])
         return deploy.returncode
@@ -135,21 +159,23 @@ def main():
         for domain in ("raiai.systems", "www.raiai.systems"):
             alias = run(["npx", "vercel", "alias", "set", url, domain], timeout=240)
             if alias.returncode != 0:
+                write_status(lastRunStartedAt=started_at, lastRunStatus="failed", dataChanged=True, lastDeployAction="alias_failed", lastDeployUrl=url, lastError=((alias.stdout or "") + (alias.stderr or ""))[-1200:])
                 print(f"alias failed for {domain}")
                 print(((alias.stdout or "") + (alias.stderr or ""))[-1200:])
                 return alias.returncode
 
     push = run(["git", "push", "origin", "main"], timeout=240)
     if push.returncode != 0:
+        write_status(lastRunStartedAt=started_at, lastRunStatus="failed", dataChanged=True, lastDeployAction="push_failed", lastDeployUrl=url, lastError=(push.stderr or push.stdout)[-1600:])
         print("git push failed after deploy")
         print((push.stderr or push.stdout)[-1600:])
         return push.returncode
 
     record_deploy()
-    print("RSI TOP scan OK — deployed to Vercel and aliased to raiai.systems")
+    write_status(lastRunStartedAt=started_at, lastRunStatus="ok", dataChanged=True, lastDeployAction="deployed", lastDeployUrl=url or "https://raiai.systems/crypto")
+    print("RSI TOP scan OK - deployed to Vercel and aliased to raiai.systems")
     print(f"URL: {url or 'https://raiai.systems/crypto'}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

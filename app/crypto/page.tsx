@@ -75,6 +75,8 @@ type PaperPosition = {
   lastCheckedAt?: string;
   closedAt?: string;
   exitPrice?: number;
+  closePrice?: number;
+  closePlPercent?: number;
   rMultiple?: number;
   originalStop?: number;
   initialRisk?: number;
@@ -118,6 +120,8 @@ const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-rese
 const rsiTop4hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-v3-state.json");
 const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
 const rsiTopPaperPath = path.join(process.cwd(), "public", "data", "paper-entry-positions.json");
+const rsiTopPaperHistoryPath = path.join(process.cwd(), "public", "data", "paper-entry-positions-history.json");
+const rsiTopRuntimeStatusPath = path.join(process.cwd(), "public", "data", "rsi-top-runtime-status.json");
 
 function loadJson<T>(filePath: string): T | null {
   try {
@@ -186,7 +190,7 @@ const SIM_NOTIONAL_USD = SIM_MARGIN_USD * SIM_LEVERAGE;
 
 function simulatedPnl(position: PaperPosition): number | null {
   const entry = Number(position.entryPrice);
-  const mark = Number(position.exitPrice ?? position.lastPrice ?? position.currentPrice);
+  const mark = Number(position.exitPrice ?? position.closePrice ?? position.lastPrice ?? position.currentPrice);
   if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
   const direction = position.side === "SHORT" ? -1 : 1;
   return ((mark - entry) / entry) * direction * SIM_NOTIONAL_USD;
@@ -194,10 +198,42 @@ function simulatedPnl(position: PaperPosition): number | null {
 
 function plPercent(position: PaperPosition): number | null {
   const entry = Number(position.entryPrice);
-  const mark = Number(position.currentPrice ?? position.lastPrice ?? position.exitPrice);
+  const mark = Number(position.currentPrice ?? position.lastPrice ?? position.exitPrice ?? position.closePrice);
   if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
   const direction = position.side === "SHORT" ? -1 : 1;
   return ((mark - entry) / entry) * direction * 100;
+}
+
+function pnlUsdFromPercent(percent: number | null): number | null {
+  if (!Number.isFinite(Number(percent))) return null;
+  return (Number(percent) / 100) * SIM_NOTIONAL_USD;
+}
+
+function positionPnlUsd(position: PaperPosition): number | null {
+  const percent = plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null);
+  return pnlUsdFromPercent(percent);
+}
+
+function sumKnownPnlUsd(positions: PaperPosition[]): number | null {
+  const values = positions.map(positionPnlUsd).filter((value): value is number => Number.isFinite(Number(value)));
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0);
+}
+
+function avgKnownPlPercent(positions: PaperPosition[]): number | null {
+  const values = positions.map((position) => plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null)).filter((value): value is number => Number.isFinite(Number(value)));
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function bestByPnlPercent(positions: PaperPosition[], mode: "best" | "worst"): PaperPosition | null {
+  return positions.reduce<PaperPosition | null>((selected, position) => {
+    const value = plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null);
+    const selectedValue = selected ? (plPercent(selected) ?? (Number.isFinite(Number(selected.closePlPercent)) ? Number(selected.closePlPercent) : null)) : null;
+    if (value === null) return selected;
+    if (!selected || selectedValue === null) return position;
+    return mode === "best" ? (value > selectedValue ? position : selected) : (value < selectedValue ? position : selected);
+  }, null);
 }
 
 function simulatedRoiOnMargin(position: PaperPosition): number | null {
@@ -405,6 +441,8 @@ export default function CryptoPage() {
   const rsiTop4hV3 = loadJson<RsiTopState>(rsiTop4hV3Path);
   const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
   const rsiTopPaper = loadJson<RsiPaperState>(rsiTopPaperPath);
+  const rsiTopPaperHistory = loadJson<RsiPaperState>(rsiTopPaperHistoryPath);
+  const rsiTopRuntimeStatus = loadJson<Record<string, any>>(rsiTopRuntimeStatusPath);
 
   if (!snapshot) {
     return (
@@ -470,9 +508,18 @@ export default function CryptoPage() {
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
   const rsiTopAllPositions = (rsiTopPaper?.positions ?? []).filter((p) => p.entrySignal === "RSI_TOP_V3");
+  const rsiTopHistoryPositions = (rsiTopPaperHistory?.positions ?? rsiTopPaper?.positions ?? []).filter((p) => p.entrySignal === "RSI_TOP_V3");
   const rsiTopPositions = rsiTopAllPositions.filter((p) => ["S4h", "S1D"].includes(String(p.entrySystem ?? "")));
+  const rsiTopHistoryStrategyPositions = rsiTopHistoryPositions.filter((p) => ["S4h", "S1D"].includes(String(p.entrySystem ?? "")));
   const rsiTopOpenPositions = rsiTopPositions.filter((p) => !p.closedAt && p.status !== "closed_invalidated");
+  const rsiTopClosedPositions = rsiTopHistoryStrategyPositions.filter((p) => Boolean(p.closedAt) || String(p.status ?? "").startsWith("closed"));
   const rsiTopLegacyOpenPositions = rsiTopAllPositions.filter((p) => String(p.entrySystem ?? "") === "S1h" && !p.closedAt && p.status !== "closed_invalidated");
+  const rsiTopOpenPnlUsd = sumKnownPnlUsd(rsiTopOpenPositions);
+  const rsiTopClosedPnlUsd = sumKnownPnlUsd(rsiTopClosedPositions);
+  const rsiTopTotalPnlUsd = rsiTopOpenPnlUsd === null && rsiTopClosedPnlUsd === null ? null : Number(rsiTopOpenPnlUsd ?? 0) + Number(rsiTopClosedPnlUsd ?? 0);
+  const rsiTopAvgOpenPlPercent = avgKnownPlPercent(rsiTopOpenPositions);
+  const rsiTopBestPosition = bestByPnlPercent(rsiTopHistoryStrategyPositions.length ? rsiTopHistoryStrategyPositions : rsiTopPositions, "best");
+  const rsiTopWorstPosition = bestByPnlPercent(rsiTopHistoryStrategyPositions.length ? rsiTopHistoryStrategyPositions : rsiTopPositions, "worst");
   const rsiTopDisplayedOpenPositions = rsiTopAllPositions
     .filter((p) => !p.closedAt && p.status !== "closed_invalidated")
     .sort((a, b) => {
@@ -771,11 +818,24 @@ export default function CryptoPage() {
           RSI TOP urmărește V3 pe 1H, 4H și 1D, cu poziții paper vizibile pe sistem/timeframe. Scanare + deploy țintă: la 30 minute, adică 48 ori pe zi. Ultim update: {dateFmt(rsiTopPaper?.updatedAt ?? rsiTop4hV3?.updatedAt ?? rsiTop1dV3?.updatedAt ?? undefined)} PDT.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
+          <StatCard label="Last scan" value={dateFmt(rsiTopRuntimeStatus?.lastRunStartedAt)} tone={rsiTopRuntimeStatus?.lastRunStatus === "failed" ? "#ef4444" : "#22c55e"} />
+          <StatCard label="Scan status" value={rsiTopRuntimeStatus?.lastRunStatus ?? "—"} tone={rsiTopRuntimeStatus?.lastRunStatus === "failed" ? "#ef4444" : "#22c55e"} />
+          <StatCard label="Deploy action" value={rsiTopRuntimeStatus?.lastDeployAction ?? "—"} tone={rsiTopRuntimeStatus?.lastDeployAction === "deployed" ? "#22c55e" : "#fbbf24"} />
+          <StatCard label="Deploy azi" value={`${rsiTopRuntimeStatus?.deployBudget?.count ?? "—"}/80`} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
           <StatCard label="RSI TOP 4H" value={rsiTop4hRows.length} tone="#a78bfa" />
           <StatCard label="RSI TOP 1D" value={rsiTop1dRows.length} tone="#a78bfa" />
           <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
           <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
+          <StatCard label="Closed paper" value={rsiTopClosedPositions.length} />
+          <StatCard label="Open P/L" value={rsiTopOpenPnlUsd === null ? "—" : `$${rsiTopOpenPnlUsd.toFixed(2)}`} tone={Number(rsiTopOpenPnlUsd ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Closed P/L" value={rsiTopClosedPnlUsd === null ? "—" : `$${rsiTopClosedPnlUsd.toFixed(2)}`} tone={Number(rsiTopClosedPnlUsd ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Total P/L" value={rsiTopTotalPnlUsd === null ? "—" : `$${rsiTopTotalPnlUsd.toFixed(2)}`} tone={Number(rsiTopTotalPnlUsd ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Avg open %" value={rsiTopAvgOpenPlPercent === null ? "—" : `${rsiTopAvgOpenPlPercent.toFixed(2)}%`} tone={Number(rsiTopAvgOpenPlPercent ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+          <StatCard label="Best S3" value={rsiTopBestPosition ? `${rsiTopBestPosition.symbol} ${(plPercent(rsiTopBestPosition) ?? rsiTopBestPosition.closePlPercent ?? 0).toFixed(2)}%` : "—"} tone="#22c55e" />
+          <StatCard label="Worst S3" value={rsiTopWorstPosition ? `${rsiTopWorstPosition.symbol} ${(plPercent(rsiTopWorstPosition) ?? rsiTopWorstPosition.closePlPercent ?? 0).toFixed(2)}%` : "—"} tone="#ef4444" />
           <StatCard label="Legacy S1h open" value={rsiTopLegacyOpenPositions.length} tone="#fbbf24" />
           <StatCard label="Scanări / zi" value="48" />
         </div>

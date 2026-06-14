@@ -2718,7 +2718,8 @@ def main():
             symbol, side, _entry_at = key
             trend = trend_map.get(symbol)
             if existing.get("entrySignal") in {"RSI_V3", "RSI_TOP_V3", "CHECK_MARK_V0_1"}:
-                current_price = trend.get("price") if trend else existing.get("currentPrice")
+                cached_price = price_cache.get(symbol) if isinstance(price_cache.get(symbol), (int, float)) else None
+                current_price = cached_price if cached_price is not None else (trend.get("price") if trend else existing.get("currentPrice"))
                 current_pl = compute_pl_percent(existing.get("entryPrice"), current_price, side)
                 previous_max_pl = existing.get("maxPlPercent")
                 previous_min_pl = existing.get("minPlPercent")
