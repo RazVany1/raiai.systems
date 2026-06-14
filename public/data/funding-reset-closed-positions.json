@@ -1994,5 +1994,63 @@
     "exitPrice": 0.03582607,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-ZORA-LONG-1781146629",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "ZORA",
+    "side": "LONG",
+    "entryPrice": 0.008,
+    "stop": 0.008,
+    "originalStop": 0.00775643,
+    "initialRisk": 0.00024357,
+    "tp1R": 1.5,
+    "tp1Price": 0.00836536,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.00860892,
+    "grade": "A",
+    "setupScore": 84.0,
+    "openedAt": "2026-06-11T02:57:09.937452+00:00",
+    "lastCheckedAt": "2026-06-14T18:31:14.089268+00:00",
+    "status": "closed_runner_target",
+    "maxR": 2.6276,
+    "currentR": 2.6276,
+    "lastPrice": 0.00864,
+    "fundingRateAtEntry": -0.00017294,
+    "drop72hPctAtEntry": -8.36,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T02:57:09.937452+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.008,
+        "stop": 0.00775643
+      },
+      {
+        "at": "2026-06-12T01:57:45.788888+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.00857,
+        "rMultiple": 2.3402
+      },
+      {
+        "at": "2026-06-12T01:57:45.788888+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.008
+      },
+      {
+        "at": "2026-06-14T18:31:14.089268+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 0.00860892,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "partialAt": "2026-06-12T01:57:45.788888+00:00",
+    "partialPrice": 0.00857,
+    "activeStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-14T18:31:14.089268+00:00",
+    "exitPrice": 0.00860892,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
   }
 ]
