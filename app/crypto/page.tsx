@@ -768,7 +768,7 @@ export default function CryptoPage() {
         <div style={{ color: "#a78bfa", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 3</div>
         <h2 style={{ margin: "6px 0 0" }}>RSI TOP — 4H + 1D V3</h2>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>
-          Scannerul vechi OpenClaw: 175 monede unice, RSI interest zones. Acum urmărește V3 pe 4H și 1D și deschide poziții paper când apare semnal activ. Scanare țintă: 8 ori pe zi. Ultim update: {dateFmt(rsiTopPaper?.updatedAt ?? rsiTop4hV3?.updatedAt ?? rsiTop1dV3?.updatedAt ?? undefined)} PDT.
+          RSI TOP urmărește V3 pe 1H, 4H și 1D, cu poziții paper vizibile pe sistem/timeframe. Scanare + deploy țintă: la 30 minute, adică 48 ori pe zi. Ultim update: {dateFmt(rsiTopPaper?.updatedAt ?? rsiTop4hV3?.updatedAt ?? rsiTop1dV3?.updatedAt ?? undefined)} PDT.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
           <StatCard label="RSI TOP 4H" value={rsiTop4hRows.length} tone="#a78bfa" />
@@ -777,7 +777,7 @@ export default function CryptoPage() {
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
           <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
           <StatCard label="Legacy S1h open" value={rsiTopLegacyOpenPositions.length} tone="#fbbf24" />
-          <StatCard label="Scanări / zi" value="8" />
+          <StatCard label="Scanări / zi" value="48" />
         </div>
         {rsiTopRows.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio monedă în RSI TOP 4H/1D V3 acum.</p> : null}
         {rsiTopRows.length ? (
