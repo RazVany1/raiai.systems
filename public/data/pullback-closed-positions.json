@@ -1031,5 +1031,103 @@
     "closedAt": "2026-06-14T14:01:05.336206+00:00",
     "exitPrice": 0.3083,
     "rMultiple": -1.4559
+  },
+  {
+    "id": "ZEREBRO-LONG-1781151186",
+    "symbol": "ZEREBRO",
+    "side": "LONG",
+    "entryPrice": 0.02592,
+    "stop": 0.02592,
+    "originalStop": 0.024734,
+    "initialRisk": 0.001186,
+    "tp1R": 1.5,
+    "tp1Price": 0.027699,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.028885,
+    "activeStopReason": "breakeven_after_partial",
+    "grade": "B",
+    "setupScore": 75,
+    "openedAt": "2026-06-11T04:13:06.018081+00:00",
+    "lastCheckedAt": "2026-06-14T15:02:06.662550+00:00",
+    "status": "closed_runner_breakeven",
+    "maxR": 2.344,
+    "currentR": -0.9182,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T04:13:06.018081+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.02592,
+        "stop": 0.024734,
+        "tp1Price": 0.027699,
+        "runnerTargetPrice": 0.028885
+      },
+      {
+        "at": "2026-06-12T04:02:46.894450+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.02783,
+        "rMultiple": 1.6105
+      },
+      {
+        "at": "2026-06-12T04:02:46.894450+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.02592
+      },
+      {
+        "at": "2026-06-14T15:02:06.662550+00:00",
+        "action": "closed_runner_breakeven",
+        "exitPrice": 0.024831,
+        "rMultiple": -0.9182
+      }
+    ],
+    "lastPrice": 0.024831,
+    "partialAt": "2026-06-12T04:02:46.894450+00:00",
+    "partialPrice": 0.02783,
+    "runnerStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-14T15:02:06.662550+00:00",
+    "exitPrice": 0.024831,
+    "rMultiple": -0.9182
+  },
+  {
+    "id": "HEMI-LONG-1781434681",
+    "symbol": "HEMI",
+    "side": "LONG",
+    "entryPrice": 0.006217,
+    "stop": 0.006081,
+    "originalStop": 0.006081,
+    "initialRisk": 0.000136,
+    "tp1R": 1.5,
+    "tp1Price": 0.006421,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.006557,
+    "activeStopReason": "initial_stop",
+    "grade": "A",
+    "setupScore": 85,
+    "openedAt": "2026-06-14T10:58:01.282095+00:00",
+    "lastCheckedAt": "2026-06-14T15:02:06.662550+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.5735,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-14T10:58:01.282095+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.006217,
+        "stop": 0.006081,
+        "tp1Price": 0.006421,
+        "runnerTargetPrice": 0.006557
+      },
+      {
+        "at": "2026-06-14T15:02:06.662550+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.006003,
+        "rMultiple": -1.5735
+      }
+    ],
+    "lastPrice": 0.006003,
+    "closedAt": "2026-06-14T15:02:06.662550+00:00",
+    "exitPrice": 0.006003,
+    "rMultiple": -1.5735
   }
 ]
