@@ -71,6 +71,7 @@ type PaperPosition = {
   grade?: string;
   setupScore?: number;
   openedAt?: string;
+  entryAt?: string;
   lastCheckedAt?: string;
   closedAt?: string;
   exitPrice?: number;
@@ -84,6 +85,10 @@ type PaperPosition = {
   exitReason?: string;
   entrySignal?: string;
   entrySystem?: string;
+  signalZone?: string;
+  anchorRsi?: number;
+  anchorTime?: string;
+  previousRsi?: number;
   currentPrice?: number;
   maxPlPercent?: number;
   minPlPercent?: number;
@@ -181,10 +186,18 @@ const SIM_NOTIONAL_USD = SIM_MARGIN_USD * SIM_LEVERAGE;
 
 function simulatedPnl(position: PaperPosition): number | null {
   const entry = Number(position.entryPrice);
-  const mark = Number(position.exitPrice ?? position.lastPrice);
+  const mark = Number(position.exitPrice ?? position.lastPrice ?? position.currentPrice);
   if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
   const direction = position.side === "SHORT" ? -1 : 1;
   return ((mark - entry) / entry) * direction * SIM_NOTIONAL_USD;
+}
+
+function plPercent(position: PaperPosition): number | null {
+  const entry = Number(position.entryPrice);
+  const mark = Number(position.currentPrice ?? position.lastPrice ?? position.exitPrice);
+  if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
+  const direction = position.side === "SHORT" ? -1 : 1;
+  return ((mark - entry) / entry) * direction * 100;
 }
 
 function simulatedRoiOnMargin(position: PaperPosition): number | null {
@@ -275,6 +288,7 @@ function Badge({ children, tone = "#38bdf8" }: { children: React.ReactNode; tone
 
 type StrategySummary = {
   name: string;
+  cap: number;
   candidates: number;
   aSetups: number;
   bSetups: number;
@@ -283,6 +297,73 @@ type StrategySummary = {
   openPnl: number;
   closedPnl: number;
 };
+
+const STRATEGY_CAPS = {
+  pullback: 12,
+  fundingReset: 20,
+  rsiTop: 20,
+};
+
+function positionR(position: PaperPosition): number | null {
+  const direct = Number(position.rMultiple ?? position.currentR);
+  if (Number.isFinite(direct)) return direct;
+  const status = String(position.status ?? "").toLowerCase();
+  if (status.includes("runner_target")) return 2.5;
+  if (status.includes("stop")) return -1;
+  return null;
+}
+
+function strategyMetrics(summary: StrategySummary) {
+  const closedRs = summary.closedPositions.map(positionR).filter((value): value is number => Number.isFinite(Number(value)));
+  const openRs = summary.openPositions.map(positionR).filter((value): value is number => Number.isFinite(Number(value)));
+  const wins = closedRs.filter((value) => value > 0).length;
+  const losses = closedRs.filter((value) => value <= 0).length;
+  const totalR = closedRs.reduce((sum, value) => sum + value, 0);
+  const avgR = closedRs.length ? totalR / closedRs.length : 0;
+  const winRate = closedRs.length ? (wins / closedRs.length) * 100 : 0;
+  const openAvgR = openRs.length ? openRs.reduce((sum, value) => sum + value, 0) / openRs.length : 0;
+  const openVsCap = `${summary.openPositions.length}/${summary.cap}`;
+  const status = summary.name === "Funding Reset" && closedRs.length >= 100 && avgR > 0.3 && winRate >= 45 && summary.openPositions.length <= summary.cap
+    ? "LIVE GATE — ELIGIBIL"
+    : summary.name === "Funding Reset" && avgR > 0 && winRate >= 45
+      ? "PROMISING — PAPER"
+      : avgR > 0
+        ? "WATCH — PAPER"
+        : "NOT LIVE READY";
+  const tone = status.startsWith("LIVE") ? "#22c55e" : status.startsWith("PROMISING") ? "#38bdf8" : status.startsWith("WATCH") ? "#fbbf24" : "#ef4444";
+  return { closedRs, wins, losses, totalR, avgR, winRate, openAvgR, openVsCap, status, tone };
+}
+
+function StrategyLiveGateCards({ pullback, funding }: { pullback: StrategySummary; funding: StrategySummary }) {
+  const rows = [pullback, funding].map((summary) => ({ summary, metrics: strategyMetrics(summary) }));
+  return (
+    <section style={{ ...panel, marginBottom: 22, borderColor: "#f59e0b", background: "rgba(245,158,11,.06)" }}>
+      <div style={{ color: "#fbbf24", fontWeight: 900, letterSpacing: 1 }}>LIVE GATE — PAPER METRICS</div>
+      <h2 style={{ margin: "6px 0 4px" }}>Când intrăm live?</h2>
+      <p style={{ color: "#94a3b8", marginTop: 0 }}>
+        Regula curentă: live doar după minim 100 poziții closed paper, avg R &gt; +0,30R, win rate &gt; 45%, open count sub cap și confirmare manuală de la R. Nu există execuție live automată.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+        {rows.map(({ summary, metrics }) => (
+          <div key={summary.name} style={{ border: `1px solid ${metrics.tone}`, borderRadius: 16, padding: 14, background: "#0f172a" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <strong style={{ fontSize: 20 }}>{summary.name}</strong>
+              <Badge tone={metrics.tone}>{metrics.status}</Badge>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(110px, 1fr))", gap: 10, marginTop: 12 }}>
+              <StatCard label="Open / cap" value={metrics.openVsCap} tone={summary.openPositions.length > summary.cap ? "#ef4444" : "#22c55e"} />
+              <StatCard label="Closed" value={summary.closedPositions.length} />
+              <StatCard label="Win rate" value={`${metrics.winRate.toFixed(2)}%`} tone={metrics.winRate >= 45 ? "#22c55e" : "#ef4444"} />
+              <StatCard label="Avg R closed" value={`${metrics.avgR.toFixed(4)}R`} tone={metrics.avgR > 0 ? "#22c55e" : "#ef4444"} />
+              <StatCard label="Total R closed" value={`${metrics.totalR.toFixed(4)}R`} tone={metrics.totalR > 0 ? "#22c55e" : "#ef4444"} />
+              <StatCard label="Avg R open" value={`${metrics.openAvgR.toFixed(4)}R`} tone={metrics.openAvgR > 0 ? "#22c55e" : "#ef4444"} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySummary; funding: StrategySummary }) {
   const rows = [pullback, funding].map((s) => {
@@ -363,6 +444,7 @@ export default function CryptoPage() {
   const fundingClosedPnl = fundingClosed.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
   const pullbackSummary: StrategySummary = {
     name: "Pullback",
+    cap: STRATEGY_CAPS.pullback,
     candidates: Number(stats.candidates ?? candidates.length),
     aSetups: Number(stats.aSetups ?? 0),
     bSetups: Number(stats.bSetups ?? 0),
@@ -373,6 +455,7 @@ export default function CryptoPage() {
   };
   const fundingSummary: StrategySummary = {
     name: "Funding Reset",
+    cap: STRATEGY_CAPS.fundingReset,
     candidates: Number(fundingStats.candidates ?? fundingCandidates.length),
     aSetups: Number(fundingStats.aSetups ?? 0),
     bSetups: Number(fundingStats.bSetups ?? 0),
@@ -386,8 +469,16 @@ export default function CryptoPage() {
   const rsiTopRows = [...rsiTop4hRows, ...rsiTop1dRows];
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
-  const rsiTopPositions = (rsiTopPaper?.positions ?? []).filter((p) => p.entrySignal === "RSI_TOP_V3" && ["S4h", "S1D"].includes(String(p.entrySystem ?? "")));
+  const rsiTopAllPositions = (rsiTopPaper?.positions ?? []).filter((p) => p.entrySignal === "RSI_TOP_V3");
+  const rsiTopPositions = rsiTopAllPositions.filter((p) => ["S4h", "S1D"].includes(String(p.entrySystem ?? "")));
   const rsiTopOpenPositions = rsiTopPositions.filter((p) => !p.closedAt && p.status !== "closed_invalidated");
+  const rsiTopLegacyOpenPositions = rsiTopAllPositions.filter((p) => String(p.entrySystem ?? "") === "S1h" && !p.closedAt && p.status !== "closed_invalidated");
+  const rsiTopDisplayedOpenPositions = rsiTopAllPositions
+    .filter((p) => !p.closedAt && p.status !== "closed_invalidated")
+    .sort((a, b) => {
+      const order: Record<string, number> = { S1D: 0, S4h: 1, S1h: 2 };
+      return (order[String(a.entrySystem ?? "")] ?? 9) - (order[String(b.entrySystem ?? "")] ?? 9) || String(a.symbol ?? "").localeCompare(String(b.symbol ?? ""));
+    });
 
   return (
     <main style={{ minHeight: "100vh", padding: 24, background: "radial-gradient(circle at top, #111827 0, #020617 45%)", color: "#e5e7eb", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -400,6 +491,7 @@ export default function CryptoPage() {
       </section>
 
       <StrategyComparisonPanel pullback={pullbackSummary} funding={fundingSummary} />
+      <StrategyLiveGateCards pullback={pullbackSummary} funding={fundingSummary} />
 
       <section style={{ marginBottom: 18, padding: 16, border: "1px solid #2563eb", borderRadius: 18, background: "rgba(37,99,235,.08)" }}>
         <div style={{ color: "#93c5fd", fontWeight: 900, letterSpacing: 1 }}>STRATEGIA 1</div>
@@ -684,6 +776,7 @@ export default function CryptoPage() {
           <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
           <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
+          <StatCard label="Legacy S1h open" value={rsiTopLegacyOpenPositions.length} tone="#fbbf24" />
           <StatCard label="Scanări / zi" value="8" />
         </div>
         {rsiTopRows.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio monedă în RSI TOP 4H/1D V3 acum.</p> : null}
@@ -726,22 +819,50 @@ export default function CryptoPage() {
             </table>
           </div>
         ) : null}
-        <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — Open Paper Positions</h3>
-        {rsiTopOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP 4H/1D deschisă acum.</p> : null}
-        {rsiTopOpenPositions.length ? (
-          <div style={{ display: "grid", gap: 8 }}>
-            {rsiTopOpenPositions.map((position) => (
-              <div key={`${position.symbol}-${position.side}-${position.entrySystem}-${position.openedAt ?? position.entryPrice}`} style={{ padding: 10, border: "1px solid #6d28d9", borderRadius: 12, background: "rgba(109,40,217,.12)" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <strong>{position.symbol} {position.side}</strong>
-                  <Badge tone="#a78bfa">{position.entrySystem}</Badge>
-                  <span>Entry: <b>{fmt(position.entryPrice)}</b></span>
-                  <span>Mark: <b>{fmt(position.currentPrice ?? position.lastPrice)}</b></span>
-                  <span>Status: <b>DESCHISĂ</b></span>
-                  <span>Max P/L: <b>{fmt(position.maxPlPercent)}%</b></span>
-                </div>
-              </div>
-            ))}
+        <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — OpenClaw Paper Positions</h3>
+        <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă ca în OpenClaw: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
+        {rsiTopDisplayedOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP deschisă acum.</p> : null}
+        {rsiTopDisplayedOpenPositions.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
+              <thead>
+                <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
+                  <th style={{ padding: "8px 6px" }}>System</th>
+                  <th style={{ padding: "8px 6px" }}>Symbol</th>
+                  <th style={{ padding: "8px 6px" }}>Side</th>
+                  <th style={{ padding: "8px 6px" }}>Entry</th>
+                  <th style={{ padding: "8px 6px" }}>Mark</th>
+                  <th style={{ padding: "8px 6px" }}>P/L</th>
+                  <th style={{ padding: "8px 6px" }}>Max / Min</th>
+                  <th style={{ padding: "8px 6px" }}>Zone</th>
+                  <th style={{ padding: "8px 6px" }}>Anchor RSI</th>
+                  <th style={{ padding: "8px 6px" }}>Detected</th>
+                  <th style={{ padding: "8px 6px" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rsiTopDisplayedOpenPositions.map((position) => {
+                  const pl = plPercent(position);
+                  const isLong = position.side === "LONG";
+                  const systemTone = position.entrySystem === "S1h" ? "#fbbf24" : "#a78bfa";
+                  return (
+                    <tr key={`${position.symbol}-${position.side}-${position.entrySystem}-${position.entryAt ?? position.openedAt ?? position.entryPrice}`} style={{ borderBottom: "1px solid #1f2937", background: position.entrySystem === "S1h" ? "rgba(251,191,36,.06)" : "rgba(109,40,217,.08)" }}>
+                      <td style={{ padding: "9px 6px" }}><Badge tone={systemTone}>{position.entrySystem}</Badge></td>
+                      <td style={{ padding: "9px 6px", fontWeight: 900 }}>{position.symbol}</td>
+                      <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{position.side}</Badge></td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(position.entryPrice)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(position.currentPrice ?? position.lastPrice)}</td>
+                      <td style={{ padding: "9px 6px", color: Number(pl ?? 0) >= 0 ? "#22c55e" : "#ef4444", fontWeight: 900 }}>{pl === null ? "—" : `${pl.toFixed(2)}%`}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(position.maxPlPercent)}% / {fmt(position.minPlPercent)}%</td>
+                      <td style={{ padding: "9px 6px", color: "#cbd5e1" }}>{fmt(position.signalZone)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(position.anchorRsi)}</td>
+                      <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{dateFmt(position.entryAt ?? position.openedAt)}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(position.status)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : null}
       </section>
