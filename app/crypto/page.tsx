@@ -819,8 +819,8 @@ export default function CryptoPage() {
             </table>
           </div>
         ) : null}
-        <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — OpenClaw Paper Positions</h3>
-        <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă ca în OpenClaw: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
+        <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — RSI TOP Paper Positions</h3>
+        <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
         {rsiTopDisplayedOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP deschisă acum.</p> : null}
         {rsiTopDisplayedOpenPositions.length ? (
           <div style={{ overflowX: "auto" }}>
