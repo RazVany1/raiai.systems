@@ -610,5 +610,160 @@
     "closedAt": "2026-06-13T07:30:25.722748+00:00",
     "exitPrice": 0.3191,
     "rMultiple": -1.0702
+  },
+  {
+    "id": "HEMI-LONG-1781339486",
+    "symbol": "HEMI",
+    "side": "LONG",
+    "entryPrice": 0.005951,
+    "stop": 0.005951,
+    "originalStop": 0.005778,
+    "initialRisk": 0.000173,
+    "tp1R": 1.5,
+    "tp1Price": 0.0062105,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.0063835,
+    "activeStopReason": "breakeven_after_partial",
+    "grade": "B",
+    "setupScore": 75,
+    "openedAt": "2026-06-13T08:31:26.551968+00:00",
+    "lastCheckedAt": "2026-06-13T16:39:37.729752+00:00",
+    "status": "closed_runner_target",
+    "maxR": 2.5087,
+    "currentR": 2.5087,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-13T08:31:26.551968+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.005951,
+        "stop": 0.005778,
+        "tp1Price": 0.0062105,
+        "runnerTargetPrice": 0.0063835
+      },
+      {
+        "at": "2026-06-13T11:34:30.884545+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.006338,
+        "rMultiple": 2.237
+      },
+      {
+        "at": "2026-06-13T11:34:30.884545+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.005951
+      },
+      {
+        "at": "2026-06-13T16:39:37.729752+00:00",
+        "action": "close_runner_target",
+        "exitPrice": 0.0063835,
+        "rMultiple": 2.5
+      }
+    ],
+    "lastPrice": 0.006385,
+    "partialAt": "2026-06-13T11:34:30.884545+00:00",
+    "partialPrice": 0.006338,
+    "runnerStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-13T16:39:37.729752+00:00",
+    "exitPrice": 0.0063835,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
+  },
+  {
+    "id": "CC-LONG-1781313856",
+    "symbol": "CC",
+    "side": "LONG",
+    "entryPrice": 0.16346,
+    "stop": 0.15983,
+    "originalStop": 0.15983,
+    "initialRisk": 0.00363,
+    "tp1R": 1.5,
+    "tp1Price": 0.168905,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.172535,
+    "activeStopReason": "initial_stop",
+    "grade": "A",
+    "setupScore": 85,
+    "openedAt": "2026-06-13T01:24:16.548094+00:00",
+    "lastCheckedAt": "2026-06-13T18:41:40.730548+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.0579,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-13T01:24:16.548094+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.16346,
+        "stop": 0.15983,
+        "tp1Price": 0.168905,
+        "runnerTargetPrice": 0.172535
+      },
+      {
+        "at": "2026-06-13T18:41:40.730548+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.15962,
+        "rMultiple": -1.0579
+      }
+    ],
+    "lastPrice": 0.15962,
+    "closedAt": "2026-06-13T18:41:40.730548+00:00",
+    "exitPrice": 0.15962,
+    "rMultiple": -1.0579
+  },
+  {
+    "id": "TST-LONG-1781195969",
+    "symbol": "TST",
+    "side": "LONG",
+    "entryPrice": 0.015924,
+    "stop": 0.015924,
+    "originalStop": 0.014867,
+    "initialRisk": 0.001057,
+    "tp1R": 1.5,
+    "tp1Price": 0.0175095,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.0185665,
+    "activeStopReason": "breakeven_after_partial",
+    "grade": "B",
+    "setupScore": 68,
+    "openedAt": "2026-06-11T16:39:29.739794+00:00",
+    "lastCheckedAt": "2026-06-14T03:50:52.583729+00:00",
+    "status": "closed_runner_breakeven",
+    "maxR": 1.8146,
+    "currentR": -0.1438,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T16:39:29.739794+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.015924,
+        "stop": 0.014867,
+        "tp1Price": 0.0175095,
+        "runnerTargetPrice": 0.0185665
+      },
+      {
+        "at": "2026-06-12T19:18:08.741896+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.017842,
+        "rMultiple": 1.8146
+      },
+      {
+        "at": "2026-06-12T19:18:08.741896+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.015924
+      },
+      {
+        "at": "2026-06-14T03:50:52.583729+00:00",
+        "action": "closed_runner_breakeven",
+        "exitPrice": 0.015772,
+        "rMultiple": -0.1438
+      }
+    ],
+    "lastPrice": 0.015772,
+    "partialAt": "2026-06-12T19:18:08.741896+00:00",
+    "partialPrice": 0.017842,
+    "runnerStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-14T03:50:52.583729+00:00",
+    "exitPrice": 0.015772,
+    "rMultiple": -0.1438
   }
 ]
