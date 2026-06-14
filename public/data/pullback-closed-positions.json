@@ -933,5 +933,103 @@
     "closedAt": "2026-06-14T13:00:03.696988+00:00",
     "exitPrice": 0.3525,
     "rMultiple": -1.1204
+  },
+  {
+    "id": "IO-LONG-1781207134",
+    "symbol": "IO",
+    "side": "LONG",
+    "entryPrice": 0.173,
+    "stop": 0.173,
+    "originalStop": 0.1641,
+    "initialRisk": 0.0089,
+    "tp1R": 1.5,
+    "tp1Price": 0.18635,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.19525,
+    "activeStopReason": "breakeven_after_partial",
+    "grade": "B",
+    "setupScore": 78,
+    "openedAt": "2026-06-11T19:45:34.479536+00:00",
+    "lastCheckedAt": "2026-06-14T14:01:05.336206+00:00",
+    "status": "closed_runner_breakeven",
+    "maxR": 1.8427,
+    "currentR": -0.3034,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T19:45:34.479536+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.173,
+        "stop": 0.1641,
+        "tp1Price": 0.18635,
+        "runnerTargetPrice": 0.19525
+      },
+      {
+        "at": "2026-06-13T12:35:32.357993+00:00",
+        "action": "take_partial",
+        "partialPrice": 0.1884,
+        "rMultiple": 1.7303
+      },
+      {
+        "at": "2026-06-13T12:35:32.357993+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 0.173
+      },
+      {
+        "at": "2026-06-14T14:01:05.336206+00:00",
+        "action": "closed_runner_breakeven",
+        "exitPrice": 0.1703,
+        "rMultiple": -0.3034
+      }
+    ],
+    "lastPrice": 0.1703,
+    "partialAt": "2026-06-13T12:35:32.357993+00:00",
+    "partialPrice": 0.1884,
+    "runnerStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-14T14:01:05.336206+00:00",
+    "exitPrice": 0.1703,
+    "rMultiple": -0.3034
+  },
+  {
+    "id": "ETHFI-LONG-1781442003",
+    "symbol": "ETHFI",
+    "side": "LONG",
+    "entryPrice": 0.3182,
+    "stop": 0.3114,
+    "originalStop": 0.3114,
+    "initialRisk": 0.0068,
+    "tp1R": 1.5,
+    "tp1Price": 0.3284,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.3352,
+    "activeStopReason": "initial_stop",
+    "grade": "B",
+    "setupScore": 75,
+    "openedAt": "2026-06-14T13:00:03.696988+00:00",
+    "lastCheckedAt": "2026-06-14T14:01:05.336206+00:00",
+    "status": "closed_stop",
+    "maxR": 0.0,
+    "currentR": -1.4559,
+    "notes": "prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-14T13:00:03.696988+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.3182,
+        "stop": 0.3114,
+        "tp1Price": 0.3284,
+        "runnerTargetPrice": 0.3352
+      },
+      {
+        "at": "2026-06-14T14:01:05.336206+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.3083,
+        "rMultiple": -1.4559
+      }
+    ],
+    "lastPrice": 0.3083,
+    "closedAt": "2026-06-14T14:01:05.336206+00:00",
+    "exitPrice": 0.3083,
+    "rMultiple": -1.4559
   }
 ]
