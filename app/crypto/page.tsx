@@ -187,11 +187,13 @@ function buildRsiVersionMatrixRows(v0Rows: RsiTopRow[], v1Rows: RsiTopRow[], v2R
   v1Rows.forEach((row) => upsert(row, "v1", 1));
   v2Rows.forEach((row) => upsert(row, "v2", 2));
   v3Rows.forEach((row) => upsert(row, "v3", 3));
-  return [...map.values()].sort((a, b) =>
-    Number(b.versionRank ?? 0) - Number(a.versionRank ?? 0)
-    || String(b.detectedAt ?? "").localeCompare(String(a.detectedAt ?? ""))
-    || String(a.symbol ?? "").localeCompare(String(b.symbol ?? ""))
-  );
+  return [...map.values()]
+    .filter((row) => row.v1 || row.v2 || row.v3)
+    .sort((a, b) =>
+      Number(b.versionRank ?? 0) - Number(a.versionRank ?? 0)
+      || String(b.detectedAt ?? "").localeCompare(String(a.detectedAt ?? ""))
+      || String(a.symbol ?? "").localeCompare(String(b.symbol ?? ""))
+    );
 }
 
 function fmt(value: unknown): string {
@@ -1042,7 +1044,7 @@ export default function CryptoPage() {
           </div>
         ) : null}
         <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP Version Matrix</h3>
-        <p style={{ color: "#94a3b8", marginTop: -2 }}>Stil OpenClaw: V0/V1/V2/V3 pe aceeași linie pentru fiecare monedă.</p>
+        <p style={{ color: "#94a3b8", marginTop: -2 }}>Stil OpenClaw: V0/V1/V2/V3 pe aceeași linie; afișez doar monedele care au ajuns minim în V1.</p>
         <RsiVersionMatrixTable title="S1H" rows={rsiTop1hMatrixRows} />
         <RsiVersionMatrixTable title="S4H" rows={rsiTop4hMatrixRows} />
         <RsiVersionMatrixTable title="S1D" rows={rsiTop1dMatrixRows} />
