@@ -152,21 +152,129 @@ def credentials_ready(exchange: str) -> tuple[bool, str]:
     return False, f"unsupported exchange {exchange}"
 
 
-def execute_live_order(ticket: LivePilotTicket) -> dict[str, Any]:
-    """Guarded placeholder for real adapter.
+def hyperliquid_asset_meta(symbol: str) -> dict[str, Any]:
+    from hyperliquid.info import Info  # type: ignore
+    from hyperliquid.utils import constants  # type: ignore
 
-    The adapter is intentionally not wired to send live orders until credentials
-    and SDK are present and a final implementation is validated on a tiny test
-    order. This prevents accidental live trading from a dashboard/chat bug.
+    info = Info(constants.MAINNET_API_URL, skip_ws=True)
+    meta = info.meta()
+    coin = symbol.replace("USDT", "").upper()
+    for asset in meta.get("universe", []):
+        if str(asset.get("name", "")).upper() == coin:
+            return asset
+    raise RuntimeError(f"{coin} not found in Hyperliquid universe")
+
+
+def rounded_hyperliquid_size(symbol: str, notional_usd: float, price: float) -> float:
+    asset = hyperliquid_asset_meta(symbol)
+    decimals = int(asset.get("szDecimals", 4))
+    raw_size = notional_usd / price
+    size = round(raw_size, decimals)
+    if size <= 0:
+        raise RuntimeError(f"computed invalid order size for {symbol}: {size}")
+    return size
+
+
+def execute_hyperliquid_order(ticket: LivePilotTicket) -> dict[str, Any]:
+    """Send a guarded Hyperliquid order when every live guard is satisfied.
+
+    Entry:
+    - limit order: GTC limit at ticket.entryPrice;
+    - market order: uses SDK market_open with tight slippage.
+
+    Brackets:
+    - market entries immediately place reduce-only trigger orders:
+      full-size SL, half-size TP1, half-size runner target.
+    - limit entries return the bracket plan but do not place triggers until fill.
     """
+    from eth_account import Account  # type: ignore
+    from hyperliquid.exchange import Exchange  # type: ignore
+    from hyperliquid.utils import constants  # type: ignore
+
+    private_key = os.environ["HYPERLIQUID_PRIVATE_KEY"]
+    account_address = os.environ["HYPERLIQUID_ACCOUNT_ADDRESS"]
+    wallet = Account.from_key(private_key)
+    exchange = Exchange(wallet, constants.MAINNET_API_URL, account_address=account_address)
+
+    coin = ticket.symbol.replace("USDT", "").upper()
+    is_buy = ticket.side.upper() == "LONG"
+    size = rounded_hyperliquid_size(coin, ticket.notionalUsd, ticket.entryPrice)
+
+    leverage_result = exchange.update_leverage(ticket.leverage, coin, is_cross=True)
+    if ticket.orderType == "market":
+        entry_result = exchange.market_open(coin, is_buy, size, px=ticket.entryPrice, slippage=0.01)
+        stop_result = exchange.order(
+            coin,
+            not is_buy,
+            size,
+            ticket.stopLoss,
+            {"trigger": {"triggerPx": ticket.stopLoss, "isMarket": True, "tpsl": "sl"}},
+            reduce_only=True,
+        )
+        half_size = round(size / 2, int(hyperliquid_asset_meta(coin).get("szDecimals", 4)))
+        tp1_result = exchange.order(
+            coin,
+            not is_buy,
+            half_size,
+            ticket.takeProfit1,
+            {"trigger": {"triggerPx": ticket.takeProfit1, "isMarket": True, "tpsl": "tp"}},
+            reduce_only=True,
+        )
+        runner_result = exchange.order(
+            coin,
+            not is_buy,
+            max(size - half_size, 0),
+            ticket.runnerTarget,
+            {"trigger": {"triggerPx": ticket.runnerTarget, "isMarket": True, "tpsl": "tp"}},
+            reduce_only=True,
+        )
+        return {
+            "ok": True,
+            "status": "submitted_market_with_brackets",
+            "coin": coin,
+            "size": size,
+            "notionalUsd": ticket.notionalUsd,
+            "leverage": ticket.leverage,
+            "leverageResult": leverage_result,
+            "entryResult": entry_result,
+            "stopResult": stop_result,
+            "tp1Result": tp1_result,
+            "runnerResult": runner_result,
+        }
+
+    entry_result = exchange.order(
+        coin,
+        is_buy,
+        size,
+        ticket.entryPrice,
+        {"limit": {"tif": "Gtc"}},
+        reduce_only=False,
+    )
+    return {
+        "ok": True,
+        "status": "submitted_limit_entry_brackets_pending_fill",
+        "coin": coin,
+        "size": size,
+        "notionalUsd": ticket.notionalUsd,
+        "leverage": ticket.leverage,
+        "leverageResult": leverage_result,
+        "entryResult": entry_result,
+        "bracketPlan": {
+            "placeAfterFill": True,
+            "stopLoss": ticket.stopLoss,
+            "takeProfit1": ticket.takeProfit1,
+            "runnerTarget": ticket.runnerTarget,
+        },
+    }
+
+
+def execute_live_order(ticket: LivePilotTicket) -> dict[str, Any]:
     ok, reason = credentials_ready(ticket.exchange)
     if not ok:
         return {"ok": False, "status": "blocked", "reason": reason}
-    return {
-        "ok": False,
-        "status": "blocked",
-        "reason": "live adapter not yet armed; validate exchange-specific order placement first",
-    }
+    if ticket.exchange == "hyperliquid":
+        return execute_hyperliquid_order(ticket)
+    return {"ok": False, "status": "blocked", "reason": f"{ticket.exchange} live adapter not implemented yet"}
 
 
 def main() -> int:
@@ -218,7 +326,11 @@ def main() -> int:
                 status.update(action="blocked", message=f"Execution requires --confirm {ticket.symbol}.")
             else:
                 result = execute_live_order(ticket)
-                status.update(action="execute_attempt", executionResult=result)
+                status.update(
+                    action="order_submitted" if result.get("ok") else "blocked",
+                    message="Live order submitted." if result.get("ok") else f"Live execution blocked: {result.get('reason', result.get('status'))}",
+                    executionResult=result,
+                )
     save_json(STATUS_PATH, status)
     print(json.dumps(status, indent=2, ensure_ascii=False))
     return 0 if status.get("action") in {"dry_run", "blocked"} else 1
