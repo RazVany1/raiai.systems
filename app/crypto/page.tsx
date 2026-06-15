@@ -53,6 +53,14 @@ type RsiTopState = {
   rows?: RsiTopRow[] | Record<string, RsiTopRow>;
 };
 
+type RsiVersionMatrixRow = RsiTopRow & {
+  v0?: boolean;
+  v1?: boolean;
+  v2?: boolean;
+  v3?: boolean;
+  versionRank?: number;
+};
+
 type RsiPaperState = {
   updatedAt?: string | null;
   positions?: PaperPosition[];
@@ -158,6 +166,32 @@ function rsiMatrixRowsFromState(state: RsiTopState | null, timeframe: string): R
   return rows
     .map((row) => ({ ...row, timeframe: row.timeframe ?? timeframe }))
     .sort((a, b) => String(b.detectedAt ?? "").localeCompare(String(a.detectedAt ?? "")) || String(a.symbol ?? "").localeCompare(String(b.symbol ?? "")));
+}
+
+function buildRsiVersionMatrixRows(v0Rows: RsiTopRow[], v1Rows: RsiTopRow[], v2Rows: RsiTopRow[], v3Rows: RsiTopRow[]): RsiVersionMatrixRow[] {
+  const map = new Map<string, RsiVersionMatrixRow>();
+  const upsert = (row: RsiTopRow, version: "v0" | "v1" | "v2" | "v3", rank: number) => {
+    const key = `${row.symbol ?? "—"}:${row.zone ?? "—"}`;
+    const existing = map.get(key) ?? {};
+    map.set(key, {
+      ...existing,
+      ...row,
+      v0: existing.v0 || version === "v0",
+      v1: existing.v1 || version === "v1",
+      v2: existing.v2 || version === "v2",
+      v3: existing.v3 || version === "v3",
+      versionRank: Math.max(existing.versionRank ?? 0, rank),
+    });
+  };
+  v0Rows.forEach((row) => upsert(row, "v0", 0));
+  v1Rows.forEach((row) => upsert(row, "v1", 1));
+  v2Rows.forEach((row) => upsert(row, "v2", 2));
+  v3Rows.forEach((row) => upsert(row, "v3", 3));
+  return [...map.values()].sort((a, b) =>
+    Number(b.versionRank ?? 0) - Number(a.versionRank ?? 0)
+    || String(b.detectedAt ?? "").localeCompare(String(a.detectedAt ?? ""))
+    || String(a.symbol ?? "").localeCompare(String(b.symbol ?? ""))
+  );
 }
 
 function fmt(value: unknown): string {
@@ -419,41 +453,57 @@ function StrategyLiveGateCards({ pullback, funding }: { pullback: StrategySummar
   );
 }
 
-function RsiMatrixTable({ title, rows }: { title: string; rows: RsiTopRow[] }) {
+function versionBadge(active: boolean | undefined, label: string) {
+  if (!active) return <span style={{ color: "#475569" }}>—</span>;
+  return <span style={{ display: "inline-flex", minWidth: 34, justifyContent: "center", border: "1px solid #7dd3fc", background: "rgba(56,189,248,.16)", color: "#e0f2fe", borderRadius: 999, padding: "3px 8px", fontSize: 11, fontWeight: 900 }}>{label}</span>;
+}
+
+function RsiVersionMatrixTable({ title, rows }: { title: string; rows: RsiVersionMatrixRow[] }) {
   return (
-    <div style={{ marginTop: 16 }}>
-      <h3 style={{ margin: "12px 0 6px" }}>{title} ({rows.length})</h3>
-      {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă intrată în această versiune în matricea curentă.</p> : null}
+    <div style={{ marginTop: 16, padding: 12, border: "1px solid #334155", borderRadius: 14, background: "rgba(15,23,42,.55)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+        <h3 style={{ margin: 0 }}>{title} — RSI Version Matrix ({rows.length})</h3>
+        <span style={{ color: "#94a3b8", fontSize: 12 }}>V0 / V1 / V2 / V3 pe aceeași monedă</span>
+      </div>
+      {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă în matricea curentă.</p> : null}
       {rows.length ? (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
-            <thead>
-              <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
-                <th style={{ padding: "8px 6px" }}>Symbol</th>
-                <th style={{ padding: "8px 6px" }}>Side</th>
-                <th style={{ padding: "8px 6px" }}>RSI</th>
-                <th style={{ padding: "8px 6px" }}>Prev RSI</th>
-                <th style={{ padding: "8px 6px" }}>Price</th>
-                <th style={{ padding: "8px 6px" }}>Zone</th>
-                <th style={{ padding: "8px 6px" }}>Detected</th>
-                <th style={{ padding: "8px 6px" }}>Status</th>
-                <th style={{ padding: "8px 6px" }}>Venue</th>
+        <div style={{ overflowX: "auto", border: "1px solid #1f2937", borderRadius: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb", fontSize: 13 }}>
+            <thead style={{ background: "rgba(255,255,255,.05)" }}>
+              <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155", textTransform: "uppercase", fontSize: 11, letterSpacing: .5 }}>
+                <th style={{ padding: "9px 8px" }}>Coin</th>
+                <th style={{ padding: "9px 8px" }}>RSI now</th>
+                <th style={{ padding: "9px 8px" }}>Price</th>
+                <th style={{ padding: "9px 8px" }}>Zone</th>
+                <th style={{ padding: "9px 8px" }}>Detected</th>
+                <th style={{ padding: "9px 8px" }}>V0</th>
+                <th style={{ padding: "9px 8px" }}>V1</th>
+                <th style={{ padding: "9px 8px" }}>V2</th>
+                <th style={{ padding: "9px 8px" }}>V3</th>
+                <th style={{ padding: "9px 8px" }}>Anchor RSI</th>
+                <th style={{ padding: "9px 8px" }}>Anchor price</th>
+                <th style={{ padding: "9px 8px" }}>Anchor time</th>
+                <th style={{ padding: "9px 8px" }}>Prev RSI</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
                 const isLong = row.zone === "lower_interest";
                 return (
-                  <tr key={`${title}-${row.symbol}-${row.zone}-${row.detectedAt}`} style={{ borderBottom: "1px solid #1f2937" }}>
-                    <td style={{ padding: "9px 6px", fontWeight: 900 }}>{row.symbol}</td>
-                    <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{isLong ? "LONG" : "SHORT"}</Badge></td>
-                    <td style={{ padding: "9px 6px" }}>{fmt(row.rsi)}</td>
-                    <td style={{ padding: "9px 6px" }}>{fmt(row.previousRsi)}</td>
-                    <td style={{ padding: "9px 6px" }}>{fmt(row.price)}</td>
-                    <td style={{ padding: "9px 6px", color: "#cbd5e1" }}>{fmt(row.zone)}</td>
-                    <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{dateFmt(row.detectedAt)}</td>
-                    <td style={{ padding: "9px 6px" }}><Badge tone={row.currentlyInZone === false ? "#fbbf24" : "#22c55e"}>{row.currentlyInZone === false ? "retained" : "active"}</Badge></td>
-                    <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{fmt(row.sourceVenue)}</td>
+                  <tr key={`${title}-${row.symbol}-${row.zone}`} style={{ borderBottom: "1px solid #1f2937" }}>
+                    <td style={{ padding: "9px 8px", fontWeight: 900 }}>{row.symbol}</td>
+                    <td style={{ padding: "9px 8px" }}>{fmt(row.rsi)}</td>
+                    <td style={{ padding: "9px 8px" }}>{fmt(row.price)}</td>
+                    <td style={{ padding: "9px 8px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{isLong ? "LONG" : "SHORT"}</Badge></td>
+                    <td style={{ padding: "9px 8px", color: "#94a3b8", whiteSpace: "nowrap" }}>{dateFmt(row.detectedAt)}</td>
+                    <td style={{ padding: "9px 8px" }}>{versionBadge(row.v0, "V0")}</td>
+                    <td style={{ padding: "9px 8px" }}>{versionBadge(row.v1, "V1")}</td>
+                    <td style={{ padding: "9px 8px" }}>{versionBadge(row.v2, "V2")}</td>
+                    <td style={{ padding: "9px 8px" }}>{versionBadge(row.v3, "V3")}</td>
+                    <td style={{ padding: "9px 8px", fontWeight: 800 }}>{fmt(row.anchorRsi)}</td>
+                    <td style={{ padding: "9px 8px", fontWeight: 800 }}>{fmt(row.anchorPrice)}</td>
+                    <td style={{ padding: "9px 8px", color: "#94a3b8", whiteSpace: "nowrap" }}>{dateFmt(row.anchorTime)}</td>
+                    <td style={{ padding: "9px 8px", fontWeight: 800 }}>{fmt(row.previousRsi)}</td>
                   </tr>
                 );
               })}
@@ -590,6 +640,9 @@ export default function CryptoPage() {
   const rsiTop1hV3Rows = rsiMatrixRowsFromState(rsiTop1hV3, "1h");
   const rsiTop4hV3Rows = rsiMatrixRowsFromState(rsiTop4hV3, "4h");
   const rsiTop1dV3Rows = rsiMatrixRowsFromState(rsiTop1dV3, "1d");
+  const rsiTop1hMatrixRows = buildRsiVersionMatrixRows(rsiTop1hV0Rows, rsiTop1hV1Rows, rsiTop1hV2Rows, rsiTop1hV3Rows);
+  const rsiTop4hMatrixRows = buildRsiVersionMatrixRows(rsiTop4hV0Rows, rsiTop4hV1Rows, rsiTop4hV2Rows, rsiTop4hV3Rows);
+  const rsiTop1dMatrixRows = buildRsiVersionMatrixRows(rsiTop1dV0Rows, rsiTop1dV1Rows, rsiTop1dV2Rows, rsiTop1dV3Rows);
   const rsiTopRows = [...rsiTop4hRows, ...rsiTop1dRows];
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
@@ -971,20 +1024,11 @@ export default function CryptoPage() {
             </table>
           </div>
         ) : null}
-        <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP Matrix V0/V1/V2/V3</h3>
-        <p style={{ color: "#94a3b8", marginTop: -2 }}>Toate monedele scanate care au intrat în fiecare versiune, separat pe sistem/timeframe.</p>
-        <RsiMatrixTable title="S1H — V0" rows={rsiTop1hV0Rows} />
-        <RsiMatrixTable title="S1H — V1" rows={rsiTop1hV1Rows} />
-        <RsiMatrixTable title="S1H — V2" rows={rsiTop1hV2Rows} />
-        <RsiMatrixTable title="S1H — V3" rows={rsiTop1hV3Rows} />
-        <RsiMatrixTable title="S4H — V0" rows={rsiTop4hV0Rows} />
-        <RsiMatrixTable title="S4H — V1" rows={rsiTop4hV1Rows} />
-        <RsiMatrixTable title="S4H — V2" rows={rsiTop4hV2Rows} />
-        <RsiMatrixTable title="S4H — V3" rows={rsiTop4hV3Rows} />
-        <RsiMatrixTable title="S1D — V0" rows={rsiTop1dV0Rows} />
-        <RsiMatrixTable title="S1D — V1" rows={rsiTop1dV1Rows} />
-        <RsiMatrixTable title="S1D — V2" rows={rsiTop1dV2Rows} />
-        <RsiMatrixTable title="S1D — V3" rows={rsiTop1dV3Rows} />
+        <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP Version Matrix</h3>
+        <p style={{ color: "#94a3b8", marginTop: -2 }}>Stil OpenClaw: V0/V1/V2/V3 pe aceeași linie pentru fiecare monedă.</p>
+        <RsiVersionMatrixTable title="S1H" rows={rsiTop1hMatrixRows} />
+        <RsiVersionMatrixTable title="S4H" rows={rsiTop4hMatrixRows} />
+        <RsiVersionMatrixTable title="S1D" rows={rsiTop1dMatrixRows} />
         <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — RSI TOP Paper Positions</h3>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
         {rsiTopDisplayedOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP deschisă acum.</p> : null}
