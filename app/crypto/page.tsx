@@ -8,6 +8,7 @@ type Candidate = {
   symbol?: string;
   side?: string;
   score?: number;
+  setupScore?: number;
   grade?: string;
   entryZone?: number[];
   stop?: number;
@@ -411,6 +412,25 @@ const STRATEGY_CAPS = {
   rsiTop: 20,
 };
 
+const FUNDING_LIVE_PILOT = {
+  enabled: true,
+  maxOpenLive: 3,
+  marginUsd: 50,
+  leverage: 3,
+  minScore: 85,
+  allowedGrades: ["A"],
+  mode: "semi-manual",
+};
+
+function isFundingLivePilotCandidate(candidate: Candidate): boolean {
+  return FUNDING_LIVE_PILOT.allowedGrades.includes(String(candidate.grade ?? ""))
+    && Number(candidate.score ?? candidate.setupScore ?? 0) >= FUNDING_LIVE_PILOT.minScore
+    && Number.isFinite(Number(candidate.price))
+    && Number.isFinite(Number(candidate.stop))
+    && Number.isFinite(Number(candidate.tp1Price))
+    && Number.isFinite(Number(candidate.runnerTargetPrice));
+}
+
 function positionR(position: PaperPosition): number | null {
   const direct = Number(position.rMultiple ?? position.currentR);
   if (Number.isFinite(direct)) return direct;
@@ -619,6 +639,7 @@ export default function CryptoPage() {
   const fundingStats = fundingSnapshot?.scanStats ?? {};
   const fundingRegime = fundingSnapshot?.marketRegime ?? {};
   const fundingCandidates = fundingSnapshot?.candidates ?? [];
+  const fundingLivePilotCandidates = fundingCandidates.filter(isFundingLivePilotCandidate);
   const fundingOpen = fundingSnapshot?.paperPositions ?? [];
   const fundingClosed = fundingSnapshot?.closedPaperPositions ?? [];
   const fundingOpenPnl = fundingOpen.reduce((sum, p) => sum + Number(simulatedPnl(p) ?? 0), 0);
@@ -902,6 +923,36 @@ export default function CryptoPage() {
               <StatCard label="Closed FRR" value={fundingStats.closedPaperPositions ?? fundingClosed.length} />
               <StatCard label="Open P/L" value={`$${fundingOpenPnl.toFixed(2)}`} tone={fundingOpenPnl >= 0 ? "#22c55e" : "#ef4444"} />
               <StatCard label="Closed P/L" value={`$${fundingClosedPnl.toFixed(2)}`} tone={fundingClosedPnl >= 0 ? "#22c55e" : "#ef4444"} />
+            </div>
+            <h3 style={{ marginBottom: 8 }}>Strategia 2 — Live Pilot Candidates</h3>
+            <div style={{ padding: 12, border: "1px solid #22c55e", borderRadius: 14, background: "rgba(34,197,94,.08)", marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 10 }}>
+                <StatCard label="Pilot mode" value={FUNDING_LIVE_PILOT.mode} tone="#22c55e" />
+                <StatCard label="Max live open" value={FUNDING_LIVE_PILOT.maxOpenLive} tone="#22c55e" />
+                <StatCard label="Margin / trade" value={`$${FUNDING_LIVE_PILOT.marginUsd}`} />
+                <StatCard label="Leverage" value={`${FUNDING_LIVE_PILOT.leverage}x`} />
+                <StatCard label="Notional / trade" value={`$${FUNDING_LIVE_PILOT.marginUsd * FUNDING_LIVE_PILOT.leverage}`} />
+                <StatCard label="Eligible now" value={fundingLivePilotCandidates.length} tone={fundingLivePilotCandidates.length ? "#22c55e" : "#fbbf24"} />
+              </div>
+              <p style={{ color: "#cbd5e1", marginTop: 0 }}>
+                Regula pilot: doar Grade A, score ≥ {FUNDING_LIVE_PILOT.minScore}, SL/TP1/runner clare. Nu execut automat: fiecare intrare live cere confirmare manuală de la R.
+              </p>
+              {fundingLivePilotCandidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat live-pilot eligibil acum.</p> : null}
+              <div style={{ display: "grid", gap: 8 }}>
+                {fundingLivePilotCandidates.map((candidate) => (
+                  <div key={`frr-live-${candidate.symbol}-${candidate.side}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(115px, 1fr))", gap: 8, padding: 10, border: "1px solid #22c55e", borderRadius: 12, background: "rgba(15,23,42,.85)" }}>
+                    <strong>{candidate.symbol} {candidate.side}</strong>
+                    <span><Badge tone="#22c55e">LIVE PILOT</Badge></span>
+                    <span>Score: <b>{fmt(candidate.score)}</b></span>
+                    <span>Entry/Price: <b>{fmt(candidate.price)}</b></span>
+                    <span>SL: <b>{fmt(candidate.stop)}</b></span>
+                    <span>TP1: <b>{fmt(candidate.tp1Price)}</b></span>
+                    <span>Runner: <b>{fmt(candidate.runnerTargetPrice)}</b></span>
+                    <span>Margin: <b>${FUNDING_LIVE_PILOT.marginUsd}</b></span>
+                    <span>Notional: <b>${FUNDING_LIVE_PILOT.marginUsd * FUNDING_LIVE_PILOT.leverage}</b></span>
+                  </div>
+                ))}
+              </div>
             </div>
             <h3 style={{ marginBottom: 8 }}>Strategia 2 — Top Candidates</h3>
             {fundingCandidates.length === 0 ? <p style={{ color: "#94a3b8" }}>Niciun candidat Funding Reset acum.</p> : null}
