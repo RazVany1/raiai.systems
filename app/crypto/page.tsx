@@ -423,7 +423,7 @@ function RsiMatrixTable({ title, rows }: { title: string; rows: RsiTopRow[] }) {
   return (
     <div style={{ marginTop: 16 }}>
       <h3 style={{ margin: "12px 0 6px" }}>{title} ({rows.length})</h3>
-      {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă intrată în V0 în matricea curentă.</p> : null}
+      {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă intrată în această versiune în matricea curentă.</p> : null}
       {rows.length ? (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
