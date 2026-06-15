@@ -1,0 +1,36 @@
+{
+  "updatedAt": "2026-06-15T13:17:15.307354+00:00",
+  "strategy": "FUNDING_RESET_RECLAIM",
+  "pilotRules": {
+    "marginUsd": 50.0,
+    "leverage": 3,
+    "notionalUsd": 150.0,
+    "maxOpenLive": 3,
+    "minScore": 85.0,
+    "allowedGrades": [
+      "A"
+    ]
+  },
+  "tickets": [
+    {
+      "createdAt": "2026-06-15T13:17:15.307354+00:00",
+      "strategy": "FUNDING_RESET_RECLAIM",
+      "mode": "LIVE_PILOT_SEMI_MANUAL",
+      "exchange": "hyperliquid",
+      "symbol": "CHIP",
+      "side": "LONG",
+      "orderType": "limit",
+      "entryPrice": 0.03967,
+      "stopLoss": 0.02993107,
+      "takeProfit1": 0.05427839,
+      "runnerTarget": 0.06401732,
+      "marginUsd": 50.0,
+      "leverage": 3,
+      "notionalUsd": 150.0,
+      "grade": "A",
+      "score": 90.0,
+      "status": "DRY_RUN_READY",
+      "executionNote": "No live order sent. Requires --execute --confirm SYMBOL and exchange credentials."
+    }
+  ]
+}
