@@ -2168,5 +2168,107 @@
     "exitPrice": 0.13161875,
     "rMultiple": 2.5,
     "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-ZEC-LONG-1781095366",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "ZEC",
+    "side": "LONG",
+    "entryPrice": 424.91,
+    "stop": 424.91,
+    "originalStop": 397.79071429,
+    "initialRisk": 27.11928571,
+    "tp1R": 1.5,
+    "tp1Price": 465.58892857,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 492.70821428,
+    "grade": "A",
+    "setupScore": 81.0,
+    "openedAt": "2026-06-10T12:42:46.127873+00:00",
+    "lastCheckedAt": "2026-06-15T06:37:27.662377+00:00",
+    "status": "closed_runner_target",
+    "maxR": 2.6383,
+    "currentR": 2.6383,
+    "lastPrice": 496.46,
+    "fundingRateAtEntry": -0.00010041,
+    "drop72hPctAtEntry": -11.75,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-10T12:42:46.127873+00:00",
+        "action": "open_paper",
+        "entryPrice": 424.91,
+        "stop": 397.79071429
+      },
+      {
+        "at": "2026-06-15T00:34:22.217096+00:00",
+        "action": "take_partial",
+        "partialPrice": 471.6,
+        "rMultiple": 1.7217
+      },
+      {
+        "at": "2026-06-15T00:34:22.217096+00:00",
+        "action": "move_stop_to_breakeven",
+        "stop": 424.91
+      },
+      {
+        "at": "2026-06-15T06:37:27.662377+00:00",
+        "action": "closed_runner_target",
+        "exitPrice": 492.70821428,
+        "rMultiple": 2.5,
+        "reason": "runner_target"
+      }
+    ],
+    "partialAt": "2026-06-15T00:34:22.217096+00:00",
+    "partialPrice": 471.6,
+    "activeStopReason": "breakeven_after_partial",
+    "closedAt": "2026-06-15T06:37:27.662377+00:00",
+    "exitPrice": 492.70821428,
+    "rMultiple": 2.5,
+    "exitReason": "runner_target"
+  },
+  {
+    "id": "FRR-HMSTR-LONG-1781168615",
+    "strategy": "FUNDING_RESET_RECLAIM",
+    "symbol": "HMSTR",
+    "side": "LONG",
+    "entryPrice": 0.0002453,
+    "stop": 0.00015675,
+    "originalStop": 0.00015675,
+    "initialRisk": 8.855e-05,
+    "tp1R": 1.5,
+    "tp1Price": 0.00037812,
+    "runnerTargetR": 2.5,
+    "runnerTargetPrice": 0.00046668,
+    "grade": "A",
+    "setupScore": 86.0,
+    "openedAt": "2026-06-11T09:03:35.447992+00:00",
+    "lastCheckedAt": "2026-06-15T06:37:27.662377+00:00",
+    "status": "closed_stop",
+    "maxR": 1.4647,
+    "currentR": -1.004,
+    "lastPrice": 0.0001564,
+    "fundingRateAtEntry": 1.25e-05,
+    "drop72hPctAtEntry": -24.27,
+    "notes": "funding reset reclaim prototype candidate, not real trade",
+    "actionLog": [
+      {
+        "at": "2026-06-11T09:03:35.447992+00:00",
+        "action": "open_paper",
+        "entryPrice": 0.0002453,
+        "stop": 0.00015675
+      },
+      {
+        "at": "2026-06-15T06:37:27.662377+00:00",
+        "action": "closed_stop",
+        "exitPrice": 0.0001564,
+        "rMultiple": -1.004,
+        "reason": "active_stop_hit"
+      }
+    ],
+    "closedAt": "2026-06-15T06:37:27.662377+00:00",
+    "exitPrice": 0.0001564,
+    "rMultiple": -1.004,
+    "exitReason": "active_stop_hit"
   }
 ]
