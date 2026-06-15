@@ -117,11 +117,18 @@ type PullbackSnapshot = {
 
 const dataPath = path.join(process.cwd(), "public", "data", "pullback-continuation-snapshot.json");
 const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-reset-reclaim-snapshot.json");
-const rsiTop4hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-v3-state.json");
-const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
 const rsiTop1hV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-1h-v0-state.json");
 const rsiTop4hV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-v0-state.json");
 const rsiTop1dV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v0-state.json");
+const rsiTop1hV1Path = path.join(process.cwd(), "public", "data", "rsi-interest-1h-state.json");
+const rsiTop4hV1Path = path.join(process.cwd(), "public", "data", "rsi-interest-state.json");
+const rsiTop1dV1Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-state.json");
+const rsiTop1hV2Path = path.join(process.cwd(), "public", "data", "rsi-interest-1h-v2-state.json");
+const rsiTop4hV2Path = path.join(process.cwd(), "public", "data", "rsi-interest-v2-state.json");
+const rsiTop1dV2Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v2-state.json");
+const rsiTop1hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1h-v3-state.json");
+const rsiTop4hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-v3-state.json");
+const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
 const rsiTopPaperPath = path.join(process.cwd(), "public", "data", "paper-entry-positions.json");
 const rsiTopPaperHistoryPath = path.join(process.cwd(), "public", "data", "paper-entry-positions-history.json");
 const rsiTopRuntimeStatusPath = path.join(process.cwd(), "public", "data", "rsi-top-runtime-status.json");
@@ -145,7 +152,7 @@ function rsiRowsFromState(state: RsiTopState | null, timeframe: string): RsiTopR
   return rows.map((row) => ({ ...row, timeframe: row.timeframe ?? timeframe })).filter((row) => row.currentlyInZone !== false);
 }
 
-function rsiV0RowsFromState(state: RsiTopState | null, timeframe: string): RsiTopRow[] {
+function rsiMatrixRowsFromState(state: RsiTopState | null, timeframe: string): RsiTopRow[] {
   const raw = state?.rows;
   const rows = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? Object.values(raw) : [];
   return rows
@@ -412,10 +419,10 @@ function StrategyLiveGateCards({ pullback, funding }: { pullback: StrategySummar
   );
 }
 
-function RsiV0Table({ title, rows }: { title: string; rows: RsiTopRow[] }) {
+function RsiMatrixTable({ title, rows }: { title: string; rows: RsiTopRow[] }) {
   return (
     <div style={{ marginTop: 16 }}>
-      <h3 style={{ margin: "12px 0 6px" }}>{title} — V0 ({rows.length})</h3>
+      <h3 style={{ margin: "12px 0 6px" }}>{title} ({rows.length})</h3>
       {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă intrată în V0 în matricea curentă.</p> : null}
       {rows.length ? (
         <div style={{ overflowX: "auto" }}>
@@ -495,11 +502,18 @@ function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySumm
 export default function CryptoPage() {
   const snapshot = loadSnapshot();
   const fundingSnapshot = loadJson<PullbackSnapshot>(fundingDataPath);
-  const rsiTop4hV3 = loadJson<RsiTopState>(rsiTop4hV3Path);
-  const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
   const rsiTop1hV0 = loadJson<RsiTopState>(rsiTop1hV0Path);
   const rsiTop4hV0 = loadJson<RsiTopState>(rsiTop4hV0Path);
   const rsiTop1dV0 = loadJson<RsiTopState>(rsiTop1dV0Path);
+  const rsiTop1hV1 = loadJson<RsiTopState>(rsiTop1hV1Path);
+  const rsiTop4hV1 = loadJson<RsiTopState>(rsiTop4hV1Path);
+  const rsiTop1dV1 = loadJson<RsiTopState>(rsiTop1dV1Path);
+  const rsiTop1hV2 = loadJson<RsiTopState>(rsiTop1hV2Path);
+  const rsiTop4hV2 = loadJson<RsiTopState>(rsiTop4hV2Path);
+  const rsiTop1dV2 = loadJson<RsiTopState>(rsiTop1dV2Path);
+  const rsiTop1hV3 = loadJson<RsiTopState>(rsiTop1hV3Path);
+  const rsiTop4hV3 = loadJson<RsiTopState>(rsiTop4hV3Path);
+  const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
   const rsiTopPaper = loadJson<RsiPaperState>(rsiTopPaperPath);
   const rsiTopPaperHistory = loadJson<RsiPaperState>(rsiTopPaperHistoryPath);
   const rsiTopRuntimeStatus = loadJson<Record<string, any>>(rsiTopRuntimeStatusPath);
@@ -564,9 +578,18 @@ export default function CryptoPage() {
   };
   const rsiTop4hRows = rsiRowsFromState(rsiTop4hV3, "4h");
   const rsiTop1dRows = rsiRowsFromState(rsiTop1dV3, "1d");
-  const rsiTop1hV0Rows = rsiV0RowsFromState(rsiTop1hV0, "1h");
-  const rsiTop4hV0Rows = rsiV0RowsFromState(rsiTop4hV0, "4h");
-  const rsiTop1dV0Rows = rsiV0RowsFromState(rsiTop1dV0, "1d");
+  const rsiTop1hV0Rows = rsiMatrixRowsFromState(rsiTop1hV0, "1h");
+  const rsiTop4hV0Rows = rsiMatrixRowsFromState(rsiTop4hV0, "4h");
+  const rsiTop1dV0Rows = rsiMatrixRowsFromState(rsiTop1dV0, "1d");
+  const rsiTop1hV1Rows = rsiMatrixRowsFromState(rsiTop1hV1, "1h");
+  const rsiTop4hV1Rows = rsiMatrixRowsFromState(rsiTop4hV1, "4h");
+  const rsiTop1dV1Rows = rsiMatrixRowsFromState(rsiTop1dV1, "1d");
+  const rsiTop1hV2Rows = rsiMatrixRowsFromState(rsiTop1hV2, "1h");
+  const rsiTop4hV2Rows = rsiMatrixRowsFromState(rsiTop4hV2, "4h");
+  const rsiTop1dV2Rows = rsiMatrixRowsFromState(rsiTop1dV2, "1d");
+  const rsiTop1hV3Rows = rsiMatrixRowsFromState(rsiTop1hV3, "1h");
+  const rsiTop4hV3Rows = rsiMatrixRowsFromState(rsiTop4hV3, "4h");
+  const rsiTop1dV3Rows = rsiMatrixRowsFromState(rsiTop1dV3, "1d");
   const rsiTopRows = [...rsiTop4hRows, ...rsiTop1dRows];
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
@@ -892,6 +915,9 @@ export default function CryptoPage() {
           <StatCard label="V0 S1H" value={rsiTop1hV0Rows.length} tone="#fbbf24" />
           <StatCard label="V0 S4H" value={rsiTop4hV0Rows.length} tone="#fbbf24" />
           <StatCard label="V0 S1D" value={rsiTop1dV0Rows.length} tone="#fbbf24" />
+          <StatCard label="V1 total" value={rsiTop1hV1Rows.length + rsiTop4hV1Rows.length + rsiTop1dV1Rows.length} tone="#38bdf8" />
+          <StatCard label="V2 total" value={rsiTop1hV2Rows.length + rsiTop4hV2Rows.length + rsiTop1dV2Rows.length} tone="#38bdf8" />
+          <StatCard label="V3 total" value={rsiTop1hV3Rows.length + rsiTop4hV3Rows.length + rsiTop1dV3Rows.length} tone="#a78bfa" />
           <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
           <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
@@ -945,11 +971,20 @@ export default function CryptoPage() {
             </table>
           </div>
         ) : null}
-        <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP V0 Matrix</h3>
-        <p style={{ color: "#94a3b8", marginTop: -2 }}>Toate monedele scanate care au intrat în V0, separat pe sistem/timeframe.</p>
-        <RsiV0Table title="S1H" rows={rsiTop1hV0Rows} />
-        <RsiV0Table title="S4H" rows={rsiTop4hV0Rows} />
-        <RsiV0Table title="S1D" rows={rsiTop1dV0Rows} />
+        <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP Matrix V0/V1/V2/V3</h3>
+        <p style={{ color: "#94a3b8", marginTop: -2 }}>Toate monedele scanate care au intrat în fiecare versiune, separat pe sistem/timeframe.</p>
+        <RsiMatrixTable title="S1H — V0" rows={rsiTop1hV0Rows} />
+        <RsiMatrixTable title="S1H — V1" rows={rsiTop1hV1Rows} />
+        <RsiMatrixTable title="S1H — V2" rows={rsiTop1hV2Rows} />
+        <RsiMatrixTable title="S1H — V3" rows={rsiTop1hV3Rows} />
+        <RsiMatrixTable title="S4H — V0" rows={rsiTop4hV0Rows} />
+        <RsiMatrixTable title="S4H — V1" rows={rsiTop4hV1Rows} />
+        <RsiMatrixTable title="S4H — V2" rows={rsiTop4hV2Rows} />
+        <RsiMatrixTable title="S4H — V3" rows={rsiTop4hV3Rows} />
+        <RsiMatrixTable title="S1D — V0" rows={rsiTop1dV0Rows} />
+        <RsiMatrixTable title="S1D — V1" rows={rsiTop1dV1Rows} />
+        <RsiMatrixTable title="S1D — V2" rows={rsiTop1dV2Rows} />
+        <RsiMatrixTable title="S1D — V3" rows={rsiTop1dV3Rows} />
         <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — RSI TOP Paper Positions</h3>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
         {rsiTopDisplayedOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP deschisă acum.</p> : null}
