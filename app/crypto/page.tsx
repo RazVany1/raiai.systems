@@ -119,6 +119,9 @@ const dataPath = path.join(process.cwd(), "public", "data", "pullback-continuati
 const fundingDataPath = path.join(process.cwd(), "public", "data", "funding-reset-reclaim-snapshot.json");
 const rsiTop4hV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-v3-state.json");
 const rsiTop1dV3Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v3-state.json");
+const rsiTop1hV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-1h-v0-state.json");
+const rsiTop4hV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-v0-state.json");
+const rsiTop1dV0Path = path.join(process.cwd(), "public", "data", "rsi-interest-1d-v0-state.json");
 const rsiTopPaperPath = path.join(process.cwd(), "public", "data", "paper-entry-positions.json");
 const rsiTopPaperHistoryPath = path.join(process.cwd(), "public", "data", "paper-entry-positions-history.json");
 const rsiTopRuntimeStatusPath = path.join(process.cwd(), "public", "data", "rsi-top-runtime-status.json");
@@ -140,6 +143,14 @@ function rsiRowsFromState(state: RsiTopState | null, timeframe: string): RsiTopR
   const raw = state?.rows;
   const rows = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? Object.values(raw) : [];
   return rows.map((row) => ({ ...row, timeframe: row.timeframe ?? timeframe })).filter((row) => row.currentlyInZone !== false);
+}
+
+function rsiV0RowsFromState(state: RsiTopState | null, timeframe: string): RsiTopRow[] {
+  const raw = state?.rows;
+  const rows = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? Object.values(raw) : [];
+  return rows
+    .map((row) => ({ ...row, timeframe: row.timeframe ?? timeframe }))
+    .sort((a, b) => String(b.detectedAt ?? "").localeCompare(String(a.detectedAt ?? "")) || String(a.symbol ?? "").localeCompare(String(b.symbol ?? "")));
 }
 
 function fmt(value: unknown): string {
@@ -401,6 +412,52 @@ function StrategyLiveGateCards({ pullback, funding }: { pullback: StrategySummar
   );
 }
 
+function RsiV0Table({ title, rows }: { title: string; rows: RsiTopRow[] }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <h3 style={{ margin: "12px 0 6px" }}>{title} — V0 ({rows.length})</h3>
+      {rows.length === 0 ? <p style={{ color: "#94a3b8", marginTop: 0 }}>Nicio monedă intrată în V0 în matricea curentă.</p> : null}
+      {rows.length ? (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", color: "#e5e7eb" }}>
+            <thead>
+              <tr style={{ color: "#94a3b8", textAlign: "left", borderBottom: "1px solid #334155" }}>
+                <th style={{ padding: "8px 6px" }}>Symbol</th>
+                <th style={{ padding: "8px 6px" }}>Side</th>
+                <th style={{ padding: "8px 6px" }}>RSI</th>
+                <th style={{ padding: "8px 6px" }}>Prev RSI</th>
+                <th style={{ padding: "8px 6px" }}>Price</th>
+                <th style={{ padding: "8px 6px" }}>Zone</th>
+                <th style={{ padding: "8px 6px" }}>Detected</th>
+                <th style={{ padding: "8px 6px" }}>Status</th>
+                <th style={{ padding: "8px 6px" }}>Venue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const isLong = row.zone === "lower_interest";
+                return (
+                  <tr key={`${title}-${row.symbol}-${row.zone}-${row.detectedAt}`} style={{ borderBottom: "1px solid #1f2937" }}>
+                    <td style={{ padding: "9px 6px", fontWeight: 900 }}>{row.symbol}</td>
+                    <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{isLong ? "LONG" : "SHORT"}</Badge></td>
+                    <td style={{ padding: "9px 6px" }}>{fmt(row.rsi)}</td>
+                    <td style={{ padding: "9px 6px" }}>{fmt(row.previousRsi)}</td>
+                    <td style={{ padding: "9px 6px" }}>{fmt(row.price)}</td>
+                    <td style={{ padding: "9px 6px", color: "#cbd5e1" }}>{fmt(row.zone)}</td>
+                    <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{dateFmt(row.detectedAt)}</td>
+                    <td style={{ padding: "9px 6px" }}><Badge tone={row.currentlyInZone === false ? "#fbbf24" : "#22c55e"}>{row.currentlyInZone === false ? "retained" : "active"}</Badge></td>
+                    <td style={{ padding: "9px 6px", color: "#94a3b8" }}>{fmt(row.sourceVenue)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function StrategyComparisonPanel({ pullback, funding }: { pullback: StrategySummary; funding: StrategySummary }) {
   const rows = [pullback, funding].map((s) => {
     const closedPnl = s.closedPnl;
@@ -440,6 +497,9 @@ export default function CryptoPage() {
   const fundingSnapshot = loadJson<PullbackSnapshot>(fundingDataPath);
   const rsiTop4hV3 = loadJson<RsiTopState>(rsiTop4hV3Path);
   const rsiTop1dV3 = loadJson<RsiTopState>(rsiTop1dV3Path);
+  const rsiTop1hV0 = loadJson<RsiTopState>(rsiTop1hV0Path);
+  const rsiTop4hV0 = loadJson<RsiTopState>(rsiTop4hV0Path);
+  const rsiTop1dV0 = loadJson<RsiTopState>(rsiTop1dV0Path);
   const rsiTopPaper = loadJson<RsiPaperState>(rsiTopPaperPath);
   const rsiTopPaperHistory = loadJson<RsiPaperState>(rsiTopPaperHistoryPath);
   const rsiTopRuntimeStatus = loadJson<Record<string, any>>(rsiTopRuntimeStatusPath);
@@ -504,6 +564,9 @@ export default function CryptoPage() {
   };
   const rsiTop4hRows = rsiRowsFromState(rsiTop4hV3, "4h");
   const rsiTop1dRows = rsiRowsFromState(rsiTop1dV3, "1d");
+  const rsiTop1hV0Rows = rsiV0RowsFromState(rsiTop1hV0, "1h");
+  const rsiTop4hV0Rows = rsiV0RowsFromState(rsiTop4hV0, "4h");
+  const rsiTop1dV0Rows = rsiV0RowsFromState(rsiTop1dV0, "1d");
   const rsiTopRows = [...rsiTop4hRows, ...rsiTop1dRows];
   const rsiTopLongs = rsiTopRows.filter((row) => row.zone === "lower_interest").length;
   const rsiTopShorts = rsiTopRows.filter((row) => row.zone === "upper_interest").length;
@@ -826,6 +889,9 @@ export default function CryptoPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 12, marginBottom: 14 }}>
           <StatCard label="RSI TOP 4H" value={rsiTop4hRows.length} tone="#a78bfa" />
           <StatCard label="RSI TOP 1D" value={rsiTop1dRows.length} tone="#a78bfa" />
+          <StatCard label="V0 S1H" value={rsiTop1hV0Rows.length} tone="#fbbf24" />
+          <StatCard label="V0 S4H" value={rsiTop4hV0Rows.length} tone="#fbbf24" />
+          <StatCard label="V0 S1D" value={rsiTop1dV0Rows.length} tone="#fbbf24" />
           <StatCard label="LONG zone" value={rsiTopLongs} tone="#22c55e" />
           <StatCard label="SHORT zone" value={rsiTopShorts} tone="#ef4444" />
           <StatCard label="Open paper" value={rsiTopOpenPositions.length} tone="#22c55e" />
@@ -879,6 +945,11 @@ export default function CryptoPage() {
             </table>
           </div>
         ) : null}
+        <h3 style={{ margin: "18px 0 4px" }}>Strategia 3 — RSI TOP V0 Matrix</h3>
+        <p style={{ color: "#94a3b8", marginTop: -2 }}>Toate monedele scanate care au intrat în V0, separat pe sistem/timeframe.</p>
+        <RsiV0Table title="S1H" rows={rsiTop1hV0Rows} />
+        <RsiV0Table title="S4H" rows={rsiTop4hV0Rows} />
+        <RsiV0Table title="S1D" rows={rsiTop1dV0Rows} />
         <h3 style={{ margin: "14px 0 8px" }}>Strategia 3 — RSI TOP Paper Positions</h3>
         <p style={{ color: "#94a3b8", marginTop: -4 }}>Afișare compactă: toate pozițiile RSI TOP open, pe sistem/timeframe.</p>
         {rsiTopDisplayedOpenPositions.length === 0 ? <p style={{ color: "#94a3b8" }}>Nicio poziție RSI TOP deschisă acum.</p> : null}
