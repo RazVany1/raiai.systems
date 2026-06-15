@@ -28,6 +28,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_PATH = PROJECT_ROOT / "public" / "data" / "funding-reset-reclaim-snapshot.json"
 OUTPUT_PATH = PROJECT_ROOT / "public" / "data" / "funding-live-pilot-tickets.json"
 STATUS_PATH = PROJECT_ROOT / "public" / "data" / "funding-live-pilot-status.json"
+LOCAL_CONFIG_PATH = PROJECT_ROOT / "live-pilot.local.json"
 
 PILOT_MARGIN_USD = 50.0
 PILOT_LEVERAGE = 3
@@ -132,13 +133,25 @@ def select_candidates(symbol: str | None) -> list[dict[str, Any]]:
     return sorted(eligible, key=lambda c: number(c.get("score", c.get("setupScore"))) or 0.0, reverse=True)
 
 
+def configured_hyperliquid_account_address() -> str | None:
+    env_value = os.environ.get("HYPERLIQUID_ACCOUNT_ADDRESS")
+    if env_value:
+        return env_value
+    config = load_json(LOCAL_CONFIG_PATH, {})
+    if isinstance(config, dict):
+        value = config.get("accountAddress")
+        if value:
+            return str(value)
+    return None
+
+
 def credentials_ready(exchange: str) -> tuple[bool, str]:
     if exchange == "hyperliquid":
-        # Do not store secrets in repo. Configure these in the local environment only.
+        # Do not store secrets in repo. Configure private key in the local environment only.
         if not os.environ.get("HYPERLIQUID_PRIVATE_KEY"):
             return False, "missing HYPERLIQUID_PRIVATE_KEY"
-        if not os.environ.get("HYPERLIQUID_ACCOUNT_ADDRESS"):
-            return False, "missing HYPERLIQUID_ACCOUNT_ADDRESS"
+        if not configured_hyperliquid_account_address():
+            return False, "missing HYPERLIQUID_ACCOUNT_ADDRESS or live-pilot.local.json accountAddress"
         try:
             import hyperliquid  # type: ignore  # noqa: F401
             import eth_account  # type: ignore  # noqa: F401
@@ -192,7 +205,9 @@ def execute_hyperliquid_order(ticket: LivePilotTicket) -> dict[str, Any]:
     from hyperliquid.utils import constants  # type: ignore
 
     private_key = os.environ["HYPERLIQUID_PRIVATE_KEY"]
-    account_address = os.environ["HYPERLIQUID_ACCOUNT_ADDRESS"]
+    account_address = configured_hyperliquid_account_address()
+    if not account_address:
+        raise RuntimeError("missing HYPERLIQUID_ACCOUNT_ADDRESS or live-pilot.local.json accountAddress")
     wallet = Account.from_key(private_key)
     exchange = Exchange(wallet, constants.MAINNET_API_URL, account_address=account_address)
 
