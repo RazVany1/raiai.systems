@@ -240,29 +240,46 @@ const SIM_MARGIN_USD = 50;
 const SIM_LEVERAGE = 3;
 const SIM_NOTIONAL_USD = SIM_MARGIN_USD * SIM_LEVERAGE;
 
+function finiteNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function paperMarkPrice(position: PaperPosition): number | null {
+  return finiteNumber(position.currentPrice)
+    ?? finiteNumber(position.lastPrice)
+    ?? finiteNumber(position.exitPrice)
+    ?? finiteNumber(position.closePrice);
+}
+
+function storedClosePlPercent(position: PaperPosition): number | null {
+  return finiteNumber(position.closePlPercent);
+}
+
 function simulatedPnl(position: PaperPosition): number | null {
-  const entry = Number(position.entryPrice);
-  const mark = Number(position.exitPrice ?? position.closePrice ?? position.lastPrice ?? position.currentPrice);
-  if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
+  const entry = finiteNumber(position.entryPrice);
+  const mark = paperMarkPrice(position);
+  if (entry === null || mark === null || entry <= 0) return null;
   const direction = position.side === "SHORT" ? -1 : 1;
   return ((mark - entry) / entry) * direction * SIM_NOTIONAL_USD;
 }
 
 function plPercent(position: PaperPosition): number | null {
-  const entry = Number(position.entryPrice);
-  const mark = Number(position.currentPrice ?? position.lastPrice ?? position.exitPrice ?? position.closePrice);
-  if (!Number.isFinite(entry) || !Number.isFinite(mark) || entry <= 0) return null;
+  const entry = finiteNumber(position.entryPrice);
+  const mark = paperMarkPrice(position);
+  if (entry === null || mark === null || entry <= 0) return null;
   const direction = position.side === "SHORT" ? -1 : 1;
   return ((mark - entry) / entry) * direction * 100;
 }
 
 function pnlUsdFromPercent(percent: number | null): number | null {
-  if (!Number.isFinite(Number(percent))) return null;
-  return (Number(percent) / 100) * SIM_NOTIONAL_USD;
+  if (percent === null) return null;
+  return (percent / 100) * SIM_NOTIONAL_USD;
 }
 
 function positionPnlUsd(position: PaperPosition): number | null {
-  const percent = plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null);
+  const percent = plPercent(position) ?? storedClosePlPercent(position);
   return pnlUsdFromPercent(percent);
 }
 
@@ -273,15 +290,15 @@ function sumKnownPnlUsd(positions: PaperPosition[]): number | null {
 }
 
 function avgKnownPlPercent(positions: PaperPosition[]): number | null {
-  const values = positions.map((position) => plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null)).filter((value): value is number => Number.isFinite(Number(value)));
+  const values = positions.map((position) => plPercent(position) ?? storedClosePlPercent(position)).filter((value): value is number => Number.isFinite(Number(value)));
   if (!values.length) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function bestByPnlPercent(positions: PaperPosition[], mode: "best" | "worst"): PaperPosition | null {
   return positions.reduce<PaperPosition | null>((selected, position) => {
-    const value = plPercent(position) ?? (Number.isFinite(Number(position.closePlPercent)) ? Number(position.closePlPercent) : null);
-    const selectedValue = selected ? (plPercent(selected) ?? (Number.isFinite(Number(selected.closePlPercent)) ? Number(selected.closePlPercent) : null)) : null;
+    const value = plPercent(position) ?? storedClosePlPercent(position);
+    const selectedValue = selected ? (plPercent(selected) ?? storedClosePlPercent(selected)) : null;
     if (value === null) return selected;
     if (!selected || selectedValue === null) return position;
     return mode === "best" ? (value > selectedValue ? position : selected) : (value < selectedValue ? position : selected);
@@ -979,8 +996,8 @@ export default function CryptoPage() {
           <StatCard label="Closed P/L" value={rsiTopClosedPnlUsd === null ? "—" : `$${rsiTopClosedPnlUsd.toFixed(2)}`} tone={Number(rsiTopClosedPnlUsd ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
           <StatCard label="Total P/L" value={rsiTopTotalPnlUsd === null ? "—" : `$${rsiTopTotalPnlUsd.toFixed(2)}`} tone={Number(rsiTopTotalPnlUsd ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
           <StatCard label="Avg open %" value={rsiTopAvgOpenPlPercent === null ? "—" : `${rsiTopAvgOpenPlPercent.toFixed(2)}%`} tone={Number(rsiTopAvgOpenPlPercent ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
-          <StatCard label="Best S3" value={rsiTopBestPosition ? `${rsiTopBestPosition.symbol} ${(plPercent(rsiTopBestPosition) ?? rsiTopBestPosition.closePlPercent ?? 0).toFixed(2)}%` : "—"} tone="#22c55e" />
-          <StatCard label="Worst S3" value={rsiTopWorstPosition ? `${rsiTopWorstPosition.symbol} ${(plPercent(rsiTopWorstPosition) ?? rsiTopWorstPosition.closePlPercent ?? 0).toFixed(2)}%` : "—"} tone="#ef4444" />
+          <StatCard label="Best S3" value={rsiTopBestPosition ? `${rsiTopBestPosition.symbol} ${fmt(plPercent(rsiTopBestPosition) ?? storedClosePlPercent(rsiTopBestPosition))}%` : "—"} tone="#22c55e" />
+          <StatCard label="Worst S3" value={rsiTopWorstPosition ? `${rsiTopWorstPosition.symbol} ${fmt(plPercent(rsiTopWorstPosition) ?? storedClosePlPercent(rsiTopWorstPosition))}%` : "—"} tone="#ef4444" />
           <StatCard label="Legacy S1h open" value={rsiTopLegacyOpenPositions.length} tone="#fbbf24" />
           <StatCard label="Scanări / zi" value="48" />
         </div>
@@ -1042,7 +1059,7 @@ export default function CryptoPage() {
                   <th style={{ padding: "8px 6px" }}>Side</th>
                   <th style={{ padding: "8px 6px" }}>Entry</th>
                   <th style={{ padding: "8px 6px" }}>Mark</th>
-                  <th style={{ padding: "8px 6px" }}>P/L</th>
+                  <th style={{ padding: "8px 6px" }}>P/L $ / %</th>
                   <th style={{ padding: "8px 6px" }}>Max / Min</th>
                   <th style={{ padding: "8px 6px" }}>Zone</th>
                   <th style={{ padding: "8px 6px" }}>Anchor RSI</th>
@@ -1053,6 +1070,8 @@ export default function CryptoPage() {
               <tbody>
                 {rsiTopDisplayedOpenPositions.map((position) => {
                   const pl = plPercent(position);
+                  const pnlUsd = positionPnlUsd(position);
+                  const mark = paperMarkPrice(position);
                   const isLong = position.side === "LONG";
                   const systemTone = position.entrySystem === "S1h" ? "#fbbf24" : "#a78bfa";
                   return (
@@ -1061,8 +1080,8 @@ export default function CryptoPage() {
                       <td style={{ padding: "9px 6px", fontWeight: 900 }}>{position.symbol}</td>
                       <td style={{ padding: "9px 6px" }}><Badge tone={isLong ? "#22c55e" : "#ef4444"}>{position.side}</Badge></td>
                       <td style={{ padding: "9px 6px" }}>{fmt(position.entryPrice)}</td>
-                      <td style={{ padding: "9px 6px" }}>{fmt(position.currentPrice ?? position.lastPrice)}</td>
-                      <td style={{ padding: "9px 6px", color: Number(pl ?? 0) >= 0 ? "#22c55e" : "#ef4444", fontWeight: 900 }}>{pl === null ? "—" : `${pl.toFixed(2)}%`}</td>
+                      <td style={{ padding: "9px 6px" }}>{fmt(mark)}</td>
+                      <td style={{ padding: "9px 6px", color: Number(pnlUsd ?? pl ?? 0) >= 0 ? "#22c55e" : "#ef4444", fontWeight: 900 }}>{pnlUsd === null || pl === null ? "—" : `$${pnlUsd.toFixed(2)} / ${pl.toFixed(2)}%`}</td>
                       <td style={{ padding: "9px 6px" }}>{fmt(position.maxPlPercent)}% / {fmt(position.minPlPercent)}%</td>
                       <td style={{ padding: "9px 6px", color: "#cbd5e1" }}>{fmt(position.signalZone)}</td>
                       <td style={{ padding: "9px 6px" }}>{fmt(position.anchorRsi)}</td>
